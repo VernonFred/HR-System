@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LocalStorage 调试工具</title>
+    <style>
+        body {
+            font-family: "PingFang SC", "Microsoft YaHei", sans-serif;
+            max-width: 1200px;
+            margin: 20px auto;
+            padding: 20px;
+            background-color: #f5f7fa;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 20px;
+        }
+        .btn-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            background: #409eff;
+            color: white;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        button:hover {
+            background: #66b1ff;
+        }
+        button.danger {
+            background: #f56c6c;
+        }
+        button.danger:hover {
+            background: #f78989;
+        }
+        button.success {
+            background: #67c23a;
+        }
+        button.success:hover {
+            background: #85ce61;
+        }
+        pre {
+            background: #f4f4f5;
+            padding: 15px;
+            border-radius: 6px;
+            overflow-x: auto;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+        .info {
+            background: #ecf5ff;
+            border-left: 4px solid #409eff;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 4px;
+        }
+        .success-msg {
+            background: #f0f9ff;
+            border-left: 4px solid #67c23a;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 4px;
+            color: #67c23a;
+        }
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+        .stat-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+        }
+        .stat-card h3 {
+            margin: 0 0 10px 0;
+            font-size: 14px;
+            opacity: 0.9;
+        }
+        .stat-card .value {
+            font-size: 32px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📦 LocalStorage 调试工具</h1>
+        
+        <div class="info">
+            <strong>说明：</strong>此工具用于查看和管理 EPQ 测试系统的 localStorage 数据。
+        </div>
+
+        <div class="stats" id="stats"></div>
+
+        <div class="btn-group">
+            <button onclick="viewData()">🔍 查看数据</button>
+            <button class="success" onclick="generateTestData()">➕ 生成测试数据 (10条)</button>
+            <button class="danger" onclick="clearData()">🗑️ 清空所有数据</button>
+        </div>
+
+        <h2>数据内容：</h2>
+        <pre id="output">点击"查看数据"按钮查看 localStorage 中的内容</pre>
+    </div>
+
+    <script>
+        const STORAGE_KEY = 'epqRecords';
+
+        function updateStats() {
+            const records = getRecords();
+            const statsHTML = `
+                <div class="stat-card">
+                    <h3>总记录数</h3>
+                    <div class="value">${records.length}</div>
+                </div>
+                <div class="stat-card" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);">
+                    <h3>LocalStorage 大小</h3>
+                    <div class="value">${(JSON.stringify(records).length / 1024).toFixed(2)} KB</div>
+                </div>
+            `;
+            document.getElementById('stats').innerHTML = statsHTML;
+        }
+
+        function getRecords() {
+            const data = localStorage.getItem(STORAGE_KEY);
+            return data ? JSON.parse(data) : [];
+        }
+
+        function saveRecords(records) {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(records));
+        }
+
+        function viewData() {
+            const records = getRecords();
+            const output = document.getElementById('output');
+            
+            if (records.length === 0) {
+                output.textContent = '❌ localStorage 中暂无数据';
+            } else {
+                output.textContent = JSON.stringify(records, null, 2);
+            }
+            updateStats();
+        }
+
+        function clearData() {
+            if (confirm('确定要清空所有测试数据吗？此操作不可恢复！')) {
+                localStorage.removeItem(STORAGE_KEY);
+                document.getElementById('output').textContent = '✅ 数据已清空';
+                updateStats();
+            }
+        }
+
+        function generateTestData() {
+            const records = getRecords();
+            const positions = ['Java开发工程师', '前端开发工程师', '产品经理', 'UI设计师', '销售经理', '市场运营', '人力资源', '财务专员', '行政专员'];
+            const names = ['张三', '李四', '王五', '赵六', '钱七', '孙八', '周九', '吴十', '郑十一', '冯十二'];
+
+            for (let i = 0; i < 10; i++) {
+                const now = new Date();
+                now.setDate(now.getDate() - Math.floor(Math.random() * 30)); // 随机30天内
+                now.setHours(Math.floor(Math.random() * 24));
+                now.setMinutes(Math.floor(Math.random() * 60));
+                now.setSeconds(Math.floor(Math.random() * 60));
+
+                // 使用统一的时间格式
+                const year = now.getFullYear();
+                const month = String(now.getMonth() + 1).padStart(2, '0');
+                const day = String(now.getDate()).padStart(2, '0');
+                const hour = String(now.getHours()).padStart(2, '0');
+                const minute = String(now.getMinutes()).padStart(2, '0');
+                const second = String(now.getSeconds()).padStart(2, '0');
+                const createTime = `${year}-${month}-${day} ${hour}:${minute}:${second}`;
+
+                const record = {
+                    id: Date.now() + '-' + Math.random().toString(36).substr(2, 9),
+                    name: names[Math.floor(Math.random() * names.length)],
+                    phone: '13' + Math.floor(Math.random() * 1000000000).toString().padStart(9, '0'),
+                    position: positions[Math.floor(Math.random() * positions.length)],
+                    remark: `这是测试备注信息 ${i + 1}`,
+                    createTime: createTime,
+                    scores: {
+                        E: Math.floor(Math.random() * 22), // 0-21
+                        N: Math.floor(Math.random() * 25), // 0-24
+                        P: Math.floor(Math.random() * 22), // 0-21
+                        L: Math.floor(Math.random() * 23)  // 0-22
+                    },
+                    rawAnswers: {}
+                };
+                records.push(record);
+            }
+
+            saveRecords(records);
+            viewData();
+            
+            // 显示成功消息
+            const output = document.getElementById('output');
+            const successDiv = document.createElement('div');
+            successDiv.className = 'success-msg';
+            successDiv.textContent = '✅ 已成功生成 10 条测试数据！';
+            output.parentNode.insertBefore(successDiv, output);
+            setTimeout(() => successDiv.remove(), 3000);
+        }
+
+        // 页面加载时更新统计
+        window.addEventListener('DOMContentLoaded', updateStats);
+    </script>
+</body>
+</html>
+

@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>生成测试数据</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 20px;
+        }
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            margin: 10px;
+            cursor: pointer;
+        }
+        .success {
+            background: #4caf50;
+            color: white;
+            border: none;
+        }
+        .info {
+            background: #2196F3;
+            color: white;
+            border: none;
+        }
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            background: #f0f0f0;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+    <h1>EPQ 测试数据生成器</h1>
+    <p>用于生成模拟测试数据，方便测试管理后台功能。</p>
+    
+    <button class="success" onclick="generateData()">生成 10 条测试数据</button>
+    <button class="info" onclick="clearData()">清空所有数据</button>
+    <button onclick="viewData()">查看当前数据</button>
+    
+    <div class="result" id="result"></div>
+
+    <script>
+        function generateData() {
+            const names = ['张三', '李四', '王五', '赵六', '钱七', '孙八', '周九', '吴十', '郑一', '刘二'];
+            const positions = ['Java开发工程师', '前端开发工程师', '产品经理', 'UI设计师', '销售经理', '市场运营', '人力资源', '财务专员', '行政专员'];
+            
+            const records = [];
+            const now = Date.now();
+            
+            for (let i = 0; i < 10; i++) {
+                const record = {
+                    id: `${now + i}-${Math.random().toString(36).substr(2, 9)}`,
+                    name: names[i % names.length] + (i + 1),
+                    phone: `138${String(Math.floor(Math.random() * 100000000)).padStart(8, '0')}`,
+                    position: positions[Math.floor(Math.random() * positions.length)],
+                    remark: i % 3 === 0 ? '备注信息' + (i + 1) : '',
+                    createTime: new Date(now - (9 - i) * 86400000).toLocaleString('zh-CN'),
+                    scores: {
+                        E: Math.floor(Math.random() * 22),
+                        N: Math.floor(Math.random() * 25),
+                        P: Math.floor(Math.random() * 22),
+                        L: Math.floor(Math.random() * 23)
+                    },
+                    rawAnswers: {}
+                };
+                records.push(record);
+            }
+            
+            // 获取现有数据
+            const existing = localStorage.getItem('epqRecords');
+            const allRecords = existing ? JSON.parse(existing) : [];
+            
+            // 添加新数据
+            allRecords.push(...records);
+            
+            // 保存
+            localStorage.setItem('epqRecords', JSON.stringify(allRecords));
+            
+            document.getElementById('result').innerHTML = `
+                <strong>✓ 成功生成 10 条测试数据！</strong><br>
+                当前总共有 ${allRecords.length} 条记录。<br>
+                <br>
+                请打开 <a href="admin.html" target="_blank">admin.html</a> 查看效果。
+            `;
+        }
+        
+        function clearData() {
+            if (confirm('确定要清空所有测试数据吗？')) {
+                localStorage.removeItem('epqRecords');
+                document.getElementById('result').innerHTML = '<strong>✓ 所有数据已清空！</strong>';
+            }
+        }
+        
+        function viewData() {
+            const data = localStorage.getItem('epqRecords');
+            if (!data) {
+                document.getElementById('result').innerHTML = '<strong>当前没有数据</strong>';
+                return;
+            }
+            
+            const records = JSON.parse(data);
+            document.getElementById('result').innerHTML = `
+                <strong>当前共有 ${records.length} 条记录：</strong><br><br>
+                <pre style="max-height: 300px; overflow: auto; font-size: 12px;">${JSON.stringify(records, null, 2)}</pre>
+            `;
+        }
+    </script>
+</body>
+</html>
+
