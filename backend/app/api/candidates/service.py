@@ -35,6 +35,7 @@ from .ai_analyzer import (
     generate_ai_analysis,
     build_default_analysis,
 )
+from .dimension_mapping import calculate_dimension_score_from_assessments
 
 logger = logging.getLogger(__name__)
 
@@ -316,10 +317,14 @@ async def build_candidate_portrait(
     ai_generation_time = int((time.time() - ai_start_time) * 1000)  # 毫秒
     
     # 5. 计算综合评价（结合AI分析）
+    # ⭐ 传入candidate信息用于简历质量评分
+    ai_analysis_with_candidate = ai_analysis.copy() if ai_analysis else {}
+    ai_analysis_with_candidate["candidate"] = candidate
+    
     overall_score, strengths, improvements = _calculate_overall_assessment(
         assessments_info,
         job_match_info,
-        ai_analysis
+        ai_analysis_with_candidate
     )
     
     # 6. 构建完整画像
@@ -475,12 +480,15 @@ async def _create_match_record(
 ) -> ProfileMatch:
     """创建岗位匹配记录.
     
-    根据测评结果和岗位画像计算匹配度。
+    ⭐ V2优化: 基于维度映射的智能匹配算法
+    - 不再使用统一的总分百分比
+    - 建立测评维度↔岗位维度的映射关系
+    - 真正利用测评的维度数据
     
     Args:
         session: 数据库会话
         job_profile: 岗位画像
-        submission: 测评提交记录
+        submission: 测评提交记录 (可能只是最新的一条)
         
     Returns:
         匹配记录
@@ -488,7 +496,44 @@ async def _create_match_record(
     # 解析岗位画像的能力维度
     dimensions = json.loads(job_profile.dimensions) if job_profile.dimensions else []
     
-    # 计算各维度得分（简化版算法）
+    # ⭐ 获取候选人的所有测评记录（用于跨测评计算）
+    candidate_id = submission.candidate_id
+    all_submissions_stmt = select(Submission).where(
+        and_(
+            Submission.candidate_id == candidate_id,
+            Submission.status == "completed"
+        )
+    )
+    all_submissions = session.exec(all_submissions_stmt).all()
+    
+    # 构建测评数据列表（供维度映射算法使用）
+    candidate_assessments = []
+    for sub in all_submissions:
+        # 获取问卷信息，判断测评类型
+        questionnaire = session.get(Questionnaire, sub.questionnaire_id)
+        test_type = None
+        if questionnaire and questionnaire.type:
+            # 统一转小写
+            test_type = questionnaire.type.lower()
+        
+        # 解析result_details
+        result_details = sub.result_details
+        if isinstance(result_details, str):
+            try:
+                result_details = json.loads(result_details)
+            except json.JSONDecodeError:
+                result_details = {}
+        
+        candidate_assessments.append({
+            "test_type": test_type,
+            "result_details": result_details,
+            "score_percentage": sub.score_percentage
+        })
+    
+    logger.info(f"🔍 岗位匹配: 候选人{candidate_id}有{len(candidate_assessments)}项测评, "
+                f"测评类型: {[a['test_type'] for a in candidate_assessments]}")
+    
+    # ⭐ 基于维度映射计算各维度得分
     dimension_scores = {}
     total_weighted_score = 0.0
     total_weight = 0.0
@@ -497,14 +542,14 @@ async def _create_match_record(
         dim_name = dim.get("name", "")
         dim_weight = float(dim.get("weight", 0))
         
-        # 基于测评分数计算维度得分（简化：使用总分百分比）
-        if submission.score_percentage is not None:
-            dim_score = submission.score_percentage
-        else:
-            dim_score = 60.0  # 默认及格分
+        # ⭐ 核心: 使用维度映射算法计算得分
+        dim_score = calculate_dimension_score_from_assessments(
+            dim_name, 
+            candidate_assessments
+        )
         
         dimension_scores[dim_name] = {
-            "score": dim_score,
+            "score": round(dim_score, 1),
             "weight": dim_weight,
             "weighted_score": dim_score * (dim_weight / 100)
         }
@@ -516,10 +561,23 @@ async def _create_match_record(
     if total_weight > 0:
         match_score = total_weighted_score / (total_weight / 100)
     else:
-        match_score = submission.score_percentage or 60.0
+        # 降级: 使用测评平均分
+        scores = [a["score_percentage"] for a in candidate_assessments if a["score_percentage"]]
+        match_score = sum(scores) / len(scores) if scores else 60.0
     
-    # 生成AI分析（占位）
-    ai_analysis = f"候选人在 {job_profile.name} 岗位的综合匹配度为 {match_score:.1f}分。"
+    match_score = round(match_score, 1)
+    
+    # 生成AI分析（占位，可以后续增强）
+    ai_analysis = f"候选人在 {job_profile.name} 岗位的综合匹配度为 {match_score}分。"
+    
+    # 添加维度分析
+    if dimension_scores:
+        top_dims = sorted(dimension_scores.items(), key=lambda x: x[1]["score"], reverse=True)[:3]
+        top_names = [f"{name}({score['score']}分)" for name, score in top_dims]
+        ai_analysis += f" 优势维度: {', '.join(top_names)}。"
+    
+    logger.info(f"✅ 岗位匹配: {job_profile.name} 匹配度={match_score}, "
+                f"维度数={len(dimension_scores)}")
     
     # 创建匹配记录
     match_record = ProfileMatch(
@@ -544,78 +602,165 @@ def _calculate_overall_assessment(
 ) -> tuple[Optional[float], List[str], List[str]]:
     """计算综合评价.
     
+    ⭐ V2优化: 多因子加权融合算法
+    - 测评分(40%) + 岗位匹配(30%) + 完整度(15%) + 简历质量(15%)
+    - 各维度权重可调整
+    - 提供分数构成说明
+    
     Args:
         assessments: 测评信息列表
         job_match: 岗位匹配信息
-        ai_analysis: AI分析结果
+        ai_analysis: AI分析结果（包含candidate信息）
     
     Returns:
         (综合得分, 优势亮点, 改进建议)
     """
     strengths = []
     improvements = []
-    overall_score = None
     
-    # 1. 基于测评结果
-    if assessments:
-        # 优先使用 score_percentage，如果没有则使用 total_score
-        scores = []
-        for a in assessments:
-            if a.score_percentage is not None:
-                scores.append(a.score_percentage)
-            elif a.total_score is not None:
-                scores.append(a.total_score)
+    # ⭐ 1. 测评加权平均分 (40%)
+    # MBTI: 40%, DISC: 30%, EPQ: 30%
+    assessment_weights = {
+        "mbti": 0.40,
+        "disc": 0.30,
+        "epq": 0.30
+    }
+    
+    assessment_score = 0
+    actual_weight_sum = 0
+    assessment_count = len(assessments)
+    
+    for a in assessments:
+        # 检测测评类型
+        test_type = None
+        if a.questionnaire_type:
+            test_type = a.questionnaire_type.lower()
+        elif a.questionnaire_name:
+            name_lower = a.questionnaire_name.lower()
+            if "mbti" in name_lower:
+                test_type = "mbti"
+            elif "disc" in name_lower:
+                test_type = "disc"
+            elif "epq" in name_lower:
+                test_type = "epq"
         
-        if scores:
-            avg_score = sum(scores) / len(scores)
-            overall_score = avg_score
+        if test_type and test_type in assessment_weights:
+            weight = assessment_weights[test_type]
+            score = a.score_percentage or a.total_score or 60
+            assessment_score += score * weight
+            actual_weight_sum += weight
+    
+    # 归一化 (如果只做了部分测评)
+    if actual_weight_sum > 0:
+        assessment_score = assessment_score / actual_weight_sum
+    else:
+        # 降级: 简单平均
+        scores = [a.score_percentage or a.total_score or 60 for a in assessments if (a.score_percentage or a.total_score)]
+        assessment_score = sum(scores) / len(scores) if scores else 60
+    
+    # ⭐ 2. 岗位匹配分 (30%)
+    # 如果有匹配，使用匹配分；否则使用测评分
+    match_score = job_match.match_score if job_match else assessment_score
+    
+    # ⭐ 3. 完整度加成 (15%)
+    # 测评越全，加成越高
+    completeness_bonus = 60  # 基准分
+    
+    if assessment_count == 1:
+        completeness_bonus = 65  # 单测评
+    elif assessment_count == 2:
+        completeness_bonus = 75  # 双测评，有一定互补
+    elif assessment_count >= 3:
+        completeness_bonus = 85  # 三测评，数据全面
+    
+    # 如果有岗位匹配，额外加5分
+    if job_match:
+        completeness_bonus = min(completeness_bonus + 5, 95)
+    
+    # ⭐ 4. 简历质量分 (15%)
+    # 从ai_analysis中获取candidate信息
+    resume_score = 60  # 基准分
+    has_resume = False
+    
+    if ai_analysis and ai_analysis.get("candidate"):
+        candidate = ai_analysis["candidate"]
+        has_resume = bool(getattr(candidate, "resume_path", None))
+        
+        if has_resume:
+            # 计算简历完整度
+            completeness_factors = []
+            if getattr(candidate, "education", None):
+                completeness_factors.append(0.25)
+            if getattr(candidate, "experience", None):
+                completeness_factors.append(0.35)
+            if getattr(candidate, "project", None):
+                completeness_factors.append(0.25)
+            if getattr(candidate, "skills", None):
+                completeness_factors.append(0.15)
             
-            if avg_score >= 80:
-                strengths.append(f"测评表现优秀，平均得分 {avg_score:.1f}")
-            elif avg_score >= 60:
-                strengths.append(f"测评表现良好，平均得分 {avg_score:.1f}")
-            else:
-                improvements.append(f"测评得分偏低（{avg_score:.1f}），建议加强相关能力训练")
+            resume_completeness = sum(completeness_factors)
+            resume_score = 70 + resume_completeness * 25  # 70-95分
+    
+    # ⭐ 综合计算
+    overall_score = (
+        assessment_score * 0.40 +
+        match_score * 0.30 +
+        completeness_bonus * 0.15 +
+        resume_score * 0.15
+    )
+    
+    overall_score = round(overall_score, 1)
+    
+    logger.debug(f"📊 综合评分: {overall_score:.1f} = "
+                 f"测评({assessment_score:.1f}*0.4) + "
+                 f"匹配({match_score:.1f}*0.3) + "
+                 f"完整度({completeness_bonus:.1f}*0.15) + "
+                 f"简历({resume_score:.1f}*0.15)")
+    
+    # ⭐ 生成优势和改进建议
+    # 1. 基于测评表现
+    if assessment_score >= 80:
+        strengths.append(f"测评表现优秀（{assessment_score:.1f}分，{assessment_count}项测评）")
+    elif assessment_score >= 60:
+        strengths.append(f"测评表现良好（{assessment_score:.1f}分，{assessment_count}项测评）")
+    else:
+        improvements.append(f"测评得分偏低（{assessment_score:.1f}分），建议加强训练")
     
     # 2. 基于岗位匹配
     if job_match:
         if job_match.match_score >= 80:
-            strengths.append(f"与 {job_match.profile_name} 岗位高度匹配（{job_match.match_score:.1f}分）")
+            strengths.append(f"与{job_match.profile_name}岗位高度匹配（{job_match.match_score:.1f}分）")
         elif job_match.match_score >= 60:
-            strengths.append(f"与 {job_match.profile_name} 岗位基本匹配（{job_match.match_score:.1f}分）")
+            strengths.append(f"与{job_match.profile_name}岗位基本匹配（{job_match.match_score:.1f}分）")
         else:
-            improvements.append(f"与 {job_match.profile_name} 岗位匹配度较低，建议补充相关经验")
+            improvements.append(f"与{job_match.profile_name}岗位匹配度较低，建议补充经验")
         
-        # 分析维度得分
-        for dim in job_match.dimension_scores:
-            if dim.score >= 85:
-                strengths.append(f"{dim.name}表现突出（{dim.score:.1f}分）")
-            elif dim.score < 60:
-                improvements.append(f"{dim.name}需要提升（{dim.score:.1f}分）")
-        
-        # 如果有岗位匹配，综合得分可以结合测评和匹配
-        if overall_score:
-            overall_score = (overall_score + job_match.match_score) / 2
+        # 分析维度得分 (只取前2个极端)
+        sorted_dims = sorted(job_match.dimension_scores, key=lambda d: d.score, reverse=True)
+        if len(sorted_dims) > 0 and sorted_dims[0].score >= 85:
+            strengths.append(f"{sorted_dims[0].name}表现突出（{sorted_dims[0].score:.1f}分）")
+        if len(sorted_dims) > 0 and sorted_dims[-1].score < 60:
+            improvements.append(f"{sorted_dims[-1].name}需要提升（{sorted_dims[-1].score:.1f}分）")
     
-    # 3. 如果有AI分析，优先使用AI生成的内容
+    # 3. 基于完整度
+    if assessment_count >= 3:
+        strengths.append(f"测评数据全面（完成{assessment_count}项测评）")
+    
+    # 4. 基于简历质量
+    if has_resume and resume_score >= 85:
+        strengths.append("简历内容完整详实")
+    elif not has_resume:
+        improvements.append("建议上传简历，提供更全面的背景信息")
+    
+    # 5. 如果有AI分析，追加AI生成的内容
     if ai_analysis:
         ai_strengths = ai_analysis.get("strengths", [])
         ai_risks = ai_analysis.get("risks", [])
+        # 追加（不覆盖）AI分析的前2条
         if ai_strengths:
-            strengths = ai_strengths  # 使用AI分析的优势
+            strengths.extend(ai_strengths[:2])
         if ai_risks:
-            improvements = ai_risks  # 使用AI分析的风险
-    
-    # 4. 如果没有综合得分，使用岗位匹配分数
-    if overall_score is None and job_match and job_match.match_score:
-            overall_score = job_match.match_score
-    
-    # 5. 如果仍然没有综合得分，基于测评结果计算
-    if overall_score is None and assessments:
-        # 使用测评的总分作为综合得分
-        scores = [a.total_score for a in assessments if a.total_score is not None]
-        if scores:
-            overall_score = sum(scores) / len(scores)
+            improvements.extend(ai_risks[:2])
     
     # 6. 默认建议
     if not strengths:
