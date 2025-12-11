@@ -1,0 +1,167 @@
+{
+  "job_families": {
+    "dev": {
+      "name": "研发技术族",
+      "description": "前端/后端/测试/架构/算法等技术研发岗位",
+      "keywords": ["工程师", "开发", "技术", "架构", "算法", "测试", "运维", "前端", "后端", "全栈", "程序员"],
+      "core_competencies": [
+        {"key": "system_complexity", "label": "系统复杂度理解", "description": "能够理解和处理复杂系统架构，把握模块间依赖关系"},
+        {"key": "engineering", "label": "工程化与代码质量", "description": "注重代码规范、可维护性、可复用性，具备工程化思维"},
+        {"key": "performance", "label": "性能与稳定性意识", "description": "关注系统性能瓶颈，具备性能优化和稳定性保障能力"},
+        {"key": "abstraction", "label": "需求抽象与建模", "description": "能够将业务需求抽象为技术方案，具备系统设计能力"},
+        {"key": "cross_team", "label": "跨团队协作", "description": "能够与产品/设计/测试等角色高效协作"}
+      ],
+      "behavior_hints": [
+        "在复杂技术问题面前保持冷静，能够系统性分析和解决",
+        "主动关注代码质量和技术债务，而非仅完成功能",
+        "能够在技术方案评审中清晰表达观点并接受反馈"
+      ]
+    },
+    "design": {
+      "name": "设计创意族",
+      "description": "UI/视觉/品牌/交互等设计创意岗位",
+      "keywords": ["设计", "UI", "UX", "视觉", "交互", "品牌", "创意", "美术"],
+      "core_competencies": [
+        {"key": "visual_consistency", "label": "视觉一致性与规范", "description": "能够建立和维护统一的视觉语言和设计规范"},
+        {"key": "experience_insight", "label": "体验问题洞察", "description": "能够从用户视角发现体验问题并提出改进方案"},
+        {"key": "abstract_design", "label": "抽象设计与组件化", "description": "能够将设计元素抽象为可复用的组件和模板"},
+        {"key": "brand_tone", "label": "品牌与调性把握", "description": "能够理解和传达品牌调性，保持设计风格一致"},
+        {"key": "design_collab", "label": "与产品/开发协同", "description": "能够与产品和开发团队高效沟通，推动设计落地"}
+      ],
+      "behavior_hints": [
+        "在设计评审中能够清晰阐述设计理念和决策依据",
+        "主动收集用户反馈，持续优化设计方案",
+        "能够在保持设计原则的同时灵活应对需求变更"
+      ]
+    },
+    "pm": {
+      "name": "产品策划族",
+      "description": "产品经理/需求分析/解决方案等产品策划岗位",
+      "keywords": ["产品", "需求", "策划", "解决方案", "PM", "规划"],
+      "core_competencies": [
+        {"key": "requirement_insight", "label": "需求洞察能力", "description": "能够深入理解用户需求，挖掘真实痛点"},
+        {"key": "structured_analysis", "label": "结构化分析能力", "description": "能够将复杂问题拆解为可执行的任务"},
+        {"key": "solution_design", "label": "方案设计能力", "description": "能够设计可落地的产品方案"},
+        {"key": "cross_dept_drive", "label": "跨团队推进能力", "description": "能够协调资源，推动项目落地"},
+        {"key": "result_oriented", "label": "业务结果导向", "description": "关注业务指标，以结果为导向"}
+      ],
+      "behavior_hints": [
+        "在需求讨论中能够引导团队聚焦核心问题",
+        "能够在资源有限的情况下做出合理的优先级判断",
+        "主动跟进项目进度，及时识别和解决阻塞问题"
+      ]
+    },
+    "ops": {
+      "name": "运营增长族",
+      "description": "活动运营/用户运营/社群运营/增长等运营岗位",
+      "keywords": ["运营", "活动", "用户", "社群", "增长", "内容", "市场"],
+      "core_competencies": [
+        {"key": "data_analysis", "label": "数据分析能力", "description": "能够通过数据分析发现问题和机会"},
+        {"key": "activity_planning", "label": "活动策划能力", "description": "能够策划和执行有效的运营活动"},
+        {"key": "execution", "label": "流程执行与落地", "description": "能够将策划方案落地执行"},
+        {"key": "user_insight", "label": "用户洞察能力", "description": "能够理解用户行为和需求"},
+        {"key": "ops_collab", "label": "跨部门协作", "description": "能够协调多方资源推动项目"}
+      ],
+      "behavior_hints": [
+        "主动关注运营数据，及时调整策略",
+        "能够在活动执行中快速响应突发情况",
+        "善于总结复盘，持续优化运营方法"
+      ]
+    },
+    "delivery": {
+      "name": "项目交付族",
+      "description": "实施工程师/项目经理/客户成功等交付岗位",
+      "keywords": ["实施", "项目", "交付", "客户", "部署", "集成", "顾问"],
+      "core_competencies": [
+        {"key": "client_comm", "label": "客户沟通能力", "description": "能够与客户建立信任关系，理解客户需求"},
+        {"key": "requirement_mgmt", "label": "需求澄清与管理", "description": "能够澄清模糊需求，管理需求变更"},
+        {"key": "project_mgmt", "label": "项目计划与跟进", "description": "能够制定和执行项目计划"},
+        {"key": "pressure_handling", "label": "抗压能力", "description": "能够在压力下保持冷静，推进项目"},
+        {"key": "solution_landing", "label": "方案落地能力", "description": "能够将方案转化为实际交付成果"}
+      ],
+      "behavior_hints": [
+        "在客户沟通中保持专业和耐心",
+        "能够主动识别项目风险并提前预警",
+        "善于协调内外部资源解决问题"
+      ]
+    },
+    "support": {
+      "name": "客户支持族",
+      "description": "客服/技术支持/售后等客户服务岗位",
+      "keywords": ["客服", "支持", "售后", "服务", "帮助"],
+      "core_competencies": [
+        {"key": "empathy", "label": "同理心", "description": "能够站在客户角度理解问题"},
+        {"key": "problem_response", "label": "问题识别与响应", "description": "能够快速识别问题并给出解决方案"},
+        {"key": "communication", "label": "沟通表达能力", "description": "能够清晰准确地传达信息"},
+        {"key": "conflict_handling", "label": "冲突处理能力", "description": "能够妥善处理客户投诉和冲突"},
+        {"key": "process_compliance", "label": "流程规范意识", "description": "能够按照流程规范处理问题"}
+      ],
+      "behavior_hints": [
+        "在面对客户抱怨时保持冷静和专业",
+        "能够主动跟进问题直到解决",
+        "善于总结常见问题，提升服务效率"
+      ]
+    },
+    "hr_admin": {
+      "name": "职能管理族",
+      "description": "人事/行政/财务/法务等职能管理岗位",
+      "keywords": ["人事", "行政", "财务", "法务", "HR", "招聘", "薪酬", "培训"],
+      "core_competencies": [
+        {"key": "org_sensitivity", "label": "组织敏感度", "description": "能够理解组织动态和人际关系"},
+        {"key": "rule_awareness", "label": "规则意识", "description": "能够遵守和执行规章制度"},
+        {"key": "coordination", "label": "协同能力", "description": "能够协调多方资源完成任务"},
+        {"key": "risk_awareness", "label": "风险意识", "description": "能够识别和防范潜在风险"},
+        {"key": "data_mgmt", "label": "数据管理能力", "description": "能够准确管理和维护数据"}
+      ],
+      "behavior_hints": [
+        "在处理敏感信息时保持保密意识",
+        "能够在复杂流程中保持耐心和细致",
+        "善于建立和维护跨部门关系"
+      ]
+    },
+    "edu": {
+      "name": "教学教务族",
+      "description": "班主任/教辅/教务老师等教育类岗位",
+      "keywords": ["教学", "教务", "班主任", "教师", "老师", "培训", "讲师", "助教"],
+      "core_competencies": [
+        {"key": "classroom_control", "label": "课堂掌控力", "description": "能够有效管理课堂秩序和节奏"},
+        {"key": "student_comm", "label": "学生沟通能力", "description": "能够与学生建立良好的沟通关系"},
+        {"key": "patience", "label": "耐心与细致度", "description": "能够耐心解答问题，关注细节"},
+        {"key": "parent_comm", "label": "家校沟通能力", "description": "能够与家长有效沟通"},
+        {"key": "emotional_stability", "label": "情绪稳定性", "description": "能够在压力下保持情绪稳定"}
+      ],
+      "behavior_hints": [
+        "在面对学生问题时保持耐心和引导",
+        "能够及时发现学生的情绪变化",
+        "善于总结教学方法，持续改进"
+      ]
+    },
+    "sales": {
+      "name": "销售商务族",
+      "description": "大客户/渠道/商务拓展等销售岗位",
+      "keywords": ["销售", "商务", "渠道", "客户", "BD", "拓展", "大客户"],
+      "core_competencies": [
+        {"key": "client_dev", "label": "客户开发能力", "description": "能够发现和开发潜在客户"},
+        {"key": "negotiation", "label": "商务谈判能力", "description": "能够进行有效的商务谈判"},
+        {"key": "relationship", "label": "关系维护能力", "description": "能够建立和维护客户关系"},
+        {"key": "goal_driven", "label": "目标驱动", "description": "能够以业绩目标为导向"},
+        {"key": "market_insight", "label": "市场洞察力", "description": "能够理解市场动态和竞争格局"}
+      ],
+      "behavior_hints": [
+        "在面对拒绝时保持积极心态",
+        "能够主动挖掘客户需求",
+        "善于总结成功经验并复制"
+      ]
+    }
+  },
+  "common_competencies": [
+    {"key": "communication", "label": "沟通协作", "description": "能够清晰表达观点，与他人有效协作"},
+    {"key": "learning", "label": "学习适应", "description": "能够快速学习新知识，适应新环境"},
+    {"key": "structured_thinking", "label": "结构化思维", "description": "能够系统性分析问题，逻辑清晰"},
+    {"key": "problem_solving", "label": "问题解决", "description": "能够识别问题并找到解决方案"},
+    {"key": "pressure", "label": "压力承受", "description": "能够在压力下保持工作效率"},
+    {"key": "initiative", "label": "主动性", "description": "能够主动承担责任，不等待指令"},
+    {"key": "self_driven", "label": "自我驱动", "description": "能够自我激励，持续进步"}
+  ]
+}
+
