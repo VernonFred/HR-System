@@ -1,0 +1,491 @@
+/**
+ * 提交详情面板样式
+ * 
+ * 用于提交记录详情页的头部、得分统计、答案列表等
+ */
+
+/* ===== 头部区域样式 ===== */
+.detail-header-card {
+  display: flex;
+  align-items: stretch;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 24px;
+  background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+  border-radius: 16px;
+  margin-bottom: 24px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+  border: 1px solid rgba(0, 0, 0, 0.04);
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex: 1;
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+}
+
+.detail-avatar {
+  width: 72px;
+  height: 72px;
+  border-radius: 16px;
+  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 28px;
+  flex-shrink: 0;
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+}
+
+.category-scored .detail-avatar {
+  background: linear-gradient(135deg, #10b981, #059669);
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+}
+
+.category-survey .detail-avatar {
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+  box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
+}
+
+.detail-basic {
+  flex: 1;
+}
+
+.detail-basic h2 {
+  font-size: 22px;
+  font-weight: 700;
+  margin: 0 0 10px;
+  color: #1e293b;
+}
+
+.info-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 6px 0;
+}
+
+.info-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: #64748b;
+}
+
+.info-item i {
+  font-size: 14px;
+  color: #94a3b8;
+}
+
+.info-divider {
+  color: #e2e8f0;
+  font-size: 12px;
+}
+
+.questionnaire-tag {
+  background: linear-gradient(135deg, #f1f5f9, #e2e8f0);
+  padding: 4px 12px;
+  border-radius: 8px;
+  font-size: 12px;
+  color: #475569;
+}
+
+.questionnaire-tag i {
+  color: var(--accent-color, #6366f1);
+}
+
+/* ===== 得分统计卡片区域 ===== */
+.score-stats-row {
+  display: flex;
+  gap: 16px;
+}
+
+.stat-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 20px;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  border: 1px solid #f1f5f9;
+  min-width: 140px;
+}
+
+.stat-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  flex-shrink: 0;
+}
+
+.score-card .stat-icon {
+  background: linear-gradient(135deg, #fef3c7, #fde68a);
+  color: #d97706;
+}
+
+.grade-icon {
+  font-weight: 800;
+  font-size: 18px;
+  color: white;
+}
+
+.grade-icon.grade-a {
+  background: linear-gradient(135deg, #10b981, #059669);
+}
+
+.grade-icon.grade-b {
+  background: linear-gradient(135deg, #3b82f6, #2563eb);
+}
+
+.grade-icon.grade-c {
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+}
+
+.grade-icon.grade-d {
+  background: linear-gradient(135deg, #ef4444, #dc2626);
+}
+
+.stat-content {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.stat-label {
+  font-size: 12px;
+  color: #94a3b8;
+  font-weight: 500;
+}
+
+.stat-value-row {
+  display: flex;
+  align-items: baseline;
+  gap: 2px;
+}
+
+.stat-value {
+  font-size: 24px;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.stat-unit {
+  font-size: 13px;
+  color: #94a3b8;
+}
+
+.grade-text {
+  font-size: 16px !important;
+}
+
+.grade-text.grade-a { color: #10b981; }
+.grade-text.grade-b { color: #3b82f6; }
+.grade-text.grade-c { color: #f59e0b; }
+.grade-text.grade-d { color: #ef4444; }
+
+/* ===== 得分进度条 ===== */
+.score-progress {
+  width: 100%;
+  height: 6px;
+  background: #f1f5f9;
+  border-radius: 3px;
+  overflow: hidden;
+  margin-top: 4px;
+}
+
+.score-progress-bar {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.5s ease;
+}
+
+.progress-excellent {
+  background: linear-gradient(90deg, #10b981, #059669);
+}
+
+.progress-good {
+  background: linear-gradient(90deg, #3b82f6, #2563eb);
+}
+
+.progress-pass {
+  background: linear-gradient(90deg, #f59e0b, #d97706);
+}
+
+.progress-fail {
+  background: linear-gradient(90deg, #ef4444, #dc2626);
+}
+
+/* ===== 调查问卷状态标签 ===== */
+.status-badge {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 20px;
+  border-radius: 12px;
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.status-badge.completed {
+  background: linear-gradient(135deg, #d1fae5, #a7f3d0);
+  color: #059669;
+}
+
+.status-badge i {
+  font-size: 18px;
+}
+
+.grade-badge.grade-d {
+  background: linear-gradient(135deg, #ef4444, #dc2626);
+  color: white;
+}
+
+/* ===== 答案区域 ===== */
+.answers-section {
+  margin-top: 24px;
+}
+
+.answers-section h3 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  margin: 0 0 16px;
+  color: #333;
+}
+
+.answers-section h3 i {
+  color: #6366f1;
+}
+
+.category-scored .answers-section h3 i {
+  color: #10b981;
+}
+
+.category-survey .answers-section h3 i {
+  color: #f59e0b;
+}
+
+.answers-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.answer-item {
+  padding: 16px;
+  background: #fafafa;
+  border-radius: 12px;
+  border: 1px solid #f0f0f0;
+}
+
+.answer-question {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.question-number {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  background: #e0e7ff;
+  color: #4338ca;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.category-scored .question-number {
+  background: #d1fae5;
+  color: #059669;
+}
+
+.category-survey .question-number {
+  background: #fef3c7;
+  color: #d97706;
+}
+
+.question-text {
+  flex: 1;
+  font-size: 14px;
+  color: #333;
+  line-height: 1.5;
+}
+
+.answer-content {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 12px;
+  background: white;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+}
+
+.answer-text {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  color: #1e293b;
+}
+
+.answer-text i {
+  color: #6366f1;
+  font-size: 16px;
+}
+
+.category-scored .answer-text i {
+  color: #10b981;
+}
+
+.answer-score {
+  font-size: 13px;
+  font-weight: 600;
+  color: #10b981;
+  background: rgba(16, 185, 129, 0.1);
+  padding: 4px 10px;
+  border-radius: 6px;
+}
+
+/* ===== 题号样式 ===== */
+.q-num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  background: #6366f1;
+  color: white;
+  font-size: 12px;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.category-scored .q-num {
+  background: #10b981;
+}
+
+.category-survey .q-num {
+  background: #f59e0b;
+}
+
+.q-text {
+  font-size: 14px;
+  color: #333;
+  line-height: 1.5;
+}
+
+.answer-value {
+  padding: 10px 12px;
+  background: white;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+  font-size: 14px;
+  color: #666;
+}
+
+.no-answers {
+  text-align: center;
+  padding: 40px;
+  color: #999;
+}
+
+.no-answers i {
+  font-size: 48px;
+  margin-bottom: 12px;
+  opacity: 0.5;
+}
+
+.no-answers p {
+  margin: 0 0 8px;
+  font-size: 15px;
+}
+
+.no-answers .hint {
+  font-size: 13px;
+  color: #aaa;
+}
+
+/* ===== 维度结果样式 ===== */
+.dimension-results {
+  padding: 16px;
+  background: #f9fafb;
+  border-radius: 12px;
+}
+
+.dimension-hint {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+  color: #6b7280;
+  font-size: 13px;
+}
+
+.dimension-hint i {
+  color: #3b82f6;
+}
+
+.dimension-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.dimension-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.dim-label {
+  width: 80px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #374151;
+}
+
+.dim-bar {
+  flex: 1;
+  height: 8px;
+  background: #e5e7eb;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.dim-fill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.5s ease;
+}
+
+.dim-score {
+  width: 40px;
+  text-align: right;
+  font-size: 14px;
+  font-weight: 600;
+  color: #1f2937;
+}
+

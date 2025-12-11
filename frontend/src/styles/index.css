@@ -1,0 +1,11 @@
+/**
+ * 样式入口文件
+ * 
+ * 统一导入所有全局样式
+ */
+
+@import './variables.css';
+@import './base.css';
+@import './components.css';
+@import './assessments/index.css';
+

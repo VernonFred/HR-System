@@ -1,0 +1,448 @@
+/**
+ * 测评结果展示样式
+ * 
+ * 包含 MBTI、DISC、EPQ 等多维度测评结果的展示样式
+ */
+
+/* ===== 人格类型卡片 ===== */
+.personality-type-card {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+  padding: 1.5rem;
+  background: linear-gradient(135deg, #f5f3ff 0%, #ede9fe 100%);
+  border-radius: 16px;
+  border: 2px solid #e9d5ff;
+  margin-bottom: 1.5rem;
+}
+
+.type-icon {
+  width: 72px;
+  height: 72px;
+  border-radius: 16px;
+  background: linear-gradient(135deg, #7c3aed 0%, #6366f1 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 2rem;
+  box-shadow: 0 8px 20px rgba(124, 58, 237, 0.3);
+}
+
+.type-info {
+  flex: 1;
+}
+
+.type-code {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: #7c3aed;
+  margin: 0 0 0.25rem;
+  letter-spacing: 0.05em;
+}
+
+.type-name {
+  font-size: 1rem;
+  color: #6b7280;
+  margin: 0;
+  font-weight: 500;
+}
+
+/* ===== MBTI 维度网格 ===== */
+.dimensions-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.25rem;
+  margin-bottom: 1.5rem;
+}
+
+.dimension-item {
+  background: white;
+  padding: 1.25rem;
+  border-radius: 12px;
+  border: 1.5px solid #e5e7eb;
+}
+
+.dimension-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.75rem;
+}
+
+.dimension-key {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: #6b7280;
+}
+
+.dimension-value {
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: #7c3aed;
+}
+
+.dimension-bar-bg {
+  height: 10px;
+  background: #f3f4f6;
+  border-radius: 5px;
+  overflow: hidden;
+  margin-bottom: 0.75rem;
+}
+
+.dimension-bar-fill {
+  height: 100%;
+  border-radius: 5px;
+  transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.dimension-bar-fill.mbti-bar {
+  background: linear-gradient(90deg, #7c3aed 0%, #6366f1 100%);
+}
+
+.dimension-label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.tendency-badge {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: #7c3aed;
+  padding: 0.125rem 0.5rem;
+  background: #f5f3ff;
+  border-radius: 6px;
+}
+
+.tendency-text {
+  font-size: 0.8125rem;
+  color: #6b7280;
+}
+
+/* ===== DISC 样式 ===== */
+.result-disc .personality-type-card {
+  background: linear-gradient(135deg, #fff7ed 0%, #fed7aa 100%);
+  border-color: #fdba74;
+}
+
+.disc-card .type-icon {
+  background: linear-gradient(135deg, #f59e0b 0%, #fb923c 100%);
+  box-shadow: 0 8px 20px rgba(245, 158, 11, 0.3);
+}
+
+.disc-code {
+  color: #ea580c;
+}
+
+.dimensions-bars {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  margin-bottom: 1.5rem;
+}
+
+.dimension-bar-item {
+  background: white;
+  padding: 1.25rem;
+  border-radius: 12px;
+  border: 1.5px solid #e5e7eb;
+}
+
+.bar-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.75rem;
+}
+
+.bar-label {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.bar-value {
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: #f59e0b;
+}
+
+.bar-track {
+  height: 12px;
+  background: #f3f4f6;
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.bar-fill {
+  height: 100%;
+  border-radius: 6px;
+  transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.disc-bar.disc-d {
+  background: linear-gradient(90deg, #dc2626 0%, #ef4444 100%);
+}
+
+.disc-bar.disc-i {
+  background: linear-gradient(90deg, #f59e0b 0%, #fb923c 100%);
+}
+
+.disc-bar.disc-s {
+  background: linear-gradient(90deg, #10b981 0%, #34d399 100%);
+}
+
+.disc-bar.disc-c {
+  background: linear-gradient(90deg, #3b82f6 0%, #60a5fa 100%);
+}
+
+/* ===== EPQ 样式 ===== */
+.result-epq .personality-type-card {
+  background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+  border-color: #93c5fd;
+}
+
+.epq-card .type-icon {
+  background: linear-gradient(135deg, #2563eb 0%, #3b82f6 100%);
+  box-shadow: 0 8px 20px rgba(37, 99, 235, 0.3);
+}
+
+.epq-code {
+  color: #1e40af;
+}
+
+.dimensions-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.epq-dimension {
+  background: white;
+  padding: 1.25rem;
+  border-radius: 12px;
+  border: 1.5px solid #e5e7eb;
+}
+
+.epq-dim-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.875rem;
+}
+
+.epq-dim-title {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+}
+
+.epq-key {
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: #2563eb;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #eff6ff;
+  border-radius: 8px;
+}
+
+.epq-name {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: #374151;
+}
+
+.epq-level {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  padding: 0.25rem 0.625rem;
+  border-radius: 6px;
+}
+
+.epq-level.level-高 {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+.epq-level.level-中 {
+  background: #fef3c7;
+  color: #d97706;
+}
+
+.epq-level.level-低 {
+  background: #d1fae5;
+  color: #047857;
+}
+
+.epq-scores {
+  display: flex;
+  gap: 1.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.epq-score-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.score-type {
+  font-size: 0.8125rem;
+  color: #9ca3af;
+}
+
+.score-num {
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: #1f2937;
+}
+
+.score-num.highlight {
+  color: #2563eb;
+  font-size: 1.25rem;
+}
+
+.epq-bar-track {
+  height: 8px;
+  background: #f3f4f6;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.epq-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #2563eb 0%, #3b82f6 100%);
+  border-radius: 4px;
+  transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ===== 分数总结 ===== */
+.score-summary {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2rem;
+  padding: 1.5rem;
+  background: linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%);
+  border-radius: 12px;
+}
+
+.summary-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.summary-label {
+  font-size: 0.875rem;
+  color: #6b7280;
+  font-weight: 500;
+}
+
+.summary-value {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: #1f2937;
+}
+
+.summary-value.grade {
+  padding: 0.25rem 0.875rem;
+  border-radius: 10px;
+}
+
+.summary-value.grade.grade-a {
+  background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
+  color: #047857;
+}
+
+.summary-value.grade.grade-b {
+  background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+  color: #1d4ed8;
+}
+
+.summary-value.grade.grade-c {
+  background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+  color: #b45309;
+}
+
+.summary-value.grade.grade-d {
+  background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
+  color: #dc2626;
+}
+
+.summary-divider {
+  width: 1px;
+  height: 48px;
+  background: #e5e7eb;
+}
+
+/* 简单结果 (兼容旧样式) */
+.result-simple .score-display {
+  justify-content: center;
+}
+
+/* ===== 自定义问卷结果样式 ===== */
+.custom-scored-result {
+  padding: 1.5rem 0;
+}
+
+.scoring-summary-cards {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.scoring-card {
+  background: white;
+  border-radius: 12px;
+  padding: 1.25rem;
+  border: 1.5px solid #e5e7eb;
+  text-align: center;
+}
+
+.scoring-card-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 0.75rem;
+  font-size: 1.5rem;
+}
+
+.scoring-card-icon.score {
+  background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+  color: #d97706;
+}
+
+.scoring-card-icon.grade {
+  background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
+  color: #059669;
+}
+
+.scoring-card-icon.time {
+  background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+  color: #2563eb;
+}
+
+.scoring-card-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #1f2937;
+  margin-bottom: 0.25rem;
+}
+
+.scoring-card-label {
+  font-size: 0.8125rem;
+  color: #6b7280;
+}
+

@@ -1,0 +1,15 @@
+/**
+ * 测评相关样式入口
+ * 
+ * 统一导入所有测评相关的样式模块
+ */
+
+@import './page-header.css';
+@import './cards.css';
+@import './submission-layout.css';
+@import './submission-detail.css';
+@import './statistics.css';
+@import './modals.css';
+@import './editor.css';
+@import './assessment-results.css';
+
