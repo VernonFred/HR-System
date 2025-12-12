@@ -36,6 +36,9 @@ from .ai_analyzer import (
     build_default_analysis,
 )
 from .dimension_mapping import calculate_dimension_score_from_assessments
+from app.services.cross_validation import CrossValidationService
+from app.services.resume_quality_analyzer import ResumeQualityAnalyzer  # 🟢 P2-2
+from app.services.job_recommender import JobRecommender  # 🟢 P2-3
 
 logger = logging.getLogger(__name__)
 
@@ -280,6 +283,7 @@ async def build_candidate_portrait(
     # 4. 调用AI生成完整分析（带超时控制）
     is_default_analysis = False  # 标记是否使用默认分析
     ai_model_used = "Qwen/Qwen3-8B"  # 使用的AI模型
+    fallback_reason = None  # 🟢 P1-2: 降级原因
     ai_start_time = time.time()
     
     # 根据分析级别设置超时时间
@@ -298,21 +302,23 @@ async def build_candidate_portrait(
         ai_analysis = await asyncio.wait_for(
             generate_ai_analysis(
                 candidate, latest_submission, target_position, 
-                analysis_level, custom_job_competencies
+                analysis_level, custom_job_competencies, session  # 🟢 P2-3增强: 传入session
             ),
             timeout=timeout_seconds
         )
         logger.info(f"✅ AI分析完成 (级别={analysis_level})")
     except asyncio.TimeoutError:
-        logger.warning(f"⚠️ AI分析超时({timeout_seconds}s)，使用默认分析")
-        ai_analysis = build_default_analysis(candidate, latest_submission, target_position)
+        logger.warning(f"⚠️ AI分析超时({timeout_seconds}s)，使用规则引擎降级分析")
+        ai_analysis = build_default_analysis(candidate, latest_submission, target_position, session)  # 🟢 P2-3增强
         is_default_analysis = True
-        ai_model_used = "default"
+        ai_model_used = "fallback"  # 🟢 P1-2: 标识为降级
+        fallback_reason = "ai_timeout"
     except Exception as e:
-        logger.warning(f"⚠️ AI分析异常: {e}，使用默认分析")
-        ai_analysis = build_default_analysis(candidate, latest_submission, target_position)
+        logger.warning(f"⚠️ AI分析异常: {e}，使用规则引擎降级分析")
+        ai_analysis = build_default_analysis(candidate, latest_submission, target_position, session)  # 🟢 P2-3增强
         is_default_analysis = True
-        ai_model_used = "default"
+        ai_model_used = "fallback"  # 🟢 P1-2: 标识为降级
+        fallback_reason = "ai_error"
     
     ai_generation_time = int((time.time() - ai_start_time) * 1000)  # 毫秒
     
@@ -437,6 +443,56 @@ async def build_candidate_portrait(
     else:
         quick_tags = valid_tags[:3]
     
+    # 🟢 P1-1: 计算多测评交叉验证数据
+    cross_validation_data = None
+    if len(submissions) >= 2:
+        try:
+            # 准备提交记录数据（需要转换为 dict）
+            submission_dicts = []
+            for sub in submissions:
+                sub_dict = {
+                    'questionnaire': {
+                        'type': sub.questionnaire.type if sub.questionnaire else 'UNKNOWN'
+                    },
+                    'result': sub.result if isinstance(sub.result, dict) else {}
+                }
+                submission_dicts.append(sub_dict)
+            
+            # 调用交叉验证服务
+            validation_result = CrossValidationService.calculate_cross_validation(submission_dicts)
+            
+            # 转换为 schema 格式
+            cross_validation_data = schemas.CrossValidationData(
+                consistency_score=validation_result['consistency_score'],
+                confidence_level=validation_result['confidence_level'],
+                assessment_count=validation_result['assessment_count'],
+                consistency_checks=[
+                    schemas.TraitConsistencyCheck(
+                        trait=check['trait'],
+                        scores=[
+                            schemas.TraitScore(source=score['source'], value=score['value'])
+                            for score in check['scores']
+                        ],
+                        mean=check['mean'],
+                        stdDev=check['stdDev'],
+                        consistency=check['consistency']
+                    )
+                    for check in validation_result['consistency_checks']
+                ],
+                contradictions=[
+                    schemas.Contradiction(
+                        trait=contr['trait'],
+                        scores=contr['scores'],
+                        issue=contr['issue']
+                    )
+                    for contr in validation_result['contradictions']
+                ]
+            )
+            logger.info(f"🔍 候选人{candidate_id}: 交叉验证完成 (一致性: {validation_result['consistency_score']}, 置信度: {validation_result['confidence_level']})")
+        except Exception as e:
+            logger.error(f"⚠️ 候选人{candidate_id}: 交叉验证计算失败: {str(e)}")
+            cross_validation_data = None
+    
     portrait = schemas.CandidatePortrait(
         basic_info=basic_info,
         assessments=assessments_info,
@@ -453,7 +509,12 @@ async def build_candidate_portrait(
         unsuitable_positions=ai_analysis.get("unsuitable_positions", []),
         ai_summary=ai_analysis.get("summary"),
         ai_summary_points=clean_summary_points(summary_points),  # 清理序号前缀
-        quick_tags=quick_tags  # 快速标签
+        quick_tags=quick_tags,  # 快速标签
+        cross_validation=cross_validation_data,  # 🟢 P1-1: 交叉验证数据
+        # 🟢 P1-2: 降级标识
+        is_fallback_analysis=is_default_analysis,
+        analysis_method="fallback" if is_default_analysis else "ai",
+        fallback_reason=fallback_reason if is_default_analysis else None
     )
     
     # 7. 保存到缓存 - V38: 按级别缓存
@@ -678,7 +739,7 @@ def _calculate_overall_assessment(
         completeness_bonus = min(completeness_bonus + 5, 95)
     
     # ⭐ 4. 简历质量分 (15%)
-    # 从ai_analysis中获取candidate信息
+    # 🟢 P2-2: 使用ResumeQualityAnalyzer进行智能评分
     resume_score = 60  # 基准分
     has_resume = False
     
@@ -687,19 +748,23 @@ def _calculate_overall_assessment(
         has_resume = bool(getattr(candidate, "resume_path", None))
         
         if has_resume:
-            # 计算简历完整度
-            completeness_factors = []
-            if getattr(candidate, "education", None):
-                completeness_factors.append(0.25)
-            if getattr(candidate, "experience", None):
-                completeness_factors.append(0.35)
-            if getattr(candidate, "project", None):
-                completeness_factors.append(0.25)
-            if getattr(candidate, "skills", None):
-                completeness_factors.append(0.15)
+            # 使用新的简历质量分析器
+            resume_parsed_data = getattr(candidate, "resume_parsed_data", None)
+            target_position = ai_analysis.get("target_position")
             
-            resume_completeness = sum(completeness_factors)
-            resume_score = 70 + resume_completeness * 25  # 70-95分
+            if resume_parsed_data:
+                try:
+                    resume_analysis = ResumeQualityAnalyzer.analyze_resume_quality(
+                        resume_parsed_data, target_position
+                    )
+                    resume_score = resume_analysis["quality_score"]
+                    logger.info(f"📄 简历质量评分: {resume_score:.1f}")
+                except Exception as e:
+                    logger.warning(f"⚠️ 简历质量分析失败: {e}，使用默认分")
+                    resume_score = 70  # 降级分数
+            else:
+                # 无解析数据时，使用简单评分
+                resume_score = 70
     
     # ⭐ 综合计算
     overall_score = (

@@ -1,0 +1,68 @@
+/* 🟢 P0优化：胜任力强弱项总结 */
+.competency-summary {
+  margin-top: 24px;
+  padding-top: 20px;
+  border-top: 1px solid #e5e7eb;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.comp-strength,
+.comp-weakness {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.comp-strength h4,
+.comp-weakness h4 {
+  font-size: 13px;
+  font-weight: 600;
+  color: #374151;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+}
+
+.comp-strength h4 i {
+  color: #10b981;
+  font-size: 16px;
+}
+
+.comp-weakness h4 i {
+  color: #f59e0b;
+  font-size: 16px;
+}
+
+.comp-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.comp-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 12px;
+  border-radius: 12px;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.comp-tag strong {
+  font-weight: 700;
+}
+
+.comp-tag.strength-tag {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+.comp-tag.weakness-tag {
+  background: #fef3c7;
+  color: #92400e;
+}
+

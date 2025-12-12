@@ -482,6 +482,20 @@
   font-size: 0.875rem;
 }
 
+/* 🟢 P0+P1: 评分详情按钮（头部版本） */
+.level-btn.score-detail-header-btn {
+  background: rgba(255, 255, 255, 0.18);
+  border-color: rgba(255, 255, 255, 0.35);
+  margin-left: 0.25rem;
+}
+
+.level-btn.score-detail-header-btn:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.95);
+  border-color: white;
+  color: #8b5cf6;
+  box-shadow: 0 2px 8px rgba(139, 92, 246, 0.3);
+}
+
 .cache-dot {
   position: absolute;
   top: -2px;
@@ -767,6 +781,7 @@
   background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
   border-bottom: 2px solid #e2e8f0;
   position: relative;
+  justify-content: space-between; /* 确保左右布局 */
 }
 
 .summary-header-fresh::before {
@@ -822,6 +837,45 @@
 .ai-badge-fresh i {
   font-size: 0.875rem;
   animation: sparkle 2s ease-in-out infinite;
+}
+
+/* 🟢 P0优化：评分详情按钮全局样式 */
+.summary-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.score-detail-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.5rem 1rem;
+  background: rgba(139, 92, 246, 0.08);
+  border: 1.5px solid rgba(139, 92, 246, 0.35);
+  border-radius: 20px;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: #8b5cf6;
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  white-space: nowrap;
+}
+
+.score-detail-btn:hover {
+  background: rgba(139, 92, 246, 0.15);
+  border-color: rgba(139, 92, 246, 0.55);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(139, 92, 246, 0.2);
+}
+
+.score-detail-btn:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 6px rgba(139, 92, 246, 0.15);
+}
+
+.score-detail-btn i {
+  font-size: 0.9375rem;
 }
 
 .summary-content-sections {

@@ -68,6 +68,37 @@ class CompetencyScore(BaseModel):
     rationale: Optional[str] = Field(None, description="评分依据")
 
 
+class TraitScore(BaseModel):
+    """特质分数（来自不同测评）."""
+    source: str = Field(description="测评类型: MBTI/EPQ/DISC")
+    value: float = Field(description="分数值 0-100")
+
+
+class TraitConsistencyCheck(BaseModel):
+    """特质一致性检查."""
+    trait: str = Field(description="特质名称，如：外向性、情绪稳定性")
+    scores: List[TraitScore] = Field(description="各测评的分数")
+    mean: float = Field(description="平均分")
+    stdDev: float = Field(description="标准差，衡量离散程度")
+    consistency: float = Field(ge=0, le=100, description="一致性得分 0-100")
+
+
+class Contradiction(BaseModel):
+    """测评矛盾点."""
+    trait: str = Field(description="矛盾的特质")
+    scores: List[float] = Field(description="冲突的分数列表")
+    issue: str = Field(description="矛盾描述")
+
+
+class CrossValidationData(BaseModel):
+    """交叉验证数据（P1-1功能）."""
+    consistency_score: float = Field(ge=0, le=100, description="整体一致性得分 0-100")
+    confidence_level: str = Field(description="置信度等级：高/中/低")
+    assessment_count: int = Field(ge=0, description="已完成测评数量")
+    consistency_checks: List[TraitConsistencyCheck] = Field(default_factory=list, description="各维度一致性检查")
+    contradictions: List[Contradiction] = Field(default_factory=list, description="矛盾点列表")
+
+
 class CandidatePortrait(BaseModel):
     """候选人完整画像."""
     
@@ -93,6 +124,14 @@ class CandidatePortrait(BaseModel):
     ai_summary: Optional[str] = Field(None, description="AI综合评价")
     ai_summary_points: List[str] = Field(default_factory=list, description="AI综合评价要点（3条）")
     quick_tags: List[str] = Field(default_factory=list, description="快速标签（2-4字，用于头部展示）")
+    
+    # 🟢 P1-1: 交叉验证数据
+    cross_validation: Optional[CrossValidationData] = Field(None, description="多测评交叉验证结果")
+    
+    # 🟢 P1-2: 降级标识
+    is_fallback_analysis: bool = Field(default=False, description="是否为降级分析 (规则引擎生成)")
+    analysis_method: str = Field(default="ai", description="分析方式: ai | fallback")
+    fallback_reason: Optional[str] = Field(None, description="降级原因: ai_timeout | ai_error | ai_unavailable")
     
     # 元数据
     portrait_version: str = "1.0"

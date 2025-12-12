@@ -67,6 +67,39 @@ export type AssessmentRecord = {
   completed_at: string;
 };
 
+// 🟢 P1-1: 交叉验证类型
+export type TraitScore = {
+  source: string;
+  value: number;
+};
+
+export type TraitConsistencyCheck = {
+  trait: string;
+  scores: TraitScore[];
+  mean: number;
+  stdDev: number;
+  consistency: number;
+};
+
+export type Contradiction = {
+  trait: string;
+  scores: number[];
+  issue: string;
+};
+
+export type CrossValidationData = {
+  consistency_score: number;
+  confidence_level: string;
+  assessment_count: number;
+  consistency_checks: TraitConsistencyCheck[];
+  contradictions: Contradiction[];
+};
+
+export type AssessmentInfo = {
+  type: string;
+  weight: number;
+};
+
 export type CandidateProfile = {
   id: string;
   name: string;
@@ -93,4 +126,16 @@ export type CandidateProfile = {
   resumeSkills?: string[];
   resumeHighlights?: string[];
   assessments?: AssessmentRecord[];  // 测评记录列表
+  crossValidation?: CrossValidationData;  // 🟢 P1-1: 交叉验证数据
+  assessmentInfoList?: AssessmentInfo[];  // 🟢 P1-1: 测评信息列表（用于交叉验证）
+  scoreBreakdown?: {  // 🟢 P0: 评分详情
+    assessment: number;
+    match: number;
+    completeness: number;
+    resume: number;
+  };
+  // 🟢 P1-2: 降级标识
+  isFallbackAnalysis?: boolean;  // 是否为降级分析
+  analysisMethod?: 'ai' | 'fallback';  // 分析方式
+  fallbackReason?: 'ai_timeout' | 'ai_error' | 'ai_unavailable';  // 降级原因
 };

@@ -1,0 +1,370 @@
+/* 🟢 P0优化：评分详情对话框 */
+.score-breakdown-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+  padding: 20px;
+}
+
+.score-breakdown-modal {
+  background: white;
+  border-radius: 16px;
+  width: 100%;
+  max-width: 560px;
+  max-height: 90vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+}
+
+.score-breakdown-modal .modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 24px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.score-breakdown-modal .modal-header h3 {
+  font-size: 18px;
+  font-weight: 700;
+  color: #111827;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0;
+}
+
+.score-breakdown-modal .modal-header h3 i {
+  color: #8b5cf6;
+  font-size: 22px;
+}
+
+.score-breakdown-modal .close-btn {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f3f4f6;
+  border: none;
+  border-radius: 8px;
+  color: #6b7280;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.score-breakdown-modal .close-btn:hover {
+  background: #e5e7eb;
+  color: #111827;
+}
+
+/* 🟢 P1优化：胶囊按钮切换栏 */
+.modal-tabs {
+  display: flex;
+  justify-content: center;
+  padding: 16px 24px 12px;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.tab-btn {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 20px;
+  background: transparent;
+  border: none;
+  font-size: 14px;
+  font-weight: 600;
+  color: #64748b;
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  border-radius: 20px;
+  white-space: nowrap;
+}
+
+.tab-btn:first-child {
+  margin-right: 8px;
+}
+
+.tab-btn i {
+  font-size: 16px;
+  transition: all 0.25s ease;
+}
+
+.tab-btn:hover:not(.active) {
+  color: #475569;
+  background: rgba(148, 163, 184, 0.08);
+}
+
+.tab-btn.active {
+  color: white;
+  background: linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%);
+  box-shadow: 0 4px 12px rgba(139, 92, 246, 0.35);
+}
+
+.tab-btn.active i {
+  animation: iconPulse 0.4s ease;
+}
+
+@keyframes iconPulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.15); }
+}
+
+.score-breakdown-modal .modal-body {
+  padding: 24px;
+  overflow-y: auto;
+  flex: 1;
+}
+
+/* 交叉验证时调整内边距 */
+.modal-body.validation-body {
+  padding: 20px 24px;
+}
+
+.tab-content {
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.modal-intro {
+  font-size: 14px;
+  color: #6b7280;
+  margin-bottom: 20px;
+  line-height: 1.6;
+}
+
+.breakdown-item {
+  margin-bottom: 20px;
+  padding: 16px;
+  background: #f9fafb;
+  border-radius: 12px;
+  border: 1px solid #e5e7eb;
+}
+
+.breakdown-item .item-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+/* 🎨 现代化图标样式 */
+.item-icon {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  font-size: 18px;
+  flex-shrink: 0;
+}
+
+/* 测评分图标 - 蓝紫渐变 */
+.item-icon.assessment-icon {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+}
+
+/* 岗位匹配图标 - 绿色渐变 */
+.item-icon.match-icon {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: white;
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+}
+
+/* 完整度图标 - 橙色渐变 */
+.item-icon.completeness-icon {
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+  color: white;
+  box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
+}
+
+/* 简历质量图标 - 灰蓝渐变 */
+.item-icon.resume-icon {
+  background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%);
+  color: white;
+  box-shadow: 0 4px 12px rgba(107, 114, 128, 0.3);
+}
+
+.item-icon i {
+  font-size: 18px;
+}
+
+.item-label {
+  font-weight: 600;
+  font-size: 14px;
+  color: #111827;
+  flex: 1;
+}
+
+.item-weight {
+  font-size: 12px;
+  color: #6b7280;
+  background: white;
+  padding: 4px 10px;
+  border-radius: 10px;
+}
+
+.item-progress {
+  height: 8px;
+  background: #e5e7eb;
+  border-radius: 4px;
+  overflow: hidden;
+  margin-bottom: 10px;
+}
+
+.progress-bar-simple {
+  height: 100%;
+  background: linear-gradient(90deg, #8b5cf6, #6366f1);
+  border-radius: 4px;
+  transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.item-detail {
+  margin-bottom: 8px;
+}
+
+.detail-formula {
+  font-size: 13px;
+  color: #374151;
+}
+
+.detail-formula strong {
+  font-weight: 700;
+  color: #8b5cf6;
+}
+
+.item-note {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.note-tag {
+  padding: 4px 10px;
+  background: white;
+  border-radius: 10px;
+  font-size: 12px;
+  color: #6b7280;
+}
+
+.note-info {
+  font-size: 12px;
+  color: #6b7280;
+}
+
+.breakdown-total {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px;
+  background: linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%);
+  border-radius: 12px;
+  margin-bottom: 20px;
+}
+
+.total-label {
+  font-size: 16px;
+  font-weight: 600;
+  color: white;
+}
+
+.total-value {
+  font-size: 32px;
+  font-weight: 700;
+  color: white;
+}
+
+.breakdown-note {
+  display: flex;
+  gap: 14px;
+  padding: 18px;
+  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+  border-radius: 12px;
+  border: 1.5px solid #93c5fd;
+}
+
+/* 💡 现代化提示图标 */
+.note-icon {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  border-radius: 10px;
+  color: white;
+  font-size: 18px;
+  flex-shrink: 0;
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+}
+
+.note-icon i {
+  font-size: 18px;
+}
+
+.note-text {
+  flex: 1;
+}
+
+.note-text p {
+  font-size: 13px;
+  color: #1e40af;
+  margin: 0 0 6px 0;
+  line-height: 1.5;
+}
+
+.note-text p:last-child {
+  margin-bottom: 0;
+}
+
+.note-text p strong {
+  font-weight: 700;
+}
+
+/* 对话框动画 */
+.modal-enter-active,
+.modal-leave-active {
+  transition: opacity 0.3s ease;
+}
+
+.modal-enter-from,
+.modal-leave-to {
+  opacity: 0;
+}
+
+.modal-enter-active .score-breakdown-modal,
+.modal-leave-active .score-breakdown-modal {
+  transition: transform 0.3s ease;
+}
+
+.modal-enter-from .score-breakdown-modal,
+.modal-leave-to .score-breakdown-modal {
+  transform: scale(0.9);
+}
+

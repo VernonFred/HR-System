@@ -90,7 +90,13 @@ async def ai_interpretation(
         logger.info(f"📊 使用分析级别: {level}")
     
     # ⭐ 关键修复：传入 level 参数以选择对应的提示词
-    messages = prompt_builder.build_interpretation_prompt(payload, level=level)
+    # 🟢 P2-3增强: 传递候选岗位参考给提示词构建器
+    candidate_positions = payload.get("candidate_positions")
+    messages = prompt_builder.build_interpretation_prompt(
+        payload, 
+        level=level,
+        candidate_positions=candidate_positions  # 🟢 传递候选岗位
+    )
     
     try:
         # 使用画像专用路由器

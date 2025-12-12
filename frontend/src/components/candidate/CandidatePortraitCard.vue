@@ -6,6 +6,9 @@ import domtoimage from 'dom-to-image-more';
 import jsPDF from 'jspdf';
 import ResumeModal from '../resume/ResumeModal.vue';
 import AssessmentAccordion from './AssessmentAccordion.vue';
+import CompetencySection from './CompetencySection.vue';
+import SummaryCard from './SummaryCard.vue';
+import ScoreBreakdownModal from './ScoreBreakdownModal.vue';
 import { getResumeInfo, getResumeDownloadUrl, deleteResume, parseResume } from '../../api/resumes';
 import { getPortraitCacheStatus, type PortraitCacheStatus } from '../../api/candidatePortraits';
 
@@ -42,6 +45,9 @@ const isSwitchingLevel = ref(false);
 const toastMessage = ref('');
 const toastType = ref<'success' | 'error' | 'info'>('info');
 const showToast = ref(false);
+
+// 🟢 P0+P1: 评分详情弹窗状态
+const showScoreBreakdown = ref(false);
 
 const showMessageToast = (message: string, type: 'success' | 'error' | 'info' = 'info') => {
   toastMessage.value = message;
@@ -1543,6 +1549,28 @@ watch(() => props.profile?.id, async (newId) => {
   }
 }, { immediate: true });
 
+// 🟢 P0优化：新增 computed
+const currentAssessmentType = computed(() => {
+  if (isMBTI.value) return 'MBTI'
+  if (isDISC.value) return 'DISC'
+  if (isEPQ.value) return 'EPQ'
+  return '未知'
+})
+
+const assessmentCount = computed(() => {
+  return displayData.value.assessments?.length || 0
+})
+
+// 🟢 P1-2: 重新生成AI分析
+const handleRetryAI = () => {
+  if (!props.profile?.id) return
+  
+  showMessageToast('正在重新生成AI分析...', 'info')
+  
+  // 强制刷新，跳过缓存
+  emit('portrait-regenerated', currentAnalysisLevel.value, true)
+}
+
 </script>
 
 <template>
@@ -1649,7 +1677,7 @@ watch(() => props.profile?.id, async (newId) => {
                 </span>
               </div>
               
-              <!-- V38: 分析级别切换按钮 -->
+              <!-- V38: 分析级别切换按钮 + P0评分详情按钮 -->
               <div class="analysis-level-switch">
                 <button 
                   class="level-btn"
@@ -1679,6 +1707,17 @@ watch(() => props.profile?.id, async (newId) => {
                   <span>专家分析</span>
                   <span v-if="cacheStatus?.cached_levels?.expert" class="cache-dot" title="已缓存"></span>
                 </button>
+                
+                <!-- 🟢 P0+P1: 评分详情按钮 -->
+                <button 
+                  class="level-btn score-detail-header-btn"
+                  @click="showScoreBreakdown = true"
+                  title="查看综合评分详情"
+                >
+                  <i class="ri-pie-chart-line"></i>
+                  <span>评分详情</span>
+                </button>
+                
                 <span v-if="isSwitchingLevel" class="switching-indicator">
                   <i class="ri-loader-4-line spin"></i>
                 </span>
@@ -1910,38 +1949,8 @@ watch(() => props.profile?.id, async (newId) => {
             </div>
           </div>
 
-          <!-- 右栏：胜任力条形图 -->
-          <div class="card-section competency-section">
-            <div class="section-header">
-              <div class="header-icon">
-                <i class="ri-bar-chart-box-line"></i>
-              </div>
-              <div>
-                <h2 class="section-title">岗位胜任力分布</h2>
-                <p class="section-subtitle">JOB COMPETENCY DISTRIBUTION</p>
-              </div>
-            </div>
-
-            <div class="competency-list">
-              <div v-for="comp in displayData.competencies" :key="comp.key" class="competency-row">
-                <div class="comp-header">
-                  <span class="comp-label">{{ comp.label }}</span>
-                  <span class="comp-score" :style="{ color: getScoreColor(comp.score) }">
-                    {{ comp.score }}
-                  </span>
-                </div>
-                <div class="progress-track">
-                  <div
-                    class="progress-bar"
-                    :style="{
-                      width: comp.score + '%',
-                      background: `linear-gradient(90deg, ${getScoreColor(comp.score)}dd, ${getScoreColor(comp.score)})`,
-                    }"
-                  ></div>
-                </div>
-              </div>
-            </div>
-          </div>
+          <!-- 右栏：胜任力 - 使用重构后的组件 🟢 -->
+          <CompetencySection :competencies="displayData.competencies" />
         </div>
 
         <!-- 亮点与风险 -->
@@ -2079,33 +2088,13 @@ watch(() => props.profile?.id, async (newId) => {
           </div>
         </div>
 
-        <!-- 🌟 综合评价 - 底部卡片 -->
-        <div class="summary-card-featured">
-          <div class="summary-header-fresh">
-            <div class="summary-icon-fresh">
-              <i class="ri-file-text-line"></i>
-            </div>
-            <div class="summary-title-group">
-              <h3>综合评价</h3>
-              <p class="summary-subtitle">AI-POWERED COMPREHENSIVE EVALUATION</p>
-            </div>
-            <span class="ai-badge-fresh">
-              <i class="ri-sparkling-2-line"></i>
-              AI 分析
-            </span>
-          </div>
-          
-          <div class="summary-content-sections">
-            <div 
-              v-for="(paragraph, idx) in getSummaryParagraphs(displayData.aiAnalysisText)" 
-              :key="idx" 
-              class="summary-paragraph"
-            >
-              <div class="paragraph-indicator">{{ idx + 1 }}</div>
-              <p class="paragraph-text">{{ paragraph }}</p>
-            </div>
-          </div>
-        </div>
+        <!-- 🌟 综合评价 - 使用重构后的组件 🟢 + P1-2 降级提示 -->
+        <SummaryCard
+          :ai-analysis-text="displayData.aiAnalysisText"
+          :is-fallback="displayData.isFallbackAnalysis"
+          :fallback-reason="displayData.fallbackReason"
+          @retry-ai="handleRetryAI"
+        />
       </div><!-- 结束 main-content -->
     </div><!-- 结束 portrait-card -->
   </div><!-- 结束 portrait-container -->
@@ -2152,6 +2141,18 @@ watch(() => props.profile?.id, async (newId) => {
     <span>{{ toastMessage }}</span>
   </div>
 </Transition>
+
+<!-- 🟢 P0+P1: 评分详情弹窗 -->
+<ScoreBreakdownModal
+  v-model:visible="showScoreBreakdown"
+  :overall-score="displayData.overallMatchScore"
+  :score-breakdown="displayData.scoreBreakdown"
+  :assessment-count="assessmentCount"
+  :current-assessment-type="currentAssessmentType"
+  :has-resume="hasResume"
+  :cross-validation-data="displayData.crossValidation"
+  :assessments="displayData.assessmentInfoList"
+/>
 </template>
 
 <style scoped>

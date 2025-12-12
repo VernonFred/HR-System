@@ -520,6 +520,30 @@ const convertRealPortraitToProfile = (portrait: any): CandidateProfile => {
     suitablePositions: portrait.suitable_positions || [],
     unsuitablePositions: portrait.unsuitable_positions || [],
     assessments: assessments,  // ⭐ 新增：测评记录列表
+    // 🟢 P1-1: 交叉验证数据
+    crossValidation: portrait.cross_validation ? {
+      consistency_score: portrait.cross_validation.consistency_score,
+      confidence_level: portrait.cross_validation.confidence_level,
+      assessment_count: portrait.cross_validation.assessment_count,
+      consistency_checks: portrait.cross_validation.consistency_checks || [],
+      contradictions: portrait.cross_validation.contradictions || []
+    } : undefined,
+    // 🟢 P1-1: 测评信息列表（用于交叉验证显示）
+    assessmentInfoList: (portrait.assessments || []).map((a: any) => ({
+      type: a.questionnaire_type || 'UNKNOWN',
+      weight: a.questionnaire_type === 'MBTI' ? 40 : (a.questionnaire_type === 'DISC' ? 30 : 30)
+    })),
+    // 🟢 P0: 评分详情
+    scoreBreakdown: {
+      assessment: 80,  // TODO: 从后端获取
+      match: 85,
+      completeness: 90,
+      resume: portrait.basic_info.resume ? 70 : 0
+    },
+    // 🟢 P1-2: 降级标识
+    isFallbackAnalysis: portrait.is_fallback_analysis || false,
+    analysisMethod: portrait.analysis_method || 'ai',
+    fallbackReason: portrait.fallback_reason
   };
 };
 

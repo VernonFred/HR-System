@@ -12,7 +12,7 @@ const activePage = computed<PageKey>(() => {
   const name = route.name as string;
   // 支持新的页面类型
   const validPages: PageKey[] = [
-    "candidates", 
+    "candidates",
     "jobprofiles", 
     "assessments", 
     "questionnaire-center",

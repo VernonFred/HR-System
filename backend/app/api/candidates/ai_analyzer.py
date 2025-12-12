@@ -172,7 +172,8 @@ async def generate_ai_analysis(
     submission: Optional["Submission"],
     target_position: Optional[str],
     analysis_level: str = "pro",  # V5: 默认 pro
-    custom_job_competencies: Optional[List[str]] = None  # V39: 支持自定义岗位能力维度
+    custom_job_competencies: Optional[List[str]] = None,  # V39: 支持自定义岗位能力维度
+    session = None  # 🟢 P2-3增强: 数据库会话，用于加载岗位画像
 ) -> Dict[str, Any]:
     """调用AI生成完整的候选人分析.
     
@@ -243,6 +244,26 @@ async def generate_ai_analysis(
         # ⭐ V7新增：检测岗位族
         job_family = detect_job_family(target_position)
         
+        # 🟢 P2-3增强: 先使用算法推荐候选岗位，作为AI分析的参考
+        # 注意：此时还没有formatted_competencies，所以无法传入详细胜任力
+        # 这里只是获取候选岗位列表，具体匹配度计算在AI分析之后
+        candidate_positions_for_ai = None
+        if session:
+            try:
+                from app.services.job_recommender import JobRecommender
+                # 简单推荐，只基于岗位名称
+                candidate_positions_for_ai = JobRecommender.recommend_positions(
+                    competencies=[],  # 暂时为空，因为还没有AI生成的胜任力
+                    resume_keywords=None,
+                    current_position=target_position,
+                    top_n=5,
+                    session=session
+                )
+                logger.info(f"🎯 候选岗位参考: {candidate_positions_for_ai}")
+            except Exception as e:
+                logger.warning(f"⚠️ 获取候选岗位失败: {e}")
+                candidate_positions_for_ai = None
+        
         # 构建AI请求参数 - V7岗位族版
         payload = {
             "submission_code": f"portrait-{candidate.id}",
@@ -252,7 +273,8 @@ async def generate_ai_analysis(
             "position_keywords": [target_position] if target_position else [],
             "has_resume": has_resume,  # 标记是否有简历数据
             "job_competencies": job_competencies,  # 岗位胜任力模型
-            "job_family": job_family  # ⭐ V7新增：岗位族标识
+            "job_family": job_family,  # ⭐ V7新增：岗位族标识
+            "candidate_positions": candidate_positions_for_ai  # 🟢 P2-3增强: 候选岗位参考
         }
         
         # 调用AI分析服务（带超时控制）
@@ -302,15 +324,22 @@ async def generate_ai_analysis(
         
         logger.info(f"🎯 最终返回维度: {len(personality_dimensions)}个, keys={[d.get('key') for d in personality_dimensions]}")
         
+        # 🟢 P2-3增强: 保留AI的深度洞察分析
+        # AI已经基于候选岗位参考进行了深度分析，直接使用AI的结果
+        suitable_positions = result.get("suitable_positions", [])
+        unsuitable_positions = result.get("unsuitable_positions", [])
+        
+        logger.info(f"✅ AI岗位推荐: suitable={len(suitable_positions)}, unsuitable={len(unsuitable_positions)}")
+        
         return {
             "personality_dimensions": personality_dimensions,
             "strengths": result.get("strengths", []),
             "risks": result.get("risks", []),
             "summary": result.get("summary", ""),
             "summary_points": result.get("summary_points", []),
-            "quick_tags": result.get("quick_tags", []),  # ⭐ 新增：头部快速标签
-            "suitable_positions": result.get("suitable_positions", []),
-            "unsuitable_positions": result.get("unsuitable_positions", []),
+            "quick_tags": result.get("quick_tags", []),
+            "suitable_positions": suitable_positions,  # 🟢 P2-3增强: 使用AI的深度洞察
+            "unsuitable_positions": unsuitable_positions,  # 🟢 P2-3增强: 使用AI的深度洞察
             "competencies": formatted_competencies
         }
         
@@ -322,9 +351,12 @@ async def generate_ai_analysis(
 def build_default_analysis(
     candidate: "Candidate",
     submission: Optional["Submission"],
-    target_position: Optional[str]
+    target_position: Optional[str],
+    session = None  # 🟢 P2-3增强: 数据库会话，用于加载岗位画像
 ) -> Dict[str, Any]:
     """基于测评数据构建默认分析（当AI不可用时）.
+    
+    🟢 P1-2优化: 使用规则引擎分析，而非固定假数据
     
     Args:
         candidate: 候选人对象
@@ -334,13 +366,54 @@ def build_default_analysis(
     Returns:
         分析结果字典
     """
+    from app.services.fallback_analyzer import FallbackAnalyzer
+    from sqlmodel import Session, select
+    from app.models_assessment import Submission
+    from app.db import engine
+    
     name = candidate.name if candidate else "候选人"
     position = target_position or "通用岗位"
     
-    # 默认人格维度（基于测评数据或预设）
-    personality_dimensions = []
-    competencies = []
+    # 🟢 P1-2: 获取候选人的所有测评记录
+    submissions_data = []
+    if candidate:
+        with Session(engine) as session:
+            stmt = select(Submission).where(
+                Submission.candidate_id == candidate.id
+            ).order_by(Submission.submitted_at.desc())
+            submissions = session.exec(stmt).all()
+            
+            for sub in submissions:
+                submissions_data.append({
+                    'questionnaire': {
+                        'type': sub.questionnaire.type if sub.questionnaire else 'UNKNOWN'
+                    },
+                    'result': sub.result if isinstance(sub.result, dict) else {},
+                    'score_percentage': sub.score_percentage
+                })
     
+    # 🟢 P1-2: 使用规则引擎生成分析
+    if len(submissions_data) > 0:
+        logger.info(f"🔧 使用规则引擎生成降级分析 (测评数量: {len(submissions_data)})")
+        fallback_result = FallbackAnalyzer.analyze_candidate(submissions_data, target_position)
+        
+        # 解析人格维度 (从测评数据中提取)
+        personality_dimensions = []
+        competencies = fallback_result.get("competencies", [])
+    else:
+        # 无测评数据，使用基本默认值
+        logger.warning("⚠️ 无测评数据，使用基本默认分析")
+        fallback_result = {
+            "strengths": [f"待完成专业测评以生成详细分析"],
+            "risks": ["建议尽快完成测评"],
+            "summary_points": [f"{name}尚未完成专业测评，建议先完成测评以获得准确的能力画像。"],
+            "suitable_positions": [position],
+            "quick_tags": ["待评估"]
+        }
+        personality_dimensions = []
+        competencies = []
+    
+    # 默认人格维度（基于测评数据或预设）
     if submission and submission.result_details:
         result_details = submission.result_details if isinstance(submission.result_details, dict) else json.loads(submission.result_details or "{}")
         
@@ -380,25 +453,48 @@ def build_default_analysis(
     # 计算平均分数
     avg_score = sum(d["score"] for d in personality_dimensions) / len(personality_dimensions) if personality_dimensions else 70
     
+    # 🟢 P2-3增强: 降级场景下，使用简单的岗位推荐
+    # 因为没有AI深度分析，这里使用算法推荐候选岗位名称
+    from app.services.job_recommender import JobRecommender
+    
+    # 提取简历关键词
+    resume_keywords = []
+    if candidate and candidate.resume_parsed_data:
+        parsed_data = candidate.resume_parsed_data
+        if isinstance(parsed_data, dict):
+            skills = parsed_data.get("skills", [])
+            if isinstance(skills, list):
+                resume_keywords.extend([str(s) for s in skills if s])
+    
+    # 使用算法推荐岗位（降级场景）
+    suitable_positions = JobRecommender.recommend_positions(
+        competencies=competencies,
+        resume_keywords=resume_keywords if resume_keywords else None,
+        current_position=target_position,
+        top_n=4,
+        session=session
+    )
+    
+    unsuitable_positions = JobRecommender.recommend_unsuitable_positions(
+        competencies=competencies
+    )
+    
+    logger.info(f"🔧 降级场景岗位推荐: suitable={suitable_positions}, unsuitable={unsuitable_positions}")
+    
+    # 🟢 P1-2: 返回规则引擎的结果，或默认值
     return {
         "personality_dimensions": personality_dimensions,
         "competencies": competencies,
-        "strengths": [
-            f"测评表现良好，综合得分{avg_score:.0f}分",
+        "strengths": fallback_result.get("strengths", [f"综合测评得分{avg_score:.0f}分"]),
+        "risks": fallback_result.get("risks", ["建议进一步面试验证"]),
+        "summary": fallback_result.get("summary_points", [f"{name}综合表现稳定"])[0] if fallback_result.get("summary_points") else f"{name}综合表现稳定",
+        "summary_points": fallback_result.get("summary_points", [
+            f"{name}综合测评得分{avg_score:.0f}分，整体表现稳定",
             f"与{position}岗位具备基本匹配度",
-            "具备良好的基础能力和发展潜力"
-        ],
-        "risks": [
-            "建议进一步面试验证实际能力",
-            "关注压力环境下的情绪管理"
-        ],
-        "summary": f"{name}在本次测评中表现稳定，综合得分{avg_score:.0f}分。从人格特征来看，具备良好的职业素养基础。与{position}岗位有一定的匹配度，建议通过面试进一步验证实际工作能力。",
-        "summary_points": [
-            f"{name}在测评中展现出稳定的人格特征，外向性和自律性表现良好，具备与人沟通协作的基础能力，适合需要团队配合的工作环境。",
-            f"在{position}岗位的核心能力维度上表现均衡，各项胜任力得分在75-85分区间，说明具备该岗位的基本胜任条件。",
-            f"建议关注候选人在高压环境下的情绪调节能力，可通过情境模拟面试进一步考察实际工作表现和问题解决能力。"
-        ],
-        "suitable_positions": [position, "相关领域岗位"],
-        "unsuitable_positions": ["高度重复性工作", "独立承压岗位"]
+            "建议通过面试进一步验证实际能力"
+        ]),
+        "quick_tags": fallback_result.get("quick_tags", ["综合评估"]),
+        "suitable_positions": suitable_positions,  # 🟢 降级场景：算法推荐
+        "unsuitable_positions": unsuitable_positions  # 🟢 降级场景：算法推荐
     }
 
