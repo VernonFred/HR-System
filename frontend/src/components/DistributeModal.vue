@@ -78,23 +78,34 @@ const pageEditType = ref<'entry' | 'success'>('entry')
 // ===== 计算属性 =====
 const enabledFields = computed(() => formFields.value.filter(f => f.enabled))
 
-const validFrom = computed(() => new Date().toISOString())
+// ⭐ V50: 使用本地时间格式，避免 UTC 时区问题
+const formatLocalDateTime = (date: Date): string => {
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  const hours = String(date.getHours()).padStart(2, '0')
+  const minutes = String(date.getMinutes()).padStart(2, '0')
+  const seconds = String(date.getSeconds()).padStart(2, '0')
+  return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}`
+}
+
+const validFrom = computed(() => formatLocalDateTime(new Date()))
 
 const validUntil = computed(() => {
   if (form.value.validityType === 'permanent') {
     // 永久有效：设置为100年后
     const date = new Date()
     date.setFullYear(date.getFullYear() + 100)
-    return date.toISOString()
+    return formatLocalDateTime(date)
   }
   
   if (form.value.expiryDays === -1 && form.value.customExpiryDate) {
-    return new Date(form.value.customExpiryDate).toISOString()
+    return formatLocalDateTime(new Date(form.value.customExpiryDate))
   }
   
   const date = new Date()
   date.setDate(date.getDate() + form.value.expiryDays)
-  return date.toISOString()
+  return formatLocalDateTime(date)
 })
 
 const expiryOptions = [

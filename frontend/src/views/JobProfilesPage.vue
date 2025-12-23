@@ -267,7 +267,11 @@ const triggerResumeInput = () => {
 const handleResumeSelect = (event: Event) => {
   const target = event.target as HTMLInputElement;
   if (target.files) {
-    selectedResumes.value = Array.from(target.files);
+    // ⭐ V50: 追加文件而不是覆盖，支持多次选择
+    const newFiles = Array.from(target.files);
+    selectedResumes.value = [...selectedResumes.value, ...newFiles];
+    // 重置 input 以便同一文件可以再次选择
+    target.value = '';
   }
 };
 
@@ -343,9 +347,11 @@ const generateFromResumes = async () => {
       ? `AI分析完成，已从${fileCount}份简历中提取共性特征` 
       : "AI分析完成，已生成岗位画像建议";
     showMessage(msg, "success");
-  } catch (error) {
+  } catch (error: any) {
     console.error("AI生成失败:", error);
-    showMessage(`AI生成失败：${error}`, "error");
+    // ⭐ V50: 提取友好的错误消息，避免显示代码
+    const errorMsg = error?.message || error?.detail || '服务暂时不可用，请稍后重试';
+    showMessage(`AI生成失败：${errorMsg}`, "error");
   } finally {
     aiGenerating.value = false;
     isUploading.value = false;
@@ -419,9 +425,11 @@ const generateFromJD = async () => {
     selectedJD.value = null;
     
     showMessage("AI分析完成，已生成岗位画像建议", "success");
-  } catch (error) {
+  } catch (error: any) {
     console.error("AI生成失败:", error);
-    showMessage(`AI生成失败：${error}`, "error");
+    // ⭐ V50: 提取友好的错误消息，避免显示代码
+    const errorMsg = error?.message || error?.detail || '服务暂时不可用，请稍后重试';
+    showMessage(`AI生成失败：${errorMsg}`, "error");
   } finally {
     aiGenerating.value = false;
     isUploading.value = false;

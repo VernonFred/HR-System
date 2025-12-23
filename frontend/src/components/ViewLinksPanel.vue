@@ -38,6 +38,7 @@ const showDeleteModal = ref(false)
 const deletingDistribution = ref<DistributionInfo | null>(null)
 const submissionCount = ref(0)  // 关联的提交记录数量
 const showForceDeleteConfirm = ref(false)  // 是否显示强制删除的二次确认
+const deleteError = ref('')  // ⭐ V50: 删除错误提示
 
 // 分发信息接口
 interface DistributionInfo {
@@ -171,6 +172,8 @@ const cancelDelete = () => {
 const confirmDelete = async (force: boolean = false) => {
   if (!deletingDistribution.value) return
   
+  deleteError.value = ''  // 清除之前的错误
+  
   try {
     loading.value = true
     await deleteAssessment(deletingDistribution.value.id, force)
@@ -193,8 +196,11 @@ const confirmDelete = async (force: boolean = false) => {
       submissionCount.value = detail.submission_count || 0
       showForceDeleteConfirm.value = true
     } else {
-    console.error('删除分发失败:', error)
-      alert('删除失败，请重试')
+      console.error('删除分发失败:', error)
+      // ⭐ V50: 使用自定义错误提示代替 alert
+      deleteError.value = error?.message || error?.detail || '删除失败，请重试'
+      // 3秒后清除错误
+      setTimeout(() => { deleteError.value = '' }, 3000)
     }
   } finally {
     loading.value = false
@@ -382,6 +388,12 @@ onMounted(() => {
             </div>
           </div>
         </template>
+        
+        <!-- ⭐ V50: 错误提示 -->
+        <div v-if="deleteError" class="delete-error-msg">
+          <i class="ri-error-warning-line"></i>
+          {{ deleteError }}
+        </div>
         
         <div class="delete-confirm-actions">
           <button class="btn-secondary" @click="cancelDelete">取消</button>
@@ -956,6 +968,25 @@ onMounted(() => {
   font-size: 0.8125rem;
   color: #92400e;
   line-height: 1.5;
+}
+
+/* ⭐ V50: 删除错误提示样式 */
+.delete-error-msg {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+  margin-bottom: 1rem;
+  color: #dc2626;
+  font-size: 0.875rem;
+}
+
+.delete-error-msg i {
+  font-size: 1rem;
+  flex-shrink: 0;
 }
 
 /* 提交记录警告样式 */
