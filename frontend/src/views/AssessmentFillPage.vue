@@ -134,11 +134,33 @@ const loadQuestions = async () => {
           }
           
           // 转换选项格式
-          const options = q.options?.map((opt: any) => ({
-            value: opt.label || opt.value,
-            label: opt.text || opt.label,
-            score: opt.score,
-          }));
+          const options = q.options?.map((opt: any) => {
+            // 🔍 处理蛇形命名（allow_custom）和驼峰命名（allowCustom）
+            const allowCustomValue = opt.allow_custom ?? opt.allowCustom ?? false;
+            
+            const option = {
+              value: opt.label || opt.value,
+              label: opt.text || opt.label,
+              score: opt.score,
+              allowCustom: allowCustomValue,  // 🟢 保留自定义输入标记
+              placeholder: opt.placeholder,  // 🟢 保留占位符
+            };
+            
+            // 🔍 调试：打印"其他"选项
+            if (option.label?.includes('其他')) {
+              console.log('🔍 转换"其他"选项:', {
+                原始: opt,
+                转换后: option
+              });
+            }
+            
+            return option;
+          });
+          
+          // 🔍 调试：打印选项数据
+          if (options && options.some(opt => opt.label?.includes('其他'))) {
+            console.log('🔍 发现"其他"选项:', options);
+          }
           
           return {
             id: String(q.id),
@@ -398,40 +420,70 @@ onMounted(() => {
 
               <!-- 单选题 -->
               <div v-if="currentQuestion.type === 'radio'" class="options-grid">
-          <button
+                <div 
                   v-for="(option, idx) in currentQuestion.options"
                   :key="option.value"
-                  class="option-card"
-                  :class="{ selected: answers[currentQuestion.id] === option.value }"
-                  @click="selectOption(currentQuestion.id, option.value)"
-          >
-                  <span class="option-indicator">
-                    <span class="indicator-inner"></span>
-                  </span>
-                  <span class="option-content">
-                    <span class="option-label">{{ option.label }}</span>
-                  </span>
-                  <i v-if="answers[currentQuestion.id] === option.value" class="ri-check-line option-check"></i>
-          </button>
-        </div>
+                  class="option-wrapper"
+                >
+                  <button
+                    class="option-card"
+                    :class="{ selected: answers[currentQuestion.id] === option.value }"
+                    @click="selectOption(currentQuestion.id, option.value)"
+                  >
+                    <span class="option-indicator">
+                      <span class="indicator-inner"></span>
+                    </span>
+                    <span class="option-content">
+                      <span class="option-label">{{ option.label }}</span>
+                    </span>
+                    <i v-if="answers[currentQuestion.id] === option.value" class="ri-check-line option-check"></i>
+                  </button>
+                  <!-- 🟢 自定义输入框（当选项允许自定义且被选中时显示） -->
+                  <!-- 🔍 调试信息 -->
+                  <!-- allowCustom: {{ option.allowCustom }}, selected: {{ answers[currentQuestion.id] === option.value }} -->
+                  <input 
+                    v-if="option.allowCustom === true && answers[currentQuestion.id] === option.value"
+                    type="text"
+                    class="custom-input-field"
+                    :placeholder="option.placeholder || '请填写具体内容...'"
+                    :value="answers[`${currentQuestion.id}_custom`] || ''"
+                    @input="updateText(`${currentQuestion.id}_custom`, ($event.target as HTMLInputElement).value)"
+                    @click.stop
+                  />
+                </div>
+              </div>
 
               <!-- 多选题 -->
               <div v-else-if="currentQuestion.type === 'checkbox'" class="options-grid checkbox-grid">
-                <button
+                <div
                   v-for="option in currentQuestion.options"
                   :key="option.value"
-                  class="option-card checkbox-card"
-                  :class="{ selected: (answers[currentQuestion.id] || []).includes(option.value) }"
-                  @click="toggleCheckbox(currentQuestion.id, option.value)"
+                  class="option-wrapper"
                 >
-                  <span class="checkbox-indicator">
-                    <i class="ri-check-line"></i>
-                  </span>
-                  <span class="option-content">
-                    <span class="option-label">{{ option.label }}</span>
-                  </span>
-                </button>
-          </div>
+                  <button
+                    class="option-card checkbox-card"
+                    :class="{ selected: (answers[currentQuestion.id] || []).includes(option.value) }"
+                    @click="toggleCheckbox(currentQuestion.id, option.value)"
+                  >
+                    <span class="checkbox-indicator">
+                      <i class="ri-check-line"></i>
+                    </span>
+                    <span class="option-content">
+                      <span class="option-label">{{ option.label }}</span>
+                    </span>
+                  </button>
+                  <!-- 🟢 自定义输入框（当选项允许自定义且被选中时显示） -->
+                  <input 
+                    v-if="option.allowCustom === true && (answers[currentQuestion.id] || []).includes(option.value)"
+                    type="text"
+                    class="custom-input-field"
+                    :placeholder="option.placeholder || '请填写具体内容...'"
+                    :value="answers[`${currentQuestion.id}_custom_${option.value}`] || ''"
+                    @input="updateText(`${currentQuestion.id}_custom_${option.value}`, ($event.target as HTMLInputElement).value)"
+                    @click.stop
+                  />
+                </div>
+              </div>
 
               <!-- 量表题 -->
               <div v-else-if="currentQuestion.type === 'scale'" class="scale-container">
@@ -1018,6 +1070,49 @@ onMounted(() => {
   0% { opacity: 0; transform: scale(0); }
   50% { transform: scale(1.2); }
   100% { opacity: 1; transform: scale(1); }
+}
+
+/* 🟢 选项包装器 */
+.option-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+/* 🟢 自定义输入框样式 */
+.custom-input-field {
+  width: 100%;
+  padding: 0.875rem 1rem;
+  border: 2px solid #e9d5ff;
+  border-radius: 10px;
+  font-size: 0.9375rem;
+  color: #374151;
+  background: #fefbff;
+  transition: all 0.2s ease;
+  animation: slideDown 0.3s ease;
+}
+
+.custom-input-field:focus {
+  outline: none;
+  border-color: #7c3aed;
+  box-shadow: 0 0 0 4px rgba(124, 58, 237, 0.1);
+  background: white;
+}
+
+.custom-input-field::placeholder {
+  color: #9ca3af;
+  font-style: italic;
+}
+
+@keyframes slideDown {
+  0% {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 /* 多选题 */

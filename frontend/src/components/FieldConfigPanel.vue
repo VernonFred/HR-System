@@ -121,7 +121,7 @@
                 <div v-for="(opt, optIndex) in field.options" :key="optIndex" class="option-row">
                   <input 
                     type="text" 
-                    :value="opt"
+                    :value="getOptionValue(opt)"
                     @input="updateFieldOption(field, optIndex, ($event.target as HTMLInputElement).value)"
                     class="option-input"
                     :placeholder="`选项${optIndex + 1}`"
@@ -202,7 +202,7 @@ export interface FormField {
   builtin: boolean
   enabled: boolean
   placeholder?: string
-  options?: string[]
+  options?: string[] | Array<{ value: string; label: string }>  // 支持两种格式
 }
 
 // Props
@@ -290,18 +290,36 @@ const addFieldFromTemplate = (template: typeof fieldTemplates[0]) => {
   emitUpdate()
 }
 
+// 获取选项的显示值（兼容字符串和对象格式）
+const getOptionValue = (opt: string | { value: string; label: string }): string => {
+  return typeof opt === 'string' ? opt : (opt.label || opt.value)
+}
+
 // 字段选项操作
 const addFieldOption = (field: FormField) => {
   if (!field.options) {
     field.options = []
   }
-  field.options.push(`选项${field.options.length + 1}`)
+  const newOptionLabel = `选项${field.options.length + 1}`
+  // 检查现有格式，保持一致
+  const firstOption = field.options[0]
+  if (firstOption && typeof firstOption === 'object') {
+    field.options.push({ value: newOptionLabel, label: newOptionLabel })
+  } else {
+    field.options.push(newOptionLabel)
+  }
   emitUpdate()
 }
 
 const updateFieldOption = (field: FormField, index: number, value: string) => {
   if (field.options && field.options[index] !== undefined) {
-    field.options[index] = value
+    const currentOption = field.options[index]
+    // 根据当前格式更新
+    if (typeof currentOption === 'object') {
+      field.options[index] = { value, label: value }
+    } else {
+      field.options[index] = value
+    }
     emitUpdate()
   }
 }

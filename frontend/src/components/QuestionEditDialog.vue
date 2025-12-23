@@ -14,7 +14,7 @@ export interface EditorQuestion {
   type: 'radio' | 'checkbox' | 'text' | 'textarea' | 'scale' | 'yesno' | 'choice'
   text: string
   required: boolean
-  options?: { label: string; value: string; score?: number }[]
+  options?: { label: string; value: string; score?: number; allowCustom?: boolean; placeholder?: string }[]
   scale?: { min: number; max: number; minLabel: string; maxLabel: string }
   optionA?: string
   optionB?: string
@@ -147,7 +147,7 @@ const initQuestion = () => {
   }
 }
 
-// 添加选项
+// 添加普通选项
 const addQuestionOption = () => {
   if (!newQuestion.value.options) {
     newQuestion.value.options = []
@@ -156,6 +156,19 @@ const addQuestionOption = () => {
   newQuestion.value.options.push({
     label: `选项${idx}`,
     value: `opt${idx}`,
+  })
+}
+
+// 🟢 新增：添加"其他"选项
+const addOtherOption = () => {
+  if (!newQuestion.value.options) {
+    newQuestion.value.options = []
+  }
+  newQuestion.value.options.push({
+    label: '其他（请注明）',
+    value: 'other',
+    allowCustom: true,
+    placeholder: '请填写具体内容...'
   })
 }
 
@@ -273,6 +286,7 @@ watch(() => newQuestion.value.type, (newType, oldType) => {
               <span class="col-indicator"></span>
               <span class="col-label">选项内容</span>
               <span v-if="!isProfessionalMode" class="col-score">分值</span>
+              <span class="col-custom">自定义</span>
               <span class="col-action"></span>
             </div>
             <div v-for="(opt, index) in newQuestion.options" :key="index" class="option-edit-item">
@@ -292,6 +306,15 @@ watch(() => newQuestion.value.type, (newType, oldType) => {
                 min="0"
                 max="100"
               />
+              <!-- 🟢 新增：允许自定义输入开关 -->
+              <button 
+                type="button"
+                :class="['btn-toggle-custom', { active: opt.allowCustom }]"
+                @click="opt.allowCustom = !opt.allowCustom"
+                :title="opt.allowCustom ? '取消自定义输入' : '允许用户自定义输入'"
+              >
+                <i :class="opt.allowCustom ? 'ri-edit-fill' : 'ri-edit-line'"></i>
+              </button>
               <button 
                 class="btn-remove-option" 
                 @click="removeQuestionOption(index)"
@@ -302,10 +325,16 @@ watch(() => newQuestion.value.type, (newType, oldType) => {
               </button>
             </div>
           </div>
-          <button class="btn-add-option" @click="addQuestionOption">
-            <i class="ri-add-line"></i>
-            添加选项
-          </button>
+          <div class="option-buttons">
+            <button class="btn-add-option" @click="addQuestionOption">
+              <i class="ri-add-line"></i>
+              添加选项
+            </button>
+            <button class="btn-add-other-option" @click="addOtherOption">
+              <i class="ri-edit-box-line"></i>
+              添加"其他"选项
+            </button>
+          </div>
         </div>
 
         <!-- 量表设置 -->
@@ -657,6 +686,14 @@ watch(() => newQuestion.value.type, (newType, oldType) => {
   text-align: center;
 }
 
+.options-header .col-custom {
+  width: 36px;
+  font-size: 12px;
+  color: #64748b;
+  font-weight: 500;
+  text-align: center;
+}
+
 .options-header .col-action {
   width: 32px;
 }
@@ -735,7 +772,40 @@ watch(() => newQuestion.value.type, (newType, oldType) => {
   cursor: not-allowed;
 }
 
+/* 🟢 新增：允许自定义输入按钮 */
+.btn-toggle-custom {
+  width: 36px;
+  height: 32px;
+  border: none;
+  background: #f1f5f9;
+  border-radius: 6px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #94a3b8;
+  font-size: 16px;
+  transition: all 0.2s;
+}
+
+.btn-toggle-custom:hover {
+  background: #e2e8f0;
+  color: #6366f1;
+}
+
+.btn-toggle-custom.active {
+  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  color: white;
+}
+
+/* 选项按钮容器 */
+.option-buttons {
+  display: flex;
+  gap: 8px;
+}
+
 .btn-add-option {
+  flex: 1;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -754,6 +824,29 @@ watch(() => newQuestion.value.type, (newType, oldType) => {
   background: #f1f5f9;
   border-color: #6366f1;
   color: #6366f1;
+}
+
+/* 🟢 新增："添加其他选项"按钮 */
+.btn-add-other-option {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 10px;
+  background: linear-gradient(135deg, #eef2ff, #e0e7ff);
+  border: 1px dashed #a5b4fc;
+  border-radius: 8px;
+  font-size: 14px;
+  color: #6366f1;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-add-other-option:hover {
+  background: linear-gradient(135deg, #e0e7ff, #ddd6fe);
+  border-color: #6366f1;
+  border-style: solid;
 }
 
 /* 量表设置 */

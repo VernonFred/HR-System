@@ -61,7 +61,7 @@ const navGroups: NavGroup[] = [
     label: "画像中心",
     icon: "ri-user-search-line",
     children: [
-      { key: "candidates", label: "人员画像", icon: "ri-team-line", path: "/candidates" },
+      { key: "candidates", label: "候选人画像", icon: "ri-team-line", path: "/candidates" },
       { key: "jobprofiles", label: "岗位画像配置", icon: "ri-briefcase-4-line", path: "/jobprofiles" },
       { key: "assessments", label: "专业测评", icon: "ri-file-list-3-line", path: "/assessments" },
     ],

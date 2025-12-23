@@ -44,7 +44,7 @@ def _format_profile_response(profile) -> dict:
 
 
 @router.post(
-    "/",
+    "",
     response_model=schemas.JobProfileResponse,
     status_code=status.HTTP_201_CREATED,
     summary="创建岗位画像"
@@ -72,7 +72,7 @@ async def create_job_profile(
 
 
 @router.get(
-    "/",
+    "",
     response_model=schemas.JobProfileListResponse,
     summary="获取岗位画像列表"
 )

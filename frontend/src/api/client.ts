@@ -14,29 +14,22 @@ type FetchOptions<T> = {
 };
 
 // 动态获取API地址
-// 在开发环境下使用空字符串（让Vite代理处理）
-// 在生产环境或局域网访问时使用实际后端地址
+// 生产环境：使用相对路径，让 nginx 代理处理
+// 开发环境：使用 Vite 代理或环境变量
 const getDefaultBase = () => {
   // 如果设置了环境变量，优先使用
   if (import.meta.env.VITE_API_BASE) {
     return import.meta.env.VITE_API_BASE;
   }
   
-  // 获取当前页面的主机名
-  const hostname = window.location.hostname;
-  
-  // 在开发环境下，如果是 localhost 或 127.0.0.1，使用空字符串让 Vite 代理处理
-  if (import.meta.env.DEV && (hostname === 'localhost' || hostname === '127.0.0.1')) {
+  // 开发环境下使用空字符串，让 Vite 代理处理
+  if (import.meta.env.DEV) {
     return ''; // 使用相对路径，让 Vite 代理处理
   }
   
-  // 如果是 localhost 或 127.0.0.1（生产环境），使用本地后端
-  if (hostname === 'localhost' || hostname === '127.0.0.1') {
-    return 'http://127.0.0.1:9000';
-  }
-  
-  // 如果是局域网IP访问，使用相同IP的后端端口9000
-  return `http://${hostname}:9000`;
+  // 生产环境：使用相对路径，让 nginx 代理转发到后端
+  // 这样前端请求 /api/xxx 会被 nginx 转发到后端服务
+  return '';
 };
 
 const DEFAULT_BASE = getDefaultBase();

@@ -612,11 +612,33 @@ def _add_option_to_question(question: Dict[str, Any], text: str) -> None:
         score = int(score_match.group(1))
         clean_text = re.sub(r'[\(（]\d+分[\)）]', '', clean_text)
     
-    question["options"].append({
+    # 🟢 检测是否为"其他"选项（允许用户自定义输入）
+    allow_custom = False
+    placeholder = None
+    other_patterns = [
+        r'其他.*(?:请注明|请填写|请说明|请写明)',
+        r'其他.*[（(].*[)）].*[_＿]+',
+        r'其他\s*[（(].*[)）]',
+        r'其他\s*[_＿]{2,}',
+    ]
+    for pattern in other_patterns:
+        if re.search(pattern, clean_text, re.IGNORECASE):
+            allow_custom = True
+            placeholder = "请填写具体内容..."
+            break
+    
+    option_data = {
         "id": f"{question['id']}_opt{option_index}",
         "text": clean_text.strip(),
         "score": score
-    })
+    }
+    
+    # 添加自定义输入字段
+    if allow_custom:
+        option_data["allow_custom"] = True
+        option_data["placeholder"] = placeholder
+    
+    question["options"].append(option_data)
 
 
 def _normalize_questions(questions: List[Any]) -> List[Dict[str, Any]]:

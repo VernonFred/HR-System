@@ -96,8 +96,8 @@ router.beforeEach((to, _from, next) => {
   
   const auth = useAuthStore();
   const token = auth.token || localStorage.getItem("token");
-  // 暂时禁用认证检查，用于开发
-  // if (!token) return next({ name: "login" });
+  // ✅ 启用认证检查
+  if (!token) return next({ name: "login" });
   next();
 });
 

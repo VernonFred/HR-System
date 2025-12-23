@@ -12,6 +12,8 @@ class QuestionOption(BaseModel):
     text: Optional[str] = None  # 选项文本
     value: Optional[str] = None  # 选项值（前端编辑器格式）
     score: Optional[int] = None  # 得分
+    allow_custom: Optional[bool] = False  # 是否允许用户自定义输入（用于"其他"选项）
+    placeholder: Optional[str] = None  # 自定义输入框的占位符文本
     
     @property
     def display_text(self) -> str:

@@ -192,8 +192,8 @@ const loadData = async () => {
   error.value = '';
   
   try {
-    // ⭐ 使用完整的后端API地址（添加 /api 前缀）
-    const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:9000';
+    // ⭐ 生产环境使用相对路径（nginx代理）
+    const baseUrl = import.meta.env.VITE_API_BASE_URL || '';
     const response = await fetch(`${baseUrl}/api/candidates/${props.candidateId}/survey-submissions`);
     if (!response.ok) {
       throw new Error('获取问卷调查数据失败');

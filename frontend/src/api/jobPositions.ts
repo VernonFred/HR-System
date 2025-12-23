@@ -2,7 +2,8 @@
  * 岗位画像管理 - API客户端
  */
 
-const BASE_URL = 'http://127.0.0.1:9000';
+// 生产环境使用相对路径（nginx代理），开发环境使用环境变量或空字符串
+const BASE_URL = import.meta.env.VITE_API_BASE || '';
 
 export interface JobPosition {
   id: number;

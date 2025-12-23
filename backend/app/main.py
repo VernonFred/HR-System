@@ -169,7 +169,12 @@ MOCK_ANALYTICS = AnalyticsSummary(
     avgScore=79.6,
 )
 
-app = FastAPI(title="HR Backend", version="0.1.0")
+app = FastAPI(
+    title="HR Backend", 
+    version="0.1.0",
+    # ⭐ 禁用尾部斜杠重定向，避免 307 问题
+    redirect_slashes=False
+)
 
 # CORS配置：允许所有来源（开发环境）
 # 注意：allow_credentials=True 与 allow_origins=["*"] 不兼容
@@ -639,7 +644,7 @@ def list_candidates(
             }
         
         candidate_map[key]['submissions'].append(sub)
-    
+        
         # 获取问卷类型
         questionnaire = session.get(Questionnaire, sub.questionnaire_id)
         if questionnaire:
@@ -811,7 +816,7 @@ def delete_candidate(
         
         # 4. 删除提交记录 (submissions 表)
         conn.execute(text("DELETE FROM submissions WHERE candidate_id = :cid"), {"cid": candidate_id})
-    
+        
         # 5. 删除候选人
         conn.execute(text("DELETE FROM candidates WHERE id = :cid"), {"cid": candidate_id})
         
@@ -1260,6 +1265,23 @@ def get_candidate_survey_submissions(candidate_id: int) -> dict:
                         if answer_text is None:
                             answer_text = str(answer_value)
                     
+                    # 🟢 检查是否有自定义输入（"其他"选项的填写内容）
+                    custom_text = None
+                    # 单选题的自定义输入格式: {question_id}_custom
+                    custom_key_single = f"{q_id}_custom"
+                    if custom_key_single in sub.answers:
+                        custom_text = sub.answers[custom_key_single]
+                    # 多选题的自定义输入格式: {question_id}_custom_{option_value}
+                    else:
+                        for key in sub.answers.keys():
+                            if key.startswith(f"{q_id}_custom_"):
+                                custom_text = sub.answers[key]
+                                break
+                    
+                    # 如果有自定义输入，拼接到答案文本中
+                    if custom_text and str(custom_text).strip():
+                        answer_text = f"{answer_text}：{custom_text}"
+                    
                     answers_detail.append({
                         'question_id': q_id,
                         'question_text': q.get('text', q.get('title', '')),
@@ -1394,22 +1416,51 @@ def _convert_js_questions_to_format(js_questions, answer_type):
 
 
 def _init_default_questionnaires() -> None:
-    """初始化默认问卷数据（从questionnaires.js加载真实题目）."""
+    """初始化默认问卷数据（优先从JSON文件加载）."""
     from app.models_assessment import Questionnaire
+    from pathlib import Path
     
     engine = get_engine()
     with Session(engine) as session:
-        # 检查是否已有问卷
-        statement = select(Questionnaire)
-        existing = session.exec(statement).first()
+        # 检查是否已有专业测评问卷
+        statement = select(Questionnaire).where(Questionnaire.category == "professional")
+        existing_professional = session.exec(statement).first()
         
-        if existing:
-            print("✅ 问卷数据已存在，跳过初始化")
+        if existing_professional:
+            print("✅ 专业测评问卷已存在，跳过初始化")
             return
         
-        print("📝 开始初始化问卷数据...")
+        print("📝 开始初始化专业测评问卷...")
         
-        # ⭐ 尝试从questionnaires.js加载真实题目
+        # ⭐ 优先从 JSON 文件加载（不依赖 Node.js）
+        json_path = Path(__file__).parent / "professional_questionnaires.json"
+        if json_path.exists():
+            try:
+                with open(json_path, "r", encoding="utf-8") as f:
+                    questionnaires_data = json.load(f)
+                
+                for q_data in questionnaires_data:
+                    q = Questionnaire(
+                        name=q_data["name"],
+                        type=q_data["type"],
+                        category="professional",
+                        questions_count=q_data["questions_count"],
+                        estimated_minutes=q_data["estimated_minutes"],
+                        questions_data=q_data["questions_data"],
+                        scoring_rules=q_data["scoring_rules"],
+                        description=q_data["description"],
+                        status="active",
+                    )
+                    session.add(q)
+                    print(f"   ✓ {q.name}: {q.questions_count}题")
+                
+                session.commit()
+                print("✅ 专业测评问卷初始化完成！")
+                return
+            except Exception as e:
+                print(f"⚠️ 从JSON加载失败: {e}")
+        
+        # 备选：尝试从questionnaires.js加载真实题目
         js_data = _load_questionnaires_from_js()
         
         if js_data:
@@ -1425,6 +1476,7 @@ def _init_default_questionnaires() -> None:
                 epq = Questionnaire(
                     name="EPQ人格测评",
                     type="EPQ",
+                    category="professional",  # ⭐ 专业测评分类
                     questions_count=len(epq_questions),
                     estimated_minutes=epq_data.get('estimatedTime', 15),
                     questions_data={"questions": epq_questions},
@@ -1452,6 +1504,7 @@ def _init_default_questionnaires() -> None:
                 disc = Questionnaire(
                     name="DISC性格分析",
                     type="DISC",
+                    category="professional",  # ⭐ 专业测评分类
                     questions_count=len(disc_questions),
                     estimated_minutes=disc_data.get('estimatedTime', 10),
                     questions_data={"questions": disc_questions},
@@ -1479,6 +1532,7 @@ def _init_default_questionnaires() -> None:
                 mbti = Questionnaire(
                     name="MBTI性格测试",
                     type="MBTI",
+                    category="professional",  # ⭐ 专业测评分类
                     questions_count=len(mbti_questions),
                     estimated_minutes=mbti_data.get('estimatedTime', 20),
                     questions_data={"questions": mbti_questions},

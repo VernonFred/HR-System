@@ -10,6 +10,8 @@ export interface QuestionOption {
   value: string;
   label: string;
   score?: number;
+  allowCustom?: boolean;  // 是否允许用户自定义输入（用于"其他"选项）
+  placeholder?: string;    // 自定义输入框的占位符文本
 }
 
 /**

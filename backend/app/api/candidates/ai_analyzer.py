@@ -107,7 +107,8 @@ def build_resume_context(candidate: "Candidate") -> str:
                     exp_texts.append(exp_text)
         
         if exp_texts:
-            context_parts.append(f"工作经历：\n{'；\n'.join(exp_texts)}")
+            exp_joined = "；\n".join(exp_texts)
+            context_parts.append(f"工作经历：\n{exp_joined}")
     
         # 添加行业背景
         if industries:
@@ -143,7 +144,8 @@ def build_resume_context(candidate: "Candidate") -> str:
                         proj_text += f"。成果：{ach_short}"
                     proj_texts.append(proj_text)
         if proj_texts:
-            context_parts.append(f"项目经验：\n{'；\n'.join(proj_texts)}")
+            proj_joined = "；\n".join(proj_texts)
+            context_parts.append(f"项目经验：\n{proj_joined}")
     
     # ⭐ 证书资质
     certificates = parsed.get("certificates", [])

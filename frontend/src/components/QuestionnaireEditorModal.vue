@@ -325,7 +325,11 @@ const save = async () => {
       text: q.text,
       required: q.required,
       order: idx + 1,
-      options: q.options,
+      // 🟢 确保选项数据包含 allow_custom 字段（后端使用蛇形命名）
+      options: q.options?.map(opt => ({
+        ...opt,
+        allow_custom: opt.allowCustom,  // 转换为蛇形命名
+      })),
       scale: q.scale,
       optionA: q.optionA,
       optionB: q.optionB,
@@ -387,7 +391,9 @@ onMounted(async () => {
       const mappedOptions = q.options?.map((opt, optIdx) => ({
         value: opt.id || String.fromCharCode(65 + optIdx), // A, B, C, D...
         label: opt.text,
-        score: opt.score || 0
+        score: opt.score || 0,
+        allowCustom: opt.allow_custom,  // 🟢 保留自定义输入标记
+        placeholder: opt.placeholder,    // 🟢 保留占位符
       })) || []
       
       return {

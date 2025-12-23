@@ -3,7 +3,8 @@
  */
 import axios from 'axios';
 
-const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:9000';
+// 生产环境使用相对路径（nginx代理），开发环境可通过环境变量配置
+const API_BASE = import.meta.env.VITE_API_BASE || '';
 
 // 上传单个简历
 export async function uploadResume(candidateId: number, file: File) {
