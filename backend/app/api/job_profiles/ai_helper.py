@@ -129,10 +129,16 @@ async def analyze_jd_for_job_profile(
 
 def _fill_defaults(data: Dict[str, Any], job_title: str, department: Optional[str]) -> Dict[str, Any]:
     """填充默认值并规范化输出."""
+    # ⭐ V51: 确保 description 是字符串类型
+    raw_description = data.get("description") or f"{job_title}岗位能力要求"
+    if isinstance(raw_description, list):
+        # 如果 AI 返回的是列表，拼接成字符串
+        raw_description = "；".join(str(item) for item in raw_description)
+    
     result = {
         "name": data.get("name") or job_title,
         "department": data.get("department") or department or "未知部门",
-        "description": data.get("description") or f"{job_title}岗位能力要求",
+        "description": str(raw_description),  # 确保是字符串
         "tags": data.get("tags") or [],
         "dimensions": data.get("dimensions") or [],
         "analysis": data.get("analysis") or "AI分析完成"

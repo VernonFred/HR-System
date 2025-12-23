@@ -371,7 +371,7 @@ def build_default_analysis(
     from app.services.fallback_analyzer import FallbackAnalyzer
     from sqlmodel import Session, select
     from app.models_assessment import Submission
-    from app.db import engine
+    from app.db import get_engine
     
     name = candidate.name if candidate else "候选人"
     position = target_position or "通用岗位"
@@ -379,7 +379,7 @@ def build_default_analysis(
     # 🟢 P1-2: 获取候选人的所有测评记录
     submissions_data = []
     if candidate:
-        with Session(engine) as session:
+        with Session(get_engine()) as session:
             stmt = select(Submission).where(
                 Submission.candidate_id == candidate.id
             ).order_by(Submission.submitted_at.desc())

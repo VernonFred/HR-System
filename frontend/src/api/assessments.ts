@@ -153,12 +153,13 @@ export interface AssessmentCreate {
 // 表单字段配置
 export interface FormField {
   id: string;
+  name?: string;
   label: string;
   type: string;
   placeholder?: string;
   required: boolean;
   enabled: boolean;
-  options?: string[];
+  options?: string[] | Array<{ value: string; label: string }>;  // 支持两种格式
   builtin?: boolean;
 }
 
@@ -451,6 +452,7 @@ export interface PublicAssessmentInfo {
   form_fields?: any[];
   page_texts?: {
     intro_text?: string;
+    guide_text?: string;
     privacy_text?: string;
     success_title?: string;
     success_message?: string;

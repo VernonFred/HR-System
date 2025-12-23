@@ -66,10 +66,10 @@ const pageTexts = ref<PageTexts>({
 
 // 表单字段 - V45: 保留姓名、手机号、性别、应聘岗位，移除邮箱
 const formFields = ref<FormField[]>([
-  { id: 'name', label: '姓名', type: 'text', placeholder: '请输入您的姓名', required: true, enabled: true, builtin: true },
-  { id: 'phone', label: '手机号', type: 'tel', placeholder: '请输入手机号', required: true, enabled: true, builtin: true },
-  { id: 'gender', label: '性别', type: 'select', placeholder: '请选择性别', required: false, enabled: true, builtin: true, options: [{ value: '男', label: '男' }, { value: '女', label: '女' }] },
-  { id: 'target_position', label: '应聘岗位', type: 'text', placeholder: '请输入应聘岗位', required: false, enabled: true, builtin: true },
+  { id: 'name', name: 'name', label: '姓名', type: 'text', placeholder: '请输入您的姓名', required: true, enabled: true, builtin: true },
+  { id: 'phone', name: 'phone', label: '手机号', type: 'tel', placeholder: '请输入手机号', required: true, enabled: true, builtin: true },
+  { id: 'gender', name: 'gender', label: '性别', type: 'select', placeholder: '请选择性别', required: false, enabled: true, builtin: true, options: [{ value: '男', label: '男' }, { value: '女', label: '女' }] },
+  { id: 'target_position', name: 'target_position', label: '应聘岗位', type: 'text', placeholder: '请输入应聘岗位', required: false, enabled: true, builtin: true },
 ])
 
 // 页面文案编辑类型

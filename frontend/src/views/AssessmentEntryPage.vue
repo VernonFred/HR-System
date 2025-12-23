@@ -329,12 +329,13 @@ onMounted(() => {
               :required="field.required"
             >
               <option value="">请选择{{ field.label }}</option>
+              <!-- ⭐ V51: 兼容两种 options 格式: 字符串数组 或 {value, label} 对象数组 -->
               <option 
                 v-for="(opt, idx) in (field.options || [])" 
                 :key="idx" 
-                :value="opt"
+                :value="typeof opt === 'object' ? opt.value : opt"
               >
-                {{ opt }}
+                {{ typeof opt === 'object' ? opt.label : opt }}
               </option>
             </select>
             
@@ -660,6 +661,7 @@ onMounted(() => {
   font-size: 0.95rem;
   outline: none;
   transition: all 0.3s;
+  background-color: white;
 }
 
 .form-input:focus {
@@ -669,6 +671,30 @@ onMounted(() => {
 
 .form-input::placeholder {
   color: #9ca3af;
+}
+
+/* ⭐ V51: 修复 select 下拉框样式，与 input 保持一致 */
+select.form-input {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%236b7280' d='M2.5 4.5L6 8l3.5-3.5'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 1rem center;
+  background-size: 12px;
+  padding-right: 2.5rem;
+  cursor: pointer;
+  color: #1f2937;
+}
+
+select.form-input:invalid,
+select.form-input option[value=""] {
+  color: #9ca3af;
+}
+
+select.form-input option {
+  color: #1f2937;
+  padding: 0.5rem;
 }
 
 .btn-start {

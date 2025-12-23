@@ -791,7 +791,7 @@ SYSTEM_PROMPT_JOB_RESUME = """你是一名擅长「从优秀员工身上反推�
 {
   "name": "岗位名称",
   "department": "部门",
-  "description": "岗位工作画像：2-3段，从简历中推断该岗位的主要职责、典型工作场景和协作对象",
+  "description": "岗位工作画像，2-3段文字描述，必须是单个字符串而非数组",
   "tags": ["标签1", "标签2", "...（6-12个）"],
   "dimensions": [
     {
@@ -801,7 +801,9 @@ SYSTEM_PROMPT_JOB_RESUME = """你是一名擅长「从优秀员工身上反推�
     }
   ],
   "analysis": "岗位适配人群画像：什么样的人更容易在这个岗位长期发展良好"
-}"""
+}
+
+【重要】description 字段必须是字符串类型，不能是数组！"""
 
 
 def build_job_resume_analysis_prompt(
@@ -866,7 +868,7 @@ SYSTEM_PROMPT_JOB_JD = """你是一名人力资源岗位设计顾问，任务是
 {
   "name": "岗位名称",
   "department": "部门",
-  "description": "岗位职责总结：4-8条清晰的职责条目",
+  "description": "岗位职责总结，用分号分隔各条职责，必须是单个字符串而非数组",
   "tags": ["标签1", "标签2", "...（6-10个行为与工作风格标签）"],
   "dimensions": [
     {
@@ -876,7 +878,9 @@ SYSTEM_PROMPT_JOB_JD = """你是一名人力资源岗位设计顾问，任务是
     }
   ],
   "analysis": "岗位画像配置建议：例如提醒该岗位对某能力要求很高，建议提高相关权重"
-}"""
+}
+
+【重要】description 字段必须是字符串类型，不能是数组！如需列举多条职责，请用分号或换行符分隔。"""
 
 
 def build_job_jd_analysis_prompt(

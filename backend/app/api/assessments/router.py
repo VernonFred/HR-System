@@ -119,6 +119,7 @@ async def delete_questionnaire(
 
 # ========== 测评管理 ==========
 
+@router.post("", response_model=schemas.AssessmentResponse, status_code=201)
 @router.post("/", response_model=schemas.AssessmentResponse, status_code=201)
 async def create_assessment(
     data: schemas.AssessmentCreate,
@@ -134,6 +135,7 @@ async def create_assessment(
     return assessment
 
 
+@router.get("", response_model=schemas.AssessmentListResponse)
 @router.get("/", response_model=schemas.AssessmentListResponse)
 async def get_assessments(
     skip: int = 0,
