@@ -173,6 +173,8 @@ export interface PageTexts {
   successMessage?: string;
   resultText?: string;
   contactText?: string;
+  showNextSteps?: boolean;  // 是否显示"接下来"区域
+  nextStepsText?: string;   // "接下来"合并文本（用于兼容）
 }
 
 export const fetchAssessments = (params?: {

@@ -1677,17 +1677,18 @@ const handleRetryAI = () => {
                 </span>
               </div>
               
-              <!-- V38: 分析级别切换按钮 + P0评分详情按钮 -->
+              <!-- 专家分析按钮保留，深度分析按钮隐藏避免误触 -->
               <div class="analysis-level-switch">
                 <button 
                   class="level-btn"
+                  style="display: none;"
                   :class="{ 
                     active: currentAnalysisLevel === 'pro',
                     cached: cacheStatus?.cached_levels?.pro
                   }"
                   @click="switchAnalysisLevel('pro')"
                   :disabled="isSwitchingLevel"
-                  title="深度分析 (Qwen2.5-32B)"
+                  title="深度分析"
                 >
                   <i class="ri-focus-3-line"></i>
                   <span>深度分析</span>
@@ -1701,7 +1702,7 @@ const handleRetryAI = () => {
                   }"
                   @click="switchAnalysisLevel('expert')"
                   :disabled="isSwitchingLevel"
-                  title="专家分析 (DeepSeek-R1)"
+                  title="专家分析 (DeepSeek)"
                 >
                   <i class="ri-vip-crown-line"></i>
                   <span>专家分析</span>

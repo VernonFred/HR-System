@@ -62,6 +62,7 @@ const pageTexts = ref<PageTexts>({
   successMessage: '感谢您认真完成本次测评，您的回答对我们非常重要。',
   resultText: '我们将在 1-3 个工作日内完成评估分析。',
   contactText: '届时会通过您留下的联系方式通知您，请保持电话畅通。',
+  showNextSteps: true,  // 默认显示"接下来"区域
 })
 
 // 表单字段 - V45: 保留姓名、手机号、性别、应聘岗位，移除邮箱
@@ -629,27 +630,43 @@ onMounted(() => {
                   ></textarea>
                 <span class="char-count">{{ pageTexts.successMessage?.length || 0 }}/60</span>
               </div>
-              <div class="form-item">
-                <label><i class="ri-calendar-check-line"></i> 结果说明</label>
-                  <textarea 
-                    v-model="pageTexts.resultText"
-                    placeholder="我们将在 1-3 个工作日内完成评估分析。"
-                    rows="2"
-                    maxlength="60"
-                  ></textarea>
-                <span class="char-count">{{ pageTexts.resultText?.length || 0 }}/60</span>
-              </div>
-              <div class="form-item">
-                <label><i class="ri-phone-line"></i> 联系提示</label>
-                  <textarea 
-                    v-model="pageTexts.contactText"
-                    placeholder="届时会通过您留下的联系方式通知您，请保持电话畅通。"
-                    rows="2"
-                    maxlength="60"
-                  ></textarea>
-                <span class="char-count">{{ pageTexts.contactText?.length || 0 }}/60</span>
+              
+              <!-- "接下来"区域配置 - 带开关 -->
+              <div class="form-item-group">
+                <div class="group-header">
+                  <label><i class="ri-information-line"></i> 接下来</label>
+                  <div class="toggle-switch" @click="pageTexts.showNextSteps = !pageTexts.showNextSteps">
+                    <div :class="['toggle-track', { active: pageTexts.showNextSteps }]">
+                      <div class="toggle-thumb"></div>
+                    </div>
+                    <span class="toggle-label">{{ pageTexts.showNextSteps ? '显示' : '隐藏' }}</span>
+                  </div>
                 </div>
+                
+                <template v-if="pageTexts.showNextSteps">
+                  <div class="form-item sub-item">
+                    <label><i class="ri-calendar-check-line"></i> 结果说明</label>
+                    <textarea 
+                      v-model="pageTexts.resultText"
+                      placeholder="我们将在 1-3 个工作日内完成评估分析。"
+                      rows="2"
+                      maxlength="60"
+                    ></textarea>
+                    <span class="char-count">{{ pageTexts.resultText?.length || 0 }}/60</span>
+                  </div>
+                  <div class="form-item sub-item">
+                    <label><i class="ri-phone-line"></i> 联系提示</label>
+                    <textarea 
+                      v-model="pageTexts.contactText"
+                      placeholder="届时会通过您留下的联系方式通知您，请保持电话畅通。"
+                      rows="2"
+                      maxlength="60"
+                    ></textarea>
+                    <span class="char-count">{{ pageTexts.contactText?.length || 0 }}/60</span>
+                  </div>
+                </template>
               </div>
+            </div>
             </div>
           </div>
           
@@ -768,8 +785,8 @@ onMounted(() => {
                         </div>
                       </div>
                       
-                      <!-- 后续提示 -->
-                      <div class="next-steps">
+                      <!-- 后续提示 - 根据开关显示/隐藏 -->
+                      <div v-if="pageTexts.showNextSteps" class="next-steps">
                         <div class="steps-title"><i class="ri-information-line"></i> 接下来</div>
                         <p v-if="pageTexts.resultText">{{ pageTexts.resultText }}</p>
                         <p v-if="pageTexts.contactText">{{ pageTexts.contactText }}</p>

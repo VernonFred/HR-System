@@ -574,9 +574,6 @@ onMounted(() => {
                     <span class="choice-text">{{ currentQuestion.optionA }}</span>
                     <i v-if="answers[currentQuestion.id] === 'A'" class="ri-check-double-line choice-check"></i>
             </button>
-                  <div class="choice-divider">
-                    <span class="or-text">或</span>
-          </div>
                   <button
                     class="choice-card choice-b"
                     :class="{ selected: answers[currentQuestion.id] === 'B' }"
@@ -934,9 +931,17 @@ onMounted(() => {
 }
 
 .q-num {
-  font-size: 2rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 2.5rem;
+  height: 2.5rem;
+  padding: 0.25rem 0.5rem;
+  font-size: 1.25rem;
   font-weight: 700;
-  color: #7c3aed;
+  color: #ffffff;
+  background: linear-gradient(135deg, #7c3aed 0%, #6366f1 100%);
+  border-radius: 10px;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
   letter-spacing: -0.02em;
 }

@@ -1,6 +1,6 @@
 [
   {
-    "name": "EPQ人格测评",
+    "name": "EPQ简版(48题)",
     "type": "EPQ",
     "category": "professional",
     "questions_count": 48,
@@ -845,8 +845,1516 @@
         }
       }
     },
-    "description": "艾森克人格问卷，评估外向性、神经质、精神质和掩饰性四个维度",
+    "description": "EPQ艾森克人格问卷简化版，适合快速评估，每个维度12道题。",
     "status": "active"
+  },
+  {
+    "name": "EPQ完整版(88题)",
+    "type": "EPQ",
+    "category": "professional",
+    "questions_count": 88,
+    "estimated_minutes": 25,
+    "description": "EPQ艾森克人格问卷完整版，提供更全面的人格评估。E:21题, N:24题, P:23题, L:20题。",
+    "questions_data": {
+      "questions": [
+        {
+          "id": 1,
+          "text": "你是否喜欢周围热闹？",
+          "dimension": "E",
+          "options": [
+            {
+              "label": "A",
+              "text": "是",
+              "score": 1
+            },
+            {
+              "label": "B",
+              "text": "否",
+              "score": 0
+            }
+          ]
+        },
+        {
+          "id": 2,
+          "text": "你是否是个活泼的人？",
+          "dimension": "E",
+          "options": [
+            {
+              "label": "A",
+              "text": "是",
+              "score": 1
+            },
+            {
+              "label": "B",
+              "text": "否",
+              "score": 0
+            }
+          ]
+        },
+        {
+          "id": 3,
+          "text": "你是否喜欢与人交往？",
+          "dimension": "E",
+          "options": [
+            {
+              "label": "A",
+              "text": "是",
+              "score": 1
+            },
+            {
+              "label": "B",
+              "text": "否",
+              "score": 0
+            }
+          ]
+        },
+        {
+          "id": 4,
+          "text": "在社交场合你是否感到自在？",
+          "dimension": "E",
+          "options": [
+            {
+              "label": "A",
+              "text": "是",
+              "score": 1
+            },
+            {
+              "label": "B",
+              "text": "否",
+              "score": 0
+            }
+          ]
+        },
+        {
+          "id": 5,
+          "text": "你是否喜欢参加热闹的聚会？",
+          "dimension": "E",
+          "options": [
+            {
+              "label": "A",
+              "text": "是",
+              "score": 1
+            },
+            {
+              "label": "B",
+              "text": "否",
+              "score": 0
+            }
+          ]
+        },
+        {
+          "id": 6,
+          "text": "你是否喜欢结交新朋友？",
+          "dimension": "E",
+          "options": [
+            {
+              "label": "A",
+              "text": "是",
+              "score": 1
+            },
+            {
+              "label": "B",
+              "text": "否",
+              "score": 0
+            }
+          ]
+        },
+        {
+          "id": 7,
+          "text": "你是否经常主动与陌生人攀谈？",
+          "dimension": "E",
+          "options": [
+            {
+              "label": "A",
+              "text": "是",
+              "score": 1
+            },
+            {
+              "label": "B",
+              "text": "否",
+              "score": 0
+            }
+          ]
+        },
+        {
+          "id": 8,
+          "text": "你是否喜欢讲笑话和有趣的故事给朋友听？",
+          "dimension": "E",
+          "options": [
+            {
+              "label": "A",
+              "text": "是",
+              "score": 1
+            },
+            {
+              "label": "B",
+              "text": "否",
+              "score": 0
+            }
+          ]
+        },
+        {
+          "id": 9,
+          "text": "你是否通常能使聚会活跃起来？",
+          "dimension": "E",
+          "options": [
+            {
+              "label": "A",
+              "text": "是",
+              "score": 1
+            },
+            {
+              "label": "B",
+              "text": "否",
+              "score": 0
+            }
+          ]
+        },
+        {
+          "id": 10,
+          "text": "你是否喜欢和许多人在一起？",
+          "dimension": "E",
+          "options": [
+            {
+              "label": "A",
+              "text": "是",
+              "score": 1
+            },
+            {
+              "label": "B",
+              "text": "否",
+              "score": 0
+            }
+          ]
+        },
+        {
+          "id": 11,
+          "text": "你是否在公共场合发言感到轻松？",
+          "dimension": "E",
+          "options": [
+            {
+              "label": "A",
+              "text": "是",
+              "score": 1
+            },
+            {
+              "label": "B",
+              "text": "否",
+              "score": 0
+            }
+          ]
+        },
+        {
+          "id": 12,
+          "text": "你是否喜欢参加各种社交活动？",
+          "dimension": "E",
+          "options": [
+            {
+              "label": "A",
+              "text": "是",
+              "score": 1
+            },
+            {
+              "label": "B",
+              "text": "否",
+              "score": 0
+            }
+          ]
+        },
+        {
+          "id": 13,
+          "text": "你和别人在一起时是否很少感到沉闷？",
+          "dimension": "E",
+          "options": [
+            {
+              "label": "A",
+              "text": "是",
+              "score": 1
+            },
+            {
+              "label": "B",
+              "text": "否",
+              "score": 0
+            }
+          ]
+        },
+        {
+          "id": 14,
+          "text": "你是否喜欢认识更多的人？",
+          "dimension": "E",
+          "options": [
+            {
+              "label": "A",
+              "text": "是",
+              "score": 1
+            },
+            {
+              "label": "B",
+              "text": "否",
+              "score": 0
+            }
+          ]
+        },
+        {
+          "id": 15,
+          "text": "你是否认为自己是个外向的人？",
+          "dimension": "E",
+          "options": [
+            {
+              "label": "A",
+              "text": "是",
+              "score": 1
+            },
+            {
+              "label": "B",
+              "text": "否",
+              "score": 0
+            }
+          ]
+        },
+        {
+          "id": 16,
+          "text": "你是否喜欢热闘的环境胜过安静的环境？",
+          "dimension": "E",
+          "options": [
+            {
+              "label": "A",
+              "text": "是",
+              "score": 1
+            },
+            {
+              "label": "B",
+              "text": "否",
+              "score": 0
+            }
+          ]
+        },
+        {
+          "id": 17,
+          "text": "你是否喜欢与人交谈胜过独处？",
+          "dimension": "E",
+          "options": [
+            {
+              "label": "A",
+              "text": "是",
+              "score": 1
+            },
+            {
+              "label": "B",
+              "text": "否",
+              "score": 0
+            }
+          ]
+        },
+        {
+          "id": 18,
+          "text": "你是否容易与人打成一片？",
+          "dimension": "E",
+          "options": [
+            {
+              "label": "A",
+              "text": "是",
+              "score": 1
+            },
+            {
+              "label": "B",
+              "text": "否",
+              "score": 0
+            }
+          ]
+        },
+        {
+          "id": 19,
+          "text": "你是否喜欢有很多朋友？",
+          "dimension": "E",
+          "options": [
+            {
+              "label": "A",
+              "text": "是",
+              "score": 1
+            },
+            {
+              "label": "B",
+              "text": "否",
+              "score": 0
+            }
+          ]
+        },
+        {
+          "id": 20,
+          "text": "你是否喜欢探望朋友或接受朋友的拜访？",
+          "dimension": "E",
+          "options": [
+            {
+              "label": "A",
+              "text": "是",
+              "score": 1
+            },
+            {
+              "label": "B",
+              "text": "否",
+              "score": 0
+            }
+          ]
+        },
+        {
+          "id": 21,
+          "text": "你通常是个话多的人吗？",
+          "dimension": "E",
+          "options": [
+            {
+              "label": "A",
+              "text": "是",
+              "score": 1
+            },
+            {
+              "label": "B",
+              "text": "否",
+              "score": 0
+            }
+          ]
+        },
+        {
+          "id": 22,
+          "text": "你是否常常感到寂寞？",
+          "dimension": "N",
+          "options": [
+            {
+              "label": "A",
+              "text": "是",
+              "score": 1
+            },
+            {
+              "label": "B",
+              "text": "否",
+              "score": 0
+            }
+          ]
+        },
+        {
+          "id": 23,
+          "text": "你是否常因自责而感到难过？",
+          "dimension": "N",
+          "options": [
+            {
+              "label": "A",
+              "text": "是",
+              "score": 1
+            },
+            {
+              "label": "B",
+              "text": "否",
+              "score": 0
+            }
+          ]
+        },
+        {
+          "id": 24,
+          "text": "你是否容易受伤害？",
+          "dimension": "N",
+          "options": [
+            {
+              "label": "A",
+              "text": "是",
+              "score": 1
+            },
+            {
+              "label": "B",
+              "text": "否",
+              "score": 0
+            }
+          ]
+        },
+        {
+          "id": 25,
+          "text": "你是否经常感到紧张不安？",
+          "dimension": "N",
+          "options": [
+            {
+              "label": "A",
+              "text": "是",
+              "score": 1
+            },
+            {
+              "label": "B",
+              "text": "否",
+              "score": 0
+            }
+          ]
+        },
+        {
+          "id": 26,
+          "text": "你是否常常为可能发生的事情担忧？",
+          "dimension": "N",
+          "options": [
+            {
+              "label": "A",
+              "text": "是",
+              "score": 1
+            },
+            {
+              "label": "B",
+              "text": "否",
+              "score": 0
+            }
+          ]
+        },
+        {
+          "id": 27,
+          "text": "你是否常常感到焦虑？",
+          "dimension": "N",
+          "options": [
+            {
+              "label": "A",
+              "text": "是",
+              "score": 1
+            },
+            {
+              "label": "B",
+              "text": "否",
+              "score": 0
+            }
+          ]
+        },
+        {
+          "id": 28,
+          "text": "你是否有时感到非常不快乐？",
+          "dimension": "N",
+          "options": [
+            {
+              "label": "A",
+              "text": "是",
+              "score": 1
+            },
+            {
+              "label": "B",
+              "text": "否",
+              "score": 0
+            }
+          ]
+        },
+        {
+          "id": 29,
+          "text": "你是否常常情绪低落？",
+          "dimension": "N",
+          "options": [
+            {
+              "label": "A",
+              "text": "是",
+              "score": 1
+            },
+            {
+              "label": "B",
+              "text": "否",
+              "score": 0
+            }
+          ]
+        },
+        {
+          "id": 30,
+          "text": "你是否容易感到烦躁？",
+          "dimension": "N",
+          "options": [
+            {
+              "label": "A",
+              "text": "是",
+              "score": 1
+            },
+            {
+              "label": "B",
+              "text": "否",
+              "score": 0
+            }
+          ]
+        },
+        {
+          "id": 31,
+          "text": "你是否经常感到自卑？",
+          "dimension": "N",
+          "options": [
+            {
+              "label": "A",
+              "text": "是",
+              "score": 1
+            },
+            {
+              "label": "B",
+              "text": "否",
+              "score": 0
+            }
+          ]
+        },
+        {
+          "id": 32,
+          "text": "你是否常为过去做的事感到内疚？",
+          "dimension": "N",
+          "options": [
+            {
+              "label": "A",
+              "text": "是",
+              "score": 1
+            },
+            {
+              "label": "B",
+              "text": "否",
+              "score": 0
+            }
+          ]
+        },
+        {
+          "id": 33,
+          "text": "你是否容易感到紧张？",
+          "dimension": "N",
+          "options": [
+            {
+              "label": "A",
+              "text": "是",
+              "score": 1
+            },
+            {
+              "label": "B",
+              "text": "否",
+              "score": 0
+            }
+          ]
+        },
+        {
+          "id": 34,
+          "text": "你是否常常感到孤独？",
+          "dimension": "N",
+          "options": [
+            {
+              "label": "A",
+              "text": "是",
+              "score": 1
+            },
+            {
+              "label": "B",
+              "text": "否",
+              "score": 0
+            }
+          ]
+        },
+        {
+          "id": 35,
+          "text": "你是否容易被别人的话伤害？",
+          "dimension": "N",
+          "options": [
+            {
+              "label": "A",
+              "text": "是",
+              "score": 1
+            },
+            {
+              "label": "B",
+              "text": "否",
+              "score": 0
+            }
+          ]
+        },
+        {
+          "id": 36,
+          "text": "你是否常常感到忧郁？",
+          "dimension": "N",
+          "options": [
+            {
+              "label": "A",
+              "text": "是",
+              "score": 1
+            },
+            {
+              "label": "B",
+              "text": "否",
+              "score": 0
+            }
+          ]
+        },
+        {
+          "id": 37,
+          "text": "你是否容易激动？",
+          "dimension": "N",
+          "options": [
+            {
+              "label": "A",
+              "text": "是",
+              "score": 1
+            },
+            {
+              "label": "B",
+              "text": "否",
+              "score": 0
+            }
+          ]
+        },
+        {
+          "id": 38,
+          "text": "你是否常因失眠而感到困扰？",
+          "dimension": "N",
+          "options": [
+            {
+              "label": "A",
+              "text": "是",
+              "score": 1
+            },
+            {
+              "label": "B",
+              "text": "否",
+              "score": 0
+            }
+          ]
+        },
+        {
+          "id": 39,
+          "text": "你是否容易感到沮丧？",
+          "dimension": "N",
+          "options": [
+            {
+              "label": "A",
+              "text": "是",
+              "score": 1
+            },
+            {
+              "label": "B",
+              "text": "否",
+              "score": 0
+            }
+          ]
+        },
+        {
+          "id": 40,
+          "text": "你是否常常感到神经紧张？",
+          "dimension": "N",
+          "options": [
+            {
+              "label": "A",
+              "text": "是",
+              "score": 1
+            },
+            {
+              "label": "B",
+              "text": "否",
+              "score": 0
+            }
+          ]
+        },
+        {
+          "id": 41,
+          "text": "你是否容易情绪波动？",
+          "dimension": "N",
+          "options": [
+            {
+              "label": "A",
+              "text": "是",
+              "score": 1
+            },
+            {
+              "label": "B",
+              "text": "否",
+              "score": 0
+            }
+          ]
+        },
+        {
+          "id": 42,
+          "text": "你是否常感到无缘无故的恐惧？",
+          "dimension": "N",
+          "options": [
+            {
+              "label": "A",
+              "text": "是",
+              "score": 1
+            },
+            {
+              "label": "B",
+              "text": "否",
+              "score": 0
+            }
+          ]
+        },
+        {
+          "id": 43,
+          "text": "你是否有时感到自己一无是处？",
+          "dimension": "N",
+          "options": [
+            {
+              "label": "A",
+              "text": "是",
+              "score": 1
+            },
+            {
+              "label": "B",
+              "text": "否",
+              "score": 0
+            }
+          ]
+        },
+        {
+          "id": 44,
+          "text": "你是否常常感到生活没有意义？",
+          "dimension": "N",
+          "options": [
+            {
+              "label": "A",
+              "text": "是",
+              "score": 1
+            },
+            {
+              "label": "B",
+              "text": "否",
+              "score": 0
+            }
+          ]
+        },
+        {
+          "id": 45,
+          "text": "你是否容易感到疲倦？",
+          "dimension": "N",
+          "options": [
+            {
+              "label": "A",
+              "text": "是",
+              "score": 1
+            },
+            {
+              "label": "B",
+              "text": "否",
+              "score": 0
+            }
+          ]
+        },
+        {
+          "id": 46,
+          "text": "你是否认为有人想害你？",
+          "dimension": "P",
+          "options": [
+            {
+              "label": "A",
+              "text": "是",
+              "score": 1
+            },
+            {
+              "label": "B",
+              "text": "否",
+              "score": 0
+            }
+          ]
+        },
+        {
+          "id": 47,
+          "text": "你是否喜欢恶作剧？",
+          "dimension": "P",
+          "options": [
+            {
+              "label": "A",
+              "text": "是",
+              "score": 1
+            },
+            {
+              "label": "B",
+              "text": "否",
+              "score": 0
+            }
+          ]
+        },
+        {
+          "id": 48,
+          "text": "你是否觉得人们对你过于苛求？",
+          "dimension": "P",
+          "options": [
+            {
+              "label": "A",
+              "text": "是",
+              "score": 1
+            },
+            {
+              "label": "B",
+              "text": "否",
+              "score": 0
+            }
+          ]
+        },
+        {
+          "id": 49,
+          "text": "你是否常常违反规则？",
+          "dimension": "P",
+          "options": [
+            {
+              "label": "A",
+              "text": "是",
+              "score": 1
+            },
+            {
+              "label": "B",
+              "text": "否",
+              "score": 0
+            }
+          ]
+        },
+        {
+          "id": 50,
+          "text": "你是否喜欢冒险刺激的事情？",
+          "dimension": "P",
+          "options": [
+            {
+              "label": "A",
+              "text": "是",
+              "score": 1
+            },
+            {
+              "label": "B",
+              "text": "否",
+              "score": 0
+            }
+          ]
+        },
+        {
+          "id": 51,
+          "text": "你是否认为大多数人都是自私的？",
+          "dimension": "P",
+          "options": [
+            {
+              "label": "A",
+              "text": "是",
+              "score": 1
+            },
+            {
+              "label": "B",
+              "text": "否",
+              "score": 0
+            }
+          ]
+        },
+        {
+          "id": 52,
+          "text": "你是否有时想伤害别人？",
+          "dimension": "P",
+          "options": [
+            {
+              "label": "A",
+              "text": "是",
+              "score": 1
+            },
+            {
+              "label": "B",
+              "text": "否",
+              "score": 0
+            }
+          ]
+        },
+        {
+          "id": 53,
+          "text": "你是否不在乎别人的感受？",
+          "dimension": "P",
+          "options": [
+            {
+              "label": "A",
+              "text": "是",
+              "score": 1
+            },
+            {
+              "label": "B",
+              "text": "否",
+              "score": 0
+            }
+          ]
+        },
+        {
+          "id": 54,
+          "text": "你是否喜欢看别人打架？",
+          "dimension": "P",
+          "options": [
+            {
+              "label": "A",
+              "text": "是",
+              "score": 1
+            },
+            {
+              "label": "B",
+              "text": "否",
+              "score": 0
+            }
+          ]
+        },
+        {
+          "id": 55,
+          "text": "你是否认为礼貌和规矩没什么用？",
+          "dimension": "P",
+          "options": [
+            {
+              "label": "A",
+              "text": "是",
+              "score": 1
+            },
+            {
+              "label": "B",
+              "text": "否",
+              "score": 0
+            }
+          ]
+        },
+        {
+          "id": 56,
+          "text": "你是否喜欢欺负比你弱小的人？",
+          "dimension": "P",
+          "options": [
+            {
+              "label": "A",
+              "text": "是",
+              "score": 1
+            },
+            {
+              "label": "B",
+              "text": "否",
+              "score": 0
+            }
+          ]
+        },
+        {
+          "id": 57,
+          "text": "你是否认为对敌人应该残忍无情？",
+          "dimension": "P",
+          "options": [
+            {
+              "label": "A",
+              "text": "是",
+              "score": 1
+            },
+            {
+              "label": "B",
+              "text": "否",
+              "score": 0
+            }
+          ]
+        },
+        {
+          "id": 58,
+          "text": "你是否容易发脾气？",
+          "dimension": "P",
+          "options": [
+            {
+              "label": "A",
+              "text": "是",
+              "score": 1
+            },
+            {
+              "label": "B",
+              "text": "否",
+              "score": 0
+            }
+          ]
+        },
+        {
+          "id": 59,
+          "text": "你是否喜欢与人争论？",
+          "dimension": "P",
+          "options": [
+            {
+              "label": "A",
+              "text": "是",
+              "score": 1
+            },
+            {
+              "label": "B",
+              "text": "否",
+              "score": 0
+            }
+          ]
+        },
+        {
+          "id": 60,
+          "text": "你是否认为法律太严格了？",
+          "dimension": "P",
+          "options": [
+            {
+              "label": "A",
+              "text": "是",
+              "score": 1
+            },
+            {
+              "label": "B",
+              "text": "否",
+              "score": 0
+            }
+          ]
+        },
+        {
+          "id": 61,
+          "text": "你是否喜欢做让别人害怕的事？",
+          "dimension": "P",
+          "options": [
+            {
+              "label": "A",
+              "text": "是",
+              "score": 1
+            },
+            {
+              "label": "B",
+              "text": "否",
+              "score": 0
+            }
+          ]
+        },
+        {
+          "id": 62,
+          "text": "你是否认为有些人该受到惩罚？",
+          "dimension": "P",
+          "options": [
+            {
+              "label": "A",
+              "text": "是",
+              "score": 1
+            },
+            {
+              "label": "B",
+              "text": "否",
+              "score": 0
+            }
+          ]
+        },
+        {
+          "id": 63,
+          "text": "你是否喜欢看暴力电影或游戏？",
+          "dimension": "P",
+          "options": [
+            {
+              "label": "A",
+              "text": "是",
+              "score": 1
+            },
+            {
+              "label": "B",
+              "text": "否",
+              "score": 0
+            }
+          ]
+        },
+        {
+          "id": 64,
+          "text": "你是否觉得有人在背后议论你？",
+          "dimension": "P",
+          "options": [
+            {
+              "label": "A",
+              "text": "是",
+              "score": 1
+            },
+            {
+              "label": "B",
+              "text": "否",
+              "score": 0
+            }
+          ]
+        },
+        {
+          "id": 65,
+          "text": "你是否容易对别人产生敌意？",
+          "dimension": "P",
+          "options": [
+            {
+              "label": "A",
+              "text": "是",
+              "score": 1
+            },
+            {
+              "label": "B",
+              "text": "否",
+              "score": 0
+            }
+          ]
+        },
+        {
+          "id": 66,
+          "text": "你是否认为报复是正当的？",
+          "dimension": "P",
+          "options": [
+            {
+              "label": "A",
+              "text": "是",
+              "score": 1
+            },
+            {
+              "label": "B",
+              "text": "否",
+              "score": 0
+            }
+          ]
+        },
+        {
+          "id": 67,
+          "text": "你是否喜欢嘲笑别人？",
+          "dimension": "P",
+          "options": [
+            {
+              "label": "A",
+              "text": "是",
+              "score": 1
+            },
+            {
+              "label": "B",
+              "text": "否",
+              "score": 0
+            }
+          ]
+        },
+        {
+          "id": 68,
+          "text": "你是否认为只有软弱的人才会被欺负？",
+          "dimension": "P",
+          "options": [
+            {
+              "label": "A",
+              "text": "是",
+              "score": 1
+            },
+            {
+              "label": "B",
+              "text": "否",
+              "score": 0
+            }
+          ]
+        },
+        {
+          "id": 69,
+          "text": "你是否从不说谎？",
+          "dimension": "L",
+          "options": [
+            {
+              "label": "A",
+              "text": "是",
+              "score": 1
+            },
+            {
+              "label": "B",
+              "text": "否",
+              "score": 0
+            }
+          ]
+        },
+        {
+          "id": 70,
+          "text": "你是否总是信守承诺？",
+          "dimension": "L",
+          "options": [
+            {
+              "label": "A",
+              "text": "是",
+              "score": 1
+            },
+            {
+              "label": "B",
+              "text": "否",
+              "score": 0
+            }
+          ]
+        },
+        {
+          "id": 71,
+          "text": "你是否从不迟到？",
+          "dimension": "L",
+          "options": [
+            {
+              "label": "A",
+              "text": "是",
+              "score": 1
+            },
+            {
+              "label": "B",
+              "text": "否",
+              "score": 0
+            }
+          ]
+        },
+        {
+          "id": 72,
+          "text": "你是否总是礼貌待人？",
+          "dimension": "L",
+          "options": [
+            {
+              "label": "A",
+              "text": "是",
+              "score": 1
+            },
+            {
+              "label": "B",
+              "text": "否",
+              "score": 0
+            }
+          ]
+        },
+        {
+          "id": 73,
+          "text": "你是否从不说别人的坏话？",
+          "dimension": "L",
+          "options": [
+            {
+              "label": "A",
+              "text": "是",
+              "score": 1
+            },
+            {
+              "label": "B",
+              "text": "否",
+              "score": 0
+            }
+          ]
+        },
+        {
+          "id": 74,
+          "text": "你是否总是承认自己的错误？",
+          "dimension": "L",
+          "options": [
+            {
+              "label": "A",
+              "text": "是",
+              "score": 1
+            },
+            {
+              "label": "B",
+              "text": "否",
+              "score": 0
+            }
+          ]
+        },
+        {
+          "id": 75,
+          "text": "你是否从不生气？",
+          "dimension": "L",
+          "options": [
+            {
+              "label": "A",
+              "text": "是",
+              "score": 1
+            },
+            {
+              "label": "B",
+              "text": "否",
+              "score": 0
+            }
+          ]
+        },
+        {
+          "id": 76,
+          "text": "你是否所有习惯都是好的和正确的？",
+          "dimension": "L",
+          "options": [
+            {
+              "label": "A",
+              "text": "是",
+              "score": 1
+            },
+            {
+              "label": "B",
+              "text": "否",
+              "score": 0
+            }
+          ]
+        },
+        {
+          "id": 77,
+          "text": "你是否从不妒忌别人？",
+          "dimension": "L",
+          "options": [
+            {
+              "label": "A",
+              "text": "是",
+              "score": 1
+            },
+            {
+              "label": "B",
+              "text": "否",
+              "score": 0
+            }
+          ]
+        },
+        {
+          "id": 78,
+          "text": "你是否总是按时完成工作？",
+          "dimension": "L",
+          "options": [
+            {
+              "label": "A",
+              "text": "是",
+              "score": 1
+            },
+            {
+              "label": "B",
+              "text": "否",
+              "score": 0
+            }
+          ]
+        },
+        {
+          "id": 79,
+          "text": "你是否从不浪费时间？",
+          "dimension": "L",
+          "options": [
+            {
+              "label": "A",
+              "text": "是",
+              "score": 1
+            },
+            {
+              "label": "B",
+              "text": "否",
+              "score": 0
+            }
+          ]
+        },
+        {
+          "id": 80,
+          "text": "你是否从不拿不属于自己的东西？",
+          "dimension": "L",
+          "options": [
+            {
+              "label": "A",
+              "text": "是",
+              "score": 1
+            },
+            {
+              "label": "B",
+              "text": "否",
+              "score": 0
+            }
+          ]
+        },
+        {
+          "id": 81,
+          "text": "你是否从不违反交通规则？",
+          "dimension": "L",
+          "options": [
+            {
+              "label": "A",
+              "text": "是",
+              "score": 1
+            },
+            {
+              "label": "B",
+              "text": "否",
+              "score": 0
+            }
+          ]
+        },
+        {
+          "id": 82,
+          "text": "你是否总是乐于助人？",
+          "dimension": "L",
+          "options": [
+            {
+              "label": "A",
+              "text": "是",
+              "score": 1
+            },
+            {
+              "label": "B",
+              "text": "否",
+              "score": 0
+            }
+          ]
+        },
+        {
+          "id": 83,
+          "text": "你是否从不对别人有不好的想法？",
+          "dimension": "L",
+          "options": [
+            {
+              "label": "A",
+              "text": "是",
+              "score": 1
+            },
+            {
+              "label": "B",
+              "text": "否",
+              "score": 0
+            }
+          ]
+        },
+        {
+          "id": 84,
+          "text": "你是否总是遵守所有规定？",
+          "dimension": "L",
+          "options": [
+            {
+              "label": "A",
+              "text": "是",
+              "score": 1
+            },
+            {
+              "label": "B",
+              "text": "否",
+              "score": 0
+            }
+          ]
+        },
+        {
+          "id": 85,
+          "text": "你是否从不对自己的能力有所怀疑？",
+          "dimension": "L",
+          "options": [
+            {
+              "label": "A",
+              "text": "是",
+              "score": 1
+            },
+            {
+              "label": "B",
+              "text": "否",
+              "score": 0
+            }
+          ]
+        },
+        {
+          "id": 86,
+          "text": "你是否总是尊重长辈？",
+          "dimension": "L",
+          "options": [
+            {
+              "label": "A",
+              "text": "是",
+              "score": 1
+            },
+            {
+              "label": "B",
+              "text": "否",
+              "score": 0
+            }
+          ]
+        },
+        {
+          "id": 87,
+          "text": "你是否从不说粗话？",
+          "dimension": "L",
+          "options": [
+            {
+              "label": "A",
+              "text": "是",
+              "score": 1
+            },
+            {
+              "label": "B",
+              "text": "否",
+              "score": 0
+            }
+          ]
+        },
+        {
+          "id": 88,
+          "text": "你是否总是诚实待人？",
+          "dimension": "L",
+          "options": [
+            {
+              "label": "A",
+              "text": "是",
+              "score": 1
+            },
+            {
+              "label": "B",
+              "text": "否",
+              "score": 0
+            }
+          ]
+        }
+      ]
+    }
   },
   {
     "name": "DISC性格分析",

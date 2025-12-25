@@ -12,24 +12,29 @@ const showSuccess = ref(false);
 
 // 可配置的文本（从后端获取或使用默认值）
 const pageTexts = ref({
-  success_title: "测评提交成功！",
-  success_message: "感谢您完成本次测评，我们已收到您的答卷。",
-  success_tips: "我们将在 1-3 个工作日内完成测评结果分析，届时会通过您留下的联系方式通知您，请保持电话畅通。",
+  successTitle: "测评提交成功！",
+  successMessage: "感谢您完成本次测评，我们已收到您的答卷。",
+  resultText: "我们将在 1-3 个工作日内完成评估分析。",
+  contactText: "届时会通过您留下的联系方式通知您，请保持电话畅通。",
+  showNextSteps: true,
 });
 
 // 加载页面配置
 const loadPageTexts = async () => {
   try {
-    const res = await apiRequest<{ page_texts?: typeof pageTexts.value }>({
+    const res = await apiRequest<{ page_texts?: any }>({
       path: `/api/public/assessment/${code.value}`,
       fallback: {},
       auth: false,
     });
     if (res.page_texts) {
+      // 兼容新旧字段名
       pageTexts.value = {
-        success_title: res.page_texts.success_title || pageTexts.value.success_title,
-        success_message: res.page_texts.success_message || pageTexts.value.success_message,
-        success_tips: res.page_texts.success_tips || pageTexts.value.success_tips,
+        successTitle: res.page_texts.successTitle || res.page_texts.success_title || pageTexts.value.successTitle,
+        successMessage: res.page_texts.successMessage || res.page_texts.success_message || pageTexts.value.successMessage,
+        resultText: res.page_texts.resultText || pageTexts.value.resultText,
+        contactText: res.page_texts.contactText || pageTexts.value.contactText,
+        showNextSteps: res.page_texts.showNextSteps !== false, // 默认显示，除非明确设为false
       };
     }
   } catch (e) {
@@ -59,9 +64,9 @@ onMounted(() => {
 
       <!-- 成功信息 -->
       <div class="success-content">
-        <h1 class="success-title">{{ pageTexts.success_title }}</h1>
+        <h1 class="success-title">{{ pageTexts.successTitle }}</h1>
         <p class="success-desc">
-          {{ pageTexts.success_message }}
+          {{ pageTexts.successMessage }}
         </p>
 
         <div class="info-box">
@@ -81,11 +86,13 @@ onMounted(() => {
           </div>
         </div>
 
-        <div class="tips-box">
+        <!-- 接下来区域 - 根据配置显示/隐藏 -->
+        <div v-if="pageTexts.showNextSteps && (pageTexts.resultText || pageTexts.contactText)" class="tips-box">
           <i class="ri-information-line"></i>
           <div>
             <p class="tips-title">接下来</p>
-            <p class="tips-content">{{ pageTexts.success_tips }}</p>
+            <p v-if="pageTexts.resultText" class="tips-content">{{ pageTexts.resultText }}</p>
+            <p v-if="pageTexts.contactText" class="tips-content">{{ pageTexts.contactText }}</p>
           </div>
         </div>
       </div>

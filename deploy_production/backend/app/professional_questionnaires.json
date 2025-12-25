@@ -1,0 +1,3266 @@
+[
+  {
+    "name": "EPQ人格测评",
+    "type": "EPQ",
+    "category": "professional",
+    "questions_count": 48,
+    "estimated_minutes": 15,
+    "questions_data": {
+      "questions": [
+        {
+          "id": 1,
+          "text": "你是否喜欢周围热闹？",
+          "options": [
+            {
+              "label": "A",
+              "text": "是",
+              "score": 1
+            },
+            {
+              "label": "B",
+              "text": "否",
+              "score": 0
+            }
+          ],
+          "dimension": "E"
+        },
+        {
+          "id": 2,
+          "text": "你是否是个活泼的人？",
+          "options": [
+            {
+              "label": "A",
+              "text": "是",
+              "score": 1
+            },
+            {
+              "label": "B",
+              "text": "否",
+              "score": 0
+            }
+          ],
+          "dimension": "E"
+        },
+        {
+          "id": 3,
+          "text": "你是否喜欢与人交往？",
+          "options": [
+            {
+              "label": "A",
+              "text": "是",
+              "score": 1
+            },
+            {
+              "label": "B",
+              "text": "否",
+              "score": 0
+            }
+          ],
+          "dimension": "E"
+        },
+        {
+          "id": 4,
+          "text": "在社交场合你是否感到自在？",
+          "options": [
+            {
+              "label": "A",
+              "text": "是",
+              "score": 1
+            },
+            {
+              "label": "B",
+              "text": "否",
+              "score": 0
+            }
+          ],
+          "dimension": "E"
+        },
+        {
+          "id": 5,
+          "text": "你是否喜欢参加热闹的聚会？",
+          "options": [
+            {
+              "label": "A",
+              "text": "是",
+              "score": 1
+            },
+            {
+              "label": "B",
+              "text": "否",
+              "score": 0
+            }
+          ],
+          "dimension": "E"
+        },
+        {
+          "id": 6,
+          "text": "你是否喜欢结交新朋友？",
+          "options": [
+            {
+              "label": "A",
+              "text": "是",
+              "score": 1
+            },
+            {
+              "label": "B",
+              "text": "否",
+              "score": 0
+            }
+          ],
+          "dimension": "E"
+        },
+        {
+          "id": 7,
+          "text": "你是否经常主动与陌生人交谈？",
+          "options": [
+            {
+              "label": "A",
+              "text": "是",
+              "score": 1
+            },
+            {
+              "label": "B",
+              "text": "否",
+              "score": 0
+            }
+          ],
+          "dimension": "E"
+        },
+        {
+          "id": 8,
+          "text": "你是否喜欢冒险和刺激？",
+          "options": [
+            {
+              "label": "A",
+              "text": "是",
+              "score": 1
+            },
+            {
+              "label": "B",
+              "text": "否",
+              "score": 0
+            }
+          ],
+          "dimension": "E"
+        },
+        {
+          "id": 9,
+          "text": "你是否喜欢变化？",
+          "options": [
+            {
+              "label": "A",
+              "text": "是",
+              "score": 1
+            },
+            {
+              "label": "B",
+              "text": "否",
+              "score": 0
+            }
+          ],
+          "dimension": "E"
+        },
+        {
+          "id": 10,
+          "text": "你是否觉得一个人待着很无聊？",
+          "options": [
+            {
+              "label": "A",
+              "text": "是",
+              "score": 1
+            },
+            {
+              "label": "B",
+              "text": "否",
+              "score": 0
+            }
+          ],
+          "dimension": "E"
+        },
+        {
+          "id": 11,
+          "text": "你是否经常感到精力充沛？",
+          "options": [
+            {
+              "label": "A",
+              "text": "是",
+              "score": 1
+            },
+            {
+              "label": "B",
+              "text": "否",
+              "score": 0
+            }
+          ],
+          "dimension": "E"
+        },
+        {
+          "id": 12,
+          "text": "你是否喜欢说话多于倾听？",
+          "options": [
+            {
+              "label": "A",
+              "text": "是",
+              "score": 1
+            },
+            {
+              "label": "B",
+              "text": "否",
+              "score": 0
+            }
+          ],
+          "dimension": "E"
+        },
+        {
+          "id": 13,
+          "text": "你是否经常感到焦虑不安？",
+          "options": [
+            {
+              "label": "A",
+              "text": "是",
+              "score": 1
+            },
+            {
+              "label": "B",
+              "text": "否",
+              "score": 0
+            }
+          ],
+          "dimension": "N"
+        },
+        {
+          "id": 14,
+          "text": "你是否容易受伤害？",
+          "options": [
+            {
+              "label": "A",
+              "text": "是",
+              "score": 1
+            },
+            {
+              "label": "B",
+              "text": "否",
+              "score": 0
+            }
+          ],
+          "dimension": "N"
+        },
+        {
+          "id": 15,
+          "text": "你是否常常担心可能发生的事情？",
+          "options": [
+            {
+              "label": "A",
+              "text": "是",
+              "score": 1
+            },
+            {
+              "label": "B",
+              "text": "否",
+              "score": 0
+            }
+          ],
+          "dimension": "N"
+        },
+        {
+          "id": 16,
+          "text": "你是否情绪多变？",
+          "options": [
+            {
+              "label": "A",
+              "text": "是",
+              "score": 1
+            },
+            {
+              "label": "B",
+              "text": "否",
+              "score": 0
+            }
+          ],
+          "dimension": "N"
+        },
+        {
+          "id": 17,
+          "text": "你是否容易生气？",
+          "options": [
+            {
+              "label": "A",
+              "text": "是",
+              "score": 1
+            },
+            {
+              "label": "B",
+              "text": "否",
+              "score": 0
+            }
+          ],
+          "dimension": "N"
+        },
+        {
+          "id": 18,
+          "text": "你是否经常感到孤独？",
+          "options": [
+            {
+              "label": "A",
+              "text": "是",
+              "score": 1
+            },
+            {
+              "label": "B",
+              "text": "否",
+              "score": 0
+            }
+          ],
+          "dimension": "N"
+        },
+        {
+          "id": 19,
+          "text": "你是否经常感到紧张？",
+          "options": [
+            {
+              "label": "A",
+              "text": "是",
+              "score": 1
+            },
+            {
+              "label": "B",
+              "text": "否",
+              "score": 0
+            }
+          ],
+          "dimension": "N"
+        },
+        {
+          "id": 20,
+          "text": "你是否容易感到内疚？",
+          "options": [
+            {
+              "label": "A",
+              "text": "是",
+              "score": 1
+            },
+            {
+              "label": "B",
+              "text": "否",
+              "score": 0
+            }
+          ],
+          "dimension": "N"
+        },
+        {
+          "id": 21,
+          "text": "你是否经常失眠？",
+          "options": [
+            {
+              "label": "A",
+              "text": "是",
+              "score": 1
+            },
+            {
+              "label": "B",
+              "text": "否",
+              "score": 0
+            }
+          ],
+          "dimension": "N"
+        },
+        {
+          "id": 22,
+          "text": "你是否容易感到沮丧？",
+          "options": [
+            {
+              "label": "A",
+              "text": "是",
+              "score": 1
+            },
+            {
+              "label": "B",
+              "text": "否",
+              "score": 0
+            }
+          ],
+          "dimension": "N"
+        },
+        {
+          "id": 23,
+          "text": "你是否对批评特别敏感？",
+          "options": [
+            {
+              "label": "A",
+              "text": "是",
+              "score": 1
+            },
+            {
+              "label": "B",
+              "text": "否",
+              "score": 0
+            }
+          ],
+          "dimension": "N"
+        },
+        {
+          "id": 24,
+          "text": "你是否经常感到自卑？",
+          "options": [
+            {
+              "label": "A",
+              "text": "是",
+              "score": 1
+            },
+            {
+              "label": "B",
+              "text": "否",
+              "score": 0
+            }
+          ],
+          "dimension": "N"
+        },
+        {
+          "id": 25,
+          "text": "你是否喜欢独立工作？",
+          "options": [
+            {
+              "label": "A",
+              "text": "是",
+              "score": 1
+            },
+            {
+              "label": "B",
+              "text": "否",
+              "score": 0
+            }
+          ],
+          "dimension": "P"
+        },
+        {
+          "id": 26,
+          "text": "你是否不太在意别人的感受？",
+          "options": [
+            {
+              "label": "A",
+              "text": "是",
+              "score": 1
+            },
+            {
+              "label": "B",
+              "text": "否",
+              "score": 0
+            }
+          ],
+          "dimension": "P"
+        },
+        {
+          "id": 27,
+          "text": "你是否喜欢按自己的方式做事？",
+          "options": [
+            {
+              "label": "A",
+              "text": "是",
+              "score": 1
+            },
+            {
+              "label": "B",
+              "text": "否",
+              "score": 0
+            }
+          ],
+          "dimension": "P"
+        },
+        {
+          "id": 28,
+          "text": "你是否觉得规则是用来打破的？",
+          "options": [
+            {
+              "label": "A",
+              "text": "是",
+              "score": 1
+            },
+            {
+              "label": "B",
+              "text": "否",
+              "score": 0
+            }
+          ],
+          "dimension": "P"
+        },
+        {
+          "id": 29,
+          "text": "你是否喜欢冷嘲热讽？",
+          "options": [
+            {
+              "label": "A",
+              "text": "是",
+              "score": 1
+            },
+            {
+              "label": "B",
+              "text": "否",
+              "score": 0
+            }
+          ],
+          "dimension": "P"
+        },
+        {
+          "id": 30,
+          "text": "你是否不太关心社会规范？",
+          "options": [
+            {
+              "label": "A",
+              "text": "是",
+              "score": 1
+            },
+            {
+              "label": "B",
+              "text": "否",
+              "score": 0
+            }
+          ],
+          "dimension": "P"
+        },
+        {
+          "id": 31,
+          "text": "你是否觉得大多数人都太软弱？",
+          "options": [
+            {
+              "label": "A",
+              "text": "是",
+              "score": 1
+            },
+            {
+              "label": "B",
+              "text": "否",
+              "score": 0
+            }
+          ],
+          "dimension": "P"
+        },
+        {
+          "id": 32,
+          "text": "你是否喜欢挑战权威？",
+          "options": [
+            {
+              "label": "A",
+              "text": "是",
+              "score": 1
+            },
+            {
+              "label": "B",
+              "text": "否",
+              "score": 0
+            }
+          ],
+          "dimension": "P"
+        },
+        {
+          "id": 33,
+          "text": "你是否不容易被感动？",
+          "options": [
+            {
+              "label": "A",
+              "text": "是",
+              "score": 1
+            },
+            {
+              "label": "B",
+              "text": "否",
+              "score": 0
+            }
+          ],
+          "dimension": "P"
+        },
+        {
+          "id": 34,
+          "text": "你是否觉得传统观念很无聊？",
+          "options": [
+            {
+              "label": "A",
+              "text": "是",
+              "score": 1
+            },
+            {
+              "label": "B",
+              "text": "否",
+              "score": 0
+            }
+          ],
+          "dimension": "P"
+        },
+        {
+          "id": 35,
+          "text": "你是否不太喜欢妥协？",
+          "options": [
+            {
+              "label": "A",
+              "text": "是",
+              "score": 1
+            },
+            {
+              "label": "B",
+              "text": "否",
+              "score": 0
+            }
+          ],
+          "dimension": "P"
+        },
+        {
+          "id": 36,
+          "text": "你是否觉得自己与众不同？",
+          "options": [
+            {
+              "label": "A",
+              "text": "是",
+              "score": 1
+            },
+            {
+              "label": "B",
+              "text": "否",
+              "score": 0
+            }
+          ],
+          "dimension": "P"
+        },
+        {
+          "id": 37,
+          "text": "你是否从不说谎？",
+          "options": [
+            {
+              "label": "A",
+              "text": "是",
+              "score": 1
+            },
+            {
+              "label": "B",
+              "text": "否",
+              "score": 0
+            }
+          ],
+          "dimension": "L"
+        },
+        {
+          "id": 38,
+          "text": "你是否总是遵守诺言？",
+          "options": [
+            {
+              "label": "A",
+              "text": "是",
+              "score": 1
+            },
+            {
+              "label": "B",
+              "text": "否",
+              "score": 0
+            }
+          ],
+          "dimension": "L"
+        },
+        {
+          "id": 39,
+          "text": "你是否从不说别人的坏话？",
+          "options": [
+            {
+              "label": "A",
+              "text": "是",
+              "score": 1
+            },
+            {
+              "label": "B",
+              "text": "否",
+              "score": 0
+            }
+          ],
+          "dimension": "L"
+        },
+        {
+          "id": 40,
+          "text": "你是否总是按时完成任务？",
+          "options": [
+            {
+              "label": "A",
+              "text": "是",
+              "score": 1
+            },
+            {
+              "label": "B",
+              "text": "否",
+              "score": 0
+            }
+          ],
+          "dimension": "L"
+        },
+        {
+          "id": 41,
+          "text": "你是否从不迟到？",
+          "options": [
+            {
+              "label": "A",
+              "text": "是",
+              "score": 1
+            },
+            {
+              "label": "B",
+              "text": "否",
+              "score": 0
+            }
+          ],
+          "dimension": "L"
+        },
+        {
+          "id": 42,
+          "text": "你是否总是诚实待人？",
+          "options": [
+            {
+              "label": "A",
+              "text": "是",
+              "score": 1
+            },
+            {
+              "label": "B",
+              "text": "否",
+              "score": 0
+            }
+          ],
+          "dimension": "L"
+        },
+        {
+          "id": 43,
+          "text": "你是否从不发脾气？",
+          "options": [
+            {
+              "label": "A",
+              "text": "是",
+              "score": 1
+            },
+            {
+              "label": "B",
+              "text": "否",
+              "score": 0
+            }
+          ],
+          "dimension": "L"
+        },
+        {
+          "id": 44,
+          "text": "你是否总是尊重他人？",
+          "options": [
+            {
+              "label": "A",
+              "text": "是",
+              "score": 1
+            },
+            {
+              "label": "B",
+              "text": "否",
+              "score": 0
+            }
+          ],
+          "dimension": "L"
+        },
+        {
+          "id": 45,
+          "text": "你是否从不嫉妒别人？",
+          "options": [
+            {
+              "label": "A",
+              "text": "是",
+              "score": 1
+            },
+            {
+              "label": "B",
+              "text": "否",
+              "score": 0
+            }
+          ],
+          "dimension": "L"
+        },
+        {
+          "id": 46,
+          "text": "你是否总是乐于助人？",
+          "options": [
+            {
+              "label": "A",
+              "text": "是",
+              "score": 1
+            },
+            {
+              "label": "B",
+              "text": "否",
+              "score": 0
+            }
+          ],
+          "dimension": "L"
+        },
+        {
+          "id": 47,
+          "text": "你是否从不抱怨？",
+          "options": [
+            {
+              "label": "A",
+              "text": "是",
+              "score": 1
+            },
+            {
+              "label": "B",
+              "text": "否",
+              "score": 0
+            }
+          ],
+          "dimension": "L"
+        },
+        {
+          "id": 48,
+          "text": "你是否总是保持礼貌？",
+          "options": [
+            {
+              "label": "A",
+              "text": "是",
+              "score": 1
+            },
+            {
+              "label": "B",
+              "text": "否",
+              "score": 0
+            }
+          ],
+          "dimension": "L"
+        }
+      ]
+    },
+    "scoring_rules": {
+      "dimensions": {
+        "E": {
+          "name": "外向性",
+          "max_score": 24
+        },
+        "N": {
+          "name": "神经质",
+          "max_score": 24
+        },
+        "P": {
+          "name": "精神质",
+          "max_score": 24
+        },
+        "L": {
+          "name": "掩饰性",
+          "max_score": 24
+        }
+      }
+    },
+    "description": "艾森克人格问卷，评估外向性、神经质、精神质和掩饰性四个维度",
+    "status": "active"
+  },
+  {
+    "name": "DISC性格分析",
+    "type": "DISC",
+    "category": "professional",
+    "questions_count": 28,
+    "estimated_minutes": 8,
+    "questions_data": {
+      "questions": [
+        {
+          "id": 1,
+          "text": "在工作中，我通常：",
+          "options": [
+            {
+              "label": "A",
+              "text": "直接指出问题并推动解决",
+              "dimension": "D"
+            },
+            {
+              "label": "B",
+              "text": "激励团队保持积极态度",
+              "dimension": "I"
+            },
+            {
+              "label": "C",
+              "text": "耐心倾听各方意见",
+              "dimension": "S"
+            },
+            {
+              "label": "D",
+              "text": "仔细分析确保准确无误",
+              "dimension": "C"
+            }
+          ],
+          "dimension": "DISC"
+        },
+        {
+          "id": 2,
+          "text": "面对挑战时，我倾向于：",
+          "options": [
+            {
+              "label": "A",
+              "text": "迎难而上，快速行动",
+              "dimension": "D"
+            },
+            {
+              "label": "B",
+              "text": "寻求支持，团队协作",
+              "dimension": "I"
+            },
+            {
+              "label": "C",
+              "text": "稳步推进，循序渐进",
+              "dimension": "S"
+            },
+            {
+              "label": "D",
+              "text": "深入研究，制定方案",
+              "dimension": "C"
+            }
+          ],
+          "dimension": "DISC"
+        },
+        {
+          "id": 3,
+          "text": "与他人沟通时，我通常：",
+          "options": [
+            {
+              "label": "A",
+              "text": "直接明了，言简意赅",
+              "dimension": "D"
+            },
+            {
+              "label": "B",
+              "text": "热情洋溢，富有感染力",
+              "dimension": "I"
+            },
+            {
+              "label": "C",
+              "text": "温和耐心，善于倾听",
+              "dimension": "S"
+            },
+            {
+              "label": "D",
+              "text": "逻辑清晰，注重细节",
+              "dimension": "C"
+            }
+          ],
+          "dimension": "DISC"
+        },
+        {
+          "id": 4,
+          "text": "在团队中，我更喜欢：",
+          "options": [
+            {
+              "label": "A",
+              "text": "领导团队达成目标",
+              "dimension": "D"
+            },
+            {
+              "label": "B",
+              "text": "活跃气氛促进合作",
+              "dimension": "I"
+            },
+            {
+              "label": "C",
+              "text": "支持他人完成任务",
+              "dimension": "S"
+            },
+            {
+              "label": "D",
+              "text": "确保工作质量标准",
+              "dimension": "C"
+            }
+          ],
+          "dimension": "DISC"
+        },
+        {
+          "id": 5,
+          "text": "做决定时，我更看重：",
+          "options": [
+            {
+              "label": "A",
+              "text": "效率和结果",
+              "dimension": "D"
+            },
+            {
+              "label": "B",
+              "text": "团队认可和支持",
+              "dimension": "I"
+            },
+            {
+              "label": "C",
+              "text": "稳定性和可行性",
+              "dimension": "S"
+            },
+            {
+              "label": "D",
+              "text": "准确性和完整性",
+              "dimension": "C"
+            }
+          ],
+          "dimension": "DISC"
+        },
+        {
+          "id": 6,
+          "text": "面对压力时，我通常：",
+          "options": [
+            {
+              "label": "A",
+              "text": "变得更加果断和控制",
+              "dimension": "D"
+            },
+            {
+              "label": "B",
+              "text": "寻求他人的支持和理解",
+              "dimension": "I"
+            },
+            {
+              "label": "C",
+              "text": "保持冷静和耐心",
+              "dimension": "S"
+            },
+            {
+              "label": "D",
+              "text": "更加谨慎和细致",
+              "dimension": "C"
+            }
+          ],
+          "dimension": "DISC"
+        },
+        {
+          "id": 7,
+          "text": "我的工作风格是：",
+          "options": [
+            {
+              "label": "A",
+              "text": "快节奏，目标导向",
+              "dimension": "D"
+            },
+            {
+              "label": "B",
+              "text": "灵活多变，善于社交",
+              "dimension": "I"
+            },
+            {
+              "label": "C",
+              "text": "稳定持续，按部就班",
+              "dimension": "S"
+            },
+            {
+              "label": "D",
+              "text": "严谨细致，追求完美",
+              "dimension": "C"
+            }
+          ],
+          "dimension": "DISC"
+        },
+        {
+          "id": 8,
+          "text": "我最看重的是：",
+          "options": [
+            {
+              "label": "A",
+              "text": "成就和胜利",
+              "dimension": "D"
+            },
+            {
+              "label": "B",
+              "text": "认可和赞赏",
+              "dimension": "I"
+            },
+            {
+              "label": "C",
+              "text": "和谐和稳定",
+              "dimension": "S"
+            },
+            {
+              "label": "D",
+              "text": "正确和准确",
+              "dimension": "C"
+            }
+          ],
+          "dimension": "DISC"
+        },
+        {
+          "id": 9,
+          "text": "我的弱点可能是：",
+          "options": [
+            {
+              "label": "A",
+              "text": "过于强势和急躁",
+              "dimension": "D"
+            },
+            {
+              "label": "B",
+              "text": "过于乐观和冲动",
+              "dimension": "I"
+            },
+            {
+              "label": "C",
+              "text": "过于保守和犹豫",
+              "dimension": "S"
+            },
+            {
+              "label": "D",
+              "text": "过于挑剔和完美主义",
+              "dimension": "C"
+            }
+          ],
+          "dimension": "DISC"
+        },
+        {
+          "id": 10,
+          "text": "我希望别人认为我是：",
+          "options": [
+            {
+              "label": "A",
+              "text": "有能力、有魄力的人",
+              "dimension": "D"
+            },
+            {
+              "label": "B",
+              "text": "有趣、受欢迎的人",
+              "dimension": "I"
+            },
+            {
+              "label": "C",
+              "text": "可靠、值得信赖的人",
+              "dimension": "S"
+            },
+            {
+              "label": "D",
+              "text": "专业、有条理的人",
+              "dimension": "C"
+            }
+          ],
+          "dimension": "DISC"
+        },
+        {
+          "id": 11,
+          "text": "在会议中，我通常：",
+          "options": [
+            {
+              "label": "A",
+              "text": "主导讨论方向",
+              "dimension": "D"
+            },
+            {
+              "label": "B",
+              "text": "活跃会议气氛",
+              "dimension": "I"
+            },
+            {
+              "label": "C",
+              "text": "认真倾听记录",
+              "dimension": "S"
+            },
+            {
+              "label": "D",
+              "text": "提出专业建议",
+              "dimension": "C"
+            }
+          ],
+          "dimension": "DISC"
+        },
+        {
+          "id": 12,
+          "text": "我处理冲突的方式是：",
+          "options": [
+            {
+              "label": "A",
+              "text": "直接面对，快速解决",
+              "dimension": "D"
+            },
+            {
+              "label": "B",
+              "text": "缓和气氛，寻求共识",
+              "dimension": "I"
+            },
+            {
+              "label": "C",
+              "text": "耐心协调，避免激化",
+              "dimension": "S"
+            },
+            {
+              "label": "D",
+              "text": "分析原因，找出方案",
+              "dimension": "C"
+            }
+          ],
+          "dimension": "DISC"
+        },
+        {
+          "id": 13,
+          "text": "我的理想工作环境是：",
+          "options": [
+            {
+              "label": "A",
+              "text": "有挑战、有权力",
+              "dimension": "D"
+            },
+            {
+              "label": "B",
+              "text": "有活力、有互动",
+              "dimension": "I"
+            },
+            {
+              "label": "C",
+              "text": "有秩序、有安全感",
+              "dimension": "S"
+            },
+            {
+              "label": "D",
+              "text": "有标准、有专业性",
+              "dimension": "C"
+            }
+          ],
+          "dimension": "DISC"
+        },
+        {
+          "id": 14,
+          "text": "我最害怕的是：",
+          "options": [
+            {
+              "label": "A",
+              "text": "失去控制和被利用",
+              "dimension": "D"
+            },
+            {
+              "label": "B",
+              "text": "被忽视和被拒绝",
+              "dimension": "I"
+            },
+            {
+              "label": "C",
+              "text": "突然变化和冲突",
+              "dimension": "S"
+            },
+            {
+              "label": "D",
+              "text": "犯错和被批评",
+              "dimension": "C"
+            }
+          ],
+          "dimension": "DISC"
+        },
+        {
+          "id": 15,
+          "text": "我的沟通特点是：",
+          "options": [
+            {
+              "label": "A",
+              "text": "简洁有力，直奔主题",
+              "dimension": "D"
+            },
+            {
+              "label": "B",
+              "text": "生动有趣，富有表情",
+              "dimension": "I"
+            },
+            {
+              "label": "C",
+              "text": "温和平静，善于倾听",
+              "dimension": "S"
+            },
+            {
+              "label": "D",
+              "text": "逻辑严密，注重事实",
+              "dimension": "C"
+            }
+          ],
+          "dimension": "DISC"
+        },
+        {
+          "id": 16,
+          "text": "我对待规则的态度是：",
+          "options": [
+            {
+              "label": "A",
+              "text": "规则是用来打破的",
+              "dimension": "D"
+            },
+            {
+              "label": "B",
+              "text": "规则可以灵活变通",
+              "dimension": "I"
+            },
+            {
+              "label": "C",
+              "text": "规则应该被遵守",
+              "dimension": "S"
+            },
+            {
+              "label": "D",
+              "text": "规则必须严格执行",
+              "dimension": "C"
+            }
+          ],
+          "dimension": "DISC"
+        },
+        {
+          "id": 17,
+          "text": "我的时间管理风格是：",
+          "options": [
+            {
+              "label": "A",
+              "text": "高效快速，追求效率",
+              "dimension": "D"
+            },
+            {
+              "label": "B",
+              "text": "灵活机动，随机应变",
+              "dimension": "I"
+            },
+            {
+              "label": "C",
+              "text": "稳定有序，按计划行事",
+              "dimension": "S"
+            },
+            {
+              "label": "D",
+              "text": "精确细致，不浪费时间",
+              "dimension": "C"
+            }
+          ],
+          "dimension": "DISC"
+        },
+        {
+          "id": 18,
+          "text": "我激励他人的方式是：",
+          "options": [
+            {
+              "label": "A",
+              "text": "设定挑战性目标",
+              "dimension": "D"
+            },
+            {
+              "label": "B",
+              "text": "给予热情的鼓励",
+              "dimension": "I"
+            },
+            {
+              "label": "C",
+              "text": "提供稳定的支持",
+              "dimension": "S"
+            },
+            {
+              "label": "D",
+              "text": "展示专业的标准",
+              "dimension": "C"
+            }
+          ],
+          "dimension": "DISC"
+        },
+        {
+          "id": 19,
+          "text": "我学习新事物时：",
+          "options": [
+            {
+              "label": "A",
+              "text": "快速掌握要点，立即应用",
+              "dimension": "D"
+            },
+            {
+              "label": "B",
+              "text": "与人讨论交流，互相学习",
+              "dimension": "I"
+            },
+            {
+              "label": "C",
+              "text": "循序渐进，反复练习",
+              "dimension": "S"
+            },
+            {
+              "label": "D",
+              "text": "深入研究，追根究底",
+              "dimension": "C"
+            }
+          ],
+          "dimension": "DISC"
+        },
+        {
+          "id": 20,
+          "text": "我对待反馈的态度是：",
+          "options": [
+            {
+              "label": "A",
+              "text": "只要有道理就接受",
+              "dimension": "D"
+            },
+            {
+              "label": "B",
+              "text": "希望得到积极的反馈",
+              "dimension": "I"
+            },
+            {
+              "label": "C",
+              "text": "需要时间消化接受",
+              "dimension": "S"
+            },
+            {
+              "label": "D",
+              "text": "希望反馈具体明确",
+              "dimension": "C"
+            }
+          ],
+          "dimension": "DISC"
+        },
+        {
+          "id": 21,
+          "text": "我的领导风格是：",
+          "options": [
+            {
+              "label": "A",
+              "text": "指挥型，明确方向",
+              "dimension": "D"
+            },
+            {
+              "label": "B",
+              "text": "激励型，鼓舞士气",
+              "dimension": "I"
+            },
+            {
+              "label": "C",
+              "text": "支持型，关心下属",
+              "dimension": "S"
+            },
+            {
+              "label": "D",
+              "text": "专家型，以身作则",
+              "dimension": "C"
+            }
+          ],
+          "dimension": "DISC"
+        },
+        {
+          "id": 22,
+          "text": "我处理问题的方式是：",
+          "options": [
+            {
+              "label": "A",
+              "text": "快刀斩乱麻",
+              "dimension": "D"
+            },
+            {
+              "label": "B",
+              "text": "集思广益",
+              "dimension": "I"
+            },
+            {
+              "label": "C",
+              "text": "稳扎稳打",
+              "dimension": "S"
+            },
+            {
+              "label": "D",
+              "text": "深思熟虑",
+              "dimension": "C"
+            }
+          ],
+          "dimension": "DISC"
+        },
+        {
+          "id": 23,
+          "text": "我最大的优势是：",
+          "options": [
+            {
+              "label": "A",
+              "text": "决断力和执行力",
+              "dimension": "D"
+            },
+            {
+              "label": "B",
+              "text": "感染力和说服力",
+              "dimension": "I"
+            },
+            {
+              "label": "C",
+              "text": "耐心和可靠性",
+              "dimension": "S"
+            },
+            {
+              "label": "D",
+              "text": "专业性和准确性",
+              "dimension": "C"
+            }
+          ],
+          "dimension": "DISC"
+        },
+        {
+          "id": 24,
+          "text": "我对待变化的态度是：",
+          "options": [
+            {
+              "label": "A",
+              "text": "主动推动变化",
+              "dimension": "D"
+            },
+            {
+              "label": "B",
+              "text": "乐于接受变化",
+              "dimension": "I"
+            },
+            {
+              "label": "C",
+              "text": "需要时间适应变化",
+              "dimension": "S"
+            },
+            {
+              "label": "D",
+              "text": "谨慎评估变化",
+              "dimension": "C"
+            }
+          ],
+          "dimension": "DISC"
+        },
+        {
+          "id": 25,
+          "text": "我的社交风格是：",
+          "options": [
+            {
+              "label": "A",
+              "text": "直接、有目的性",
+              "dimension": "D"
+            },
+            {
+              "label": "B",
+              "text": "热情、广泛交友",
+              "dimension": "I"
+            },
+            {
+              "label": "C",
+              "text": "温和、深度交往",
+              "dimension": "S"
+            },
+            {
+              "label": "D",
+              "text": "谨慎、选择性交友",
+              "dimension": "C"
+            }
+          ],
+          "dimension": "DISC"
+        },
+        {
+          "id": 26,
+          "text": "我的情绪表达是：",
+          "options": [
+            {
+              "label": "A",
+              "text": "直接表达，不隐藏",
+              "dimension": "D"
+            },
+            {
+              "label": "B",
+              "text": "热情外向，易感染",
+              "dimension": "I"
+            },
+            {
+              "label": "C",
+              "text": "平和稳定，不外露",
+              "dimension": "S"
+            },
+            {
+              "label": "D",
+              "text": "克制理性，少表达",
+              "dimension": "C"
+            }
+          ],
+          "dimension": "DISC"
+        },
+        {
+          "id": 27,
+          "text": "我对待细节的态度是：",
+          "options": [
+            {
+              "label": "A",
+              "text": "关注大局，忽略细节",
+              "dimension": "D"
+            },
+            {
+              "label": "B",
+              "text": "大致了解，不太在意",
+              "dimension": "I"
+            },
+            {
+              "label": "C",
+              "text": "按要求处理细节",
+              "dimension": "S"
+            },
+            {
+              "label": "D",
+              "text": "非常注重每个细节",
+              "dimension": "C"
+            }
+          ],
+          "dimension": "DISC"
+        },
+        {
+          "id": 28,
+          "text": "我最需要的是：",
+          "options": [
+            {
+              "label": "A",
+              "text": "权力和控制",
+              "dimension": "D"
+            },
+            {
+              "label": "B",
+              "text": "认可和赞美",
+              "dimension": "I"
+            },
+            {
+              "label": "C",
+              "text": "安全和稳定",
+              "dimension": "S"
+            },
+            {
+              "label": "D",
+              "text": "准确和质量",
+              "dimension": "C"
+            }
+          ],
+          "dimension": "DISC"
+        }
+      ]
+    },
+    "scoring_rules": {
+      "dimensions": {
+        "D": {
+          "name": "支配型",
+          "max_score": 28
+        },
+        "I": {
+          "name": "影响型",
+          "max_score": 28
+        },
+        "S": {
+          "name": "稳健型",
+          "max_score": 28
+        },
+        "C": {
+          "name": "谨慎型",
+          "max_score": 28
+        }
+      }
+    },
+    "description": "DISC行为风格测评，评估支配型、影响型、稳健型、谨慎型四种风格",
+    "status": "active"
+  },
+  {
+    "name": "MBTI性格测试",
+    "type": "MBTI",
+    "category": "professional",
+    "questions_count": 93,
+    "estimated_minutes": 15,
+    "questions_data": {
+      "questions": [
+        {
+          "id": 1,
+          "text": "在聚会上，你通常：",
+          "options": [
+            {
+              "label": "A",
+              "text": "与很多人交流，包括陌生人",
+              "score": 1
+            },
+            {
+              "label": "B",
+              "text": "只与少数熟人交流",
+              "score": 1
+            }
+          ],
+          "dimension": "EI"
+        },
+        {
+          "id": 2,
+          "text": "你更喜欢：",
+          "options": [
+            {
+              "label": "A",
+              "text": "与一群人一起活动",
+              "score": 1
+            },
+            {
+              "label": "B",
+              "text": "独自活动或与一两个人一起",
+              "score": 1
+            }
+          ],
+          "dimension": "EI"
+        },
+        {
+          "id": 3,
+          "text": "当你需要充电时，你会：",
+          "options": [
+            {
+              "label": "A",
+              "text": "和朋友们出去玩",
+              "score": 1
+            },
+            {
+              "label": "B",
+              "text": "独自待一会儿",
+              "score": 1
+            }
+          ],
+          "dimension": "EI"
+        },
+        {
+          "id": 4,
+          "text": "你通常：",
+          "options": [
+            {
+              "label": "A",
+              "text": "先说后想",
+              "score": 1
+            },
+            {
+              "label": "B",
+              "text": "先想后说",
+              "score": 1
+            }
+          ],
+          "dimension": "EI"
+        },
+        {
+          "id": 5,
+          "text": "在工作中，你更喜欢：",
+          "options": [
+            {
+              "label": "A",
+              "text": "开放式办公环境",
+              "score": 1
+            },
+            {
+              "label": "B",
+              "text": "独立的工作空间",
+              "score": 1
+            }
+          ],
+          "dimension": "EI"
+        },
+        {
+          "id": 6,
+          "text": "你认为自己是：",
+          "options": [
+            {
+              "label": "A",
+              "text": "容易接近的人",
+              "score": 1
+            },
+            {
+              "label": "B",
+              "text": "有些难以接近",
+              "score": 1
+            }
+          ],
+          "dimension": "EI"
+        },
+        {
+          "id": 7,
+          "text": "周末你更愿意：",
+          "options": [
+            {
+              "label": "A",
+              "text": "参加社交活动",
+              "score": 1
+            },
+            {
+              "label": "B",
+              "text": "在家休息",
+              "score": 1
+            }
+          ],
+          "dimension": "EI"
+        },
+        {
+          "id": 8,
+          "text": "你的朋友圈：",
+          "options": [
+            {
+              "label": "A",
+              "text": "很广泛",
+              "score": 1
+            },
+            {
+              "label": "B",
+              "text": "较小但深入",
+              "score": 1
+            }
+          ],
+          "dimension": "EI"
+        },
+        {
+          "id": 9,
+          "text": "你在社交场合：",
+          "options": [
+            {
+              "label": "A",
+              "text": "感到精力充沛",
+              "score": 1
+            },
+            {
+              "label": "B",
+              "text": "感到有些疲惫",
+              "score": 1
+            }
+          ],
+          "dimension": "EI"
+        },
+        {
+          "id": 10,
+          "text": "你更喜欢通过什么方式学习：",
+          "options": [
+            {
+              "label": "A",
+              "text": "小组讨论",
+              "score": 1
+            },
+            {
+              "label": "B",
+              "text": "独自阅读",
+              "score": 1
+            }
+          ],
+          "dimension": "EI"
+        },
+        {
+          "id": 11,
+          "text": "你倾向于：",
+          "options": [
+            {
+              "label": "A",
+              "text": "主动发起对话",
+              "score": 1
+            },
+            {
+              "label": "B",
+              "text": "等待别人来找你",
+              "score": 1
+            }
+          ],
+          "dimension": "EI"
+        },
+        {
+          "id": 12,
+          "text": "你的想法通常：",
+          "options": [
+            {
+              "label": "A",
+              "text": "在说话时形成",
+              "score": 1
+            },
+            {
+              "label": "B",
+              "text": "在说话前已形成",
+              "score": 1
+            }
+          ],
+          "dimension": "EI"
+        },
+        {
+          "id": 13,
+          "text": "你更喜欢的工作方式是：",
+          "options": [
+            {
+              "label": "A",
+              "text": "团队合作",
+              "score": 1
+            },
+            {
+              "label": "B",
+              "text": "独立完成",
+              "score": 1
+            }
+          ],
+          "dimension": "EI"
+        },
+        {
+          "id": 14,
+          "text": "长时间独处后，你会：",
+          "options": [
+            {
+              "label": "A",
+              "text": "渴望社交",
+              "score": 1
+            },
+            {
+              "label": "B",
+              "text": "感到满足",
+              "score": 1
+            }
+          ],
+          "dimension": "EI"
+        },
+        {
+          "id": 15,
+          "text": "你的表达方式通常：",
+          "options": [
+            {
+              "label": "A",
+              "text": "热情洋溢",
+              "score": 1
+            },
+            {
+              "label": "B",
+              "text": "含蓄内敛",
+              "score": 1
+            }
+          ],
+          "dimension": "EI"
+        },
+        {
+          "id": 16,
+          "text": "你更容易被什么吸引：",
+          "options": [
+            {
+              "label": "A",
+              "text": "热闹的环境",
+              "score": 1
+            },
+            {
+              "label": "B",
+              "text": "安静的环境",
+              "score": 1
+            }
+          ],
+          "dimension": "EI"
+        },
+        {
+          "id": 17,
+          "text": "你处理问题时：",
+          "options": [
+            {
+              "label": "A",
+              "text": "喜欢与人讨论",
+              "score": 1
+            },
+            {
+              "label": "B",
+              "text": "喜欢独自思考",
+              "score": 1
+            }
+          ],
+          "dimension": "EI"
+        },
+        {
+          "id": 18,
+          "text": "你的注意力通常：",
+          "options": [
+            {
+              "label": "A",
+              "text": "向外关注",
+              "score": 1
+            },
+            {
+              "label": "B",
+              "text": "向内关注",
+              "score": 1
+            }
+          ],
+          "dimension": "EI"
+        },
+        {
+          "id": 19,
+          "text": "你在会议中：",
+          "options": [
+            {
+              "label": "A",
+              "text": "积极发言",
+              "score": 1
+            },
+            {
+              "label": "B",
+              "text": "主要倾听",
+              "score": 1
+            }
+          ],
+          "dimension": "EI"
+        },
+        {
+          "id": 20,
+          "text": "你更喜欢：",
+          "options": [
+            {
+              "label": "A",
+              "text": "多样化的活动",
+              "score": 1
+            },
+            {
+              "label": "B",
+              "text": "深入的活动",
+              "score": 1
+            }
+          ],
+          "dimension": "EI"
+        },
+        {
+          "id": 21,
+          "text": "你的社交风格是：",
+          "options": [
+            {
+              "label": "A",
+              "text": "主动热情",
+              "score": 1
+            },
+            {
+              "label": "B",
+              "text": "被动谨慎",
+              "score": 1
+            }
+          ],
+          "dimension": "EI"
+        },
+        {
+          "id": 22,
+          "text": "你更看重：",
+          "options": [
+            {
+              "label": "A",
+              "text": "广泛的人脉",
+              "score": 1
+            },
+            {
+              "label": "B",
+              "text": "深厚的友谊",
+              "score": 1
+            }
+          ],
+          "dimension": "EI"
+        },
+        {
+          "id": 23,
+          "text": "你的能量来源主要是：",
+          "options": [
+            {
+              "label": "A",
+              "text": "与人互动",
+              "score": 1
+            },
+            {
+              "label": "B",
+              "text": "独处反思",
+              "score": 1
+            }
+          ],
+          "dimension": "EI"
+        },
+        {
+          "id": 24,
+          "text": "你更关注：",
+          "options": [
+            {
+              "label": "A",
+              "text": "眼前的现实",
+              "score": 1
+            },
+            {
+              "label": "B",
+              "text": "未来的可能",
+              "score": 1
+            }
+          ],
+          "dimension": "SN"
+        },
+        {
+          "id": 25,
+          "text": "你更信任：",
+          "options": [
+            {
+              "label": "A",
+              "text": "实际经验",
+              "score": 1
+            },
+            {
+              "label": "B",
+              "text": "直觉灵感",
+              "score": 1
+            }
+          ],
+          "dimension": "SN"
+        },
+        {
+          "id": 26,
+          "text": "你更喜欢：",
+          "options": [
+            {
+              "label": "A",
+              "text": "具体明确的信息",
+              "score": 1
+            },
+            {
+              "label": "B",
+              "text": "抽象概念性的信息",
+              "score": 1
+            }
+          ],
+          "dimension": "SN"
+        },
+        {
+          "id": 27,
+          "text": "你学习新事物时：",
+          "options": [
+            {
+              "label": "A",
+              "text": "按步骤一步步来",
+              "score": 1
+            },
+            {
+              "label": "B",
+              "text": "先了解整体概念",
+              "score": 1
+            }
+          ],
+          "dimension": "SN"
+        },
+        {
+          "id": 28,
+          "text": "你更欣赏：",
+          "options": [
+            {
+              "label": "A",
+              "text": "实用性",
+              "score": 1
+            },
+            {
+              "label": "B",
+              "text": "创新性",
+              "score": 1
+            }
+          ],
+          "dimension": "SN"
+        },
+        {
+          "id": 29,
+          "text": "你描述事物时：",
+          "options": [
+            {
+              "label": "A",
+              "text": "具体详细",
+              "score": 1
+            },
+            {
+              "label": "B",
+              "text": "概括抽象",
+              "score": 1
+            }
+          ],
+          "dimension": "SN"
+        },
+        {
+          "id": 30,
+          "text": "你更喜欢的工作内容：",
+          "options": [
+            {
+              "label": "A",
+              "text": "有明确标准的任务",
+              "score": 1
+            },
+            {
+              "label": "B",
+              "text": "需要创新的项目",
+              "score": 1
+            }
+          ],
+          "dimension": "SN"
+        },
+        {
+          "id": 31,
+          "text": "你更相信：",
+          "options": [
+            {
+              "label": "A",
+              "text": "看得见的事实",
+              "score": 1
+            },
+            {
+              "label": "B",
+              "text": "内心的预感",
+              "score": 1
+            }
+          ],
+          "dimension": "SN"
+        },
+        {
+          "id": 32,
+          "text": "你阅读时更关注：",
+          "options": [
+            {
+              "label": "A",
+              "text": "字面意思",
+              "score": 1
+            },
+            {
+              "label": "B",
+              "text": "言外之意",
+              "score": 1
+            }
+          ],
+          "dimension": "SN"
+        },
+        {
+          "id": 33,
+          "text": "你更擅长：",
+          "options": [
+            {
+              "label": "A",
+              "text": "记住细节",
+              "score": 1
+            },
+            {
+              "label": "B",
+              "text": "把握大局",
+              "score": 1
+            }
+          ],
+          "dimension": "SN"
+        },
+        {
+          "id": 34,
+          "text": "你解决问题时：",
+          "options": [
+            {
+              "label": "A",
+              "text": "使用已验证的方法",
+              "score": 1
+            },
+            {
+              "label": "B",
+              "text": "尝试新的方法",
+              "score": 1
+            }
+          ],
+          "dimension": "SN"
+        },
+        {
+          "id": 35,
+          "text": "你更看重：",
+          "options": [
+            {
+              "label": "A",
+              "text": "实际结果",
+              "score": 1
+            },
+            {
+              "label": "B",
+              "text": "理论意义",
+              "score": 1
+            }
+          ],
+          "dimension": "SN"
+        },
+        {
+          "id": 36,
+          "text": "你的思维方式：",
+          "options": [
+            {
+              "label": "A",
+              "text": "脚踏实地",
+              "score": 1
+            },
+            {
+              "label": "B",
+              "text": "天马行空",
+              "score": 1
+            }
+          ],
+          "dimension": "SN"
+        },
+        {
+          "id": 37,
+          "text": "你更喜欢讨论：",
+          "options": [
+            {
+              "label": "A",
+              "text": "具体的事情",
+              "score": 1
+            },
+            {
+              "label": "B",
+              "text": "抽象的概念",
+              "score": 1
+            }
+          ],
+          "dimension": "SN"
+        },
+        {
+          "id": 38,
+          "text": "你做计划时：",
+          "options": [
+            {
+              "label": "A",
+              "text": "基于过去经验",
+              "score": 1
+            },
+            {
+              "label": "B",
+              "text": "基于未来设想",
+              "score": 1
+            }
+          ],
+          "dimension": "SN"
+        },
+        {
+          "id": 39,
+          "text": "你更容易注意到：",
+          "options": [
+            {
+              "label": "A",
+              "text": "细节变化",
+              "score": 1
+            },
+            {
+              "label": "B",
+              "text": "整体趋势",
+              "score": 1
+            }
+          ],
+          "dimension": "SN"
+        },
+        {
+          "id": 40,
+          "text": "你的表达风格：",
+          "options": [
+            {
+              "label": "A",
+              "text": "直接明了",
+              "score": 1
+            },
+            {
+              "label": "B",
+              "text": "富有隐喻",
+              "score": 1
+            }
+          ],
+          "dimension": "SN"
+        },
+        {
+          "id": 41,
+          "text": "你更喜欢的书籍类型：",
+          "options": [
+            {
+              "label": "A",
+              "text": "实用指南",
+              "score": 1
+            },
+            {
+              "label": "B",
+              "text": "科幻小说",
+              "score": 1
+            }
+          ],
+          "dimension": "SN"
+        },
+        {
+          "id": 42,
+          "text": "你评价事物时：",
+          "options": [
+            {
+              "label": "A",
+              "text": "看实际效果",
+              "score": 1
+            },
+            {
+              "label": "B",
+              "text": "看潜在价值",
+              "score": 1
+            }
+          ],
+          "dimension": "SN"
+        },
+        {
+          "id": 43,
+          "text": "你更倾向于：",
+          "options": [
+            {
+              "label": "A",
+              "text": "接受现状",
+              "score": 1
+            },
+            {
+              "label": "B",
+              "text": "追求改变",
+              "score": 1
+            }
+          ],
+          "dimension": "SN"
+        },
+        {
+          "id": 44,
+          "text": "你的记忆更偏向：",
+          "options": [
+            {
+              "label": "A",
+              "text": "具体事件",
+              "score": 1
+            },
+            {
+              "label": "B",
+              "text": "整体印象",
+              "score": 1
+            }
+          ],
+          "dimension": "SN"
+        },
+        {
+          "id": 45,
+          "text": "你更喜欢：",
+          "options": [
+            {
+              "label": "A",
+              "text": "确定性",
+              "score": 1
+            },
+            {
+              "label": "B",
+              "text": "可能性",
+              "score": 1
+            }
+          ],
+          "dimension": "SN"
+        },
+        {
+          "id": 46,
+          "text": "你的兴趣更在于：",
+          "options": [
+            {
+              "label": "A",
+              "text": "当下发生的事",
+              "score": 1
+            },
+            {
+              "label": "B",
+              "text": "未来可能发生的事",
+              "score": 1
+            }
+          ],
+          "dimension": "SN"
+        },
+        {
+          "id": 47,
+          "text": "做决定时，你更看重：",
+          "options": [
+            {
+              "label": "A",
+              "text": "逻辑和公平",
+              "score": 1
+            },
+            {
+              "label": "B",
+              "text": "和谐和感受",
+              "score": 1
+            }
+          ],
+          "dimension": "TF"
+        },
+        {
+          "id": 48,
+          "text": "你更容易被什么说服：",
+          "options": [
+            {
+              "label": "A",
+              "text": "理性的论证",
+              "score": 1
+            },
+            {
+              "label": "B",
+              "text": "情感的诉求",
+              "score": 1
+            }
+          ],
+          "dimension": "TF"
+        },
+        {
+          "id": 49,
+          "text": "批评别人时，你：",
+          "options": [
+            {
+              "label": "A",
+              "text": "直接指出问题",
+              "score": 1
+            },
+            {
+              "label": "B",
+              "text": "考虑对方感受",
+              "score": 1
+            }
+          ],
+          "dimension": "TF"
+        },
+        {
+          "id": 50,
+          "text": "你认为更重要的是：",
+          "options": [
+            {
+              "label": "A",
+              "text": "真相",
+              "score": 1
+            },
+            {
+              "label": "B",
+              "text": "善意",
+              "score": 1
+            }
+          ],
+          "dimension": "TF"
+        },
+        {
+          "id": 51,
+          "text": "你更擅长：",
+          "options": [
+            {
+              "label": "A",
+              "text": "分析问题",
+              "score": 1
+            },
+            {
+              "label": "B",
+              "text": "理解他人",
+              "score": 1
+            }
+          ],
+          "dimension": "TF"
+        },
+        {
+          "id": 52,
+          "text": "你更看重：",
+          "options": [
+            {
+              "label": "A",
+              "text": "公正",
+              "score": 1
+            },
+            {
+              "label": "B",
+              "text": "同情",
+              "score": 1
+            }
+          ],
+          "dimension": "TF"
+        },
+        {
+          "id": 53,
+          "text": "你处理冲突时：",
+          "options": [
+            {
+              "label": "A",
+              "text": "坚持原则",
+              "score": 1
+            },
+            {
+              "label": "B",
+              "text": "寻求妥协",
+              "score": 1
+            }
+          ],
+          "dimension": "TF"
+        },
+        {
+          "id": 54,
+          "text": "你更容易：",
+          "options": [
+            {
+              "label": "A",
+              "text": "保持客观",
+              "score": 1
+            },
+            {
+              "label": "B",
+              "text": "产生共情",
+              "score": 1
+            }
+          ],
+          "dimension": "TF"
+        },
+        {
+          "id": 55,
+          "text": "你评价他人时：",
+          "options": [
+            {
+              "label": "A",
+              "text": "基于能力表现",
+              "score": 1
+            },
+            {
+              "label": "B",
+              "text": "基于为人品质",
+              "score": 1
+            }
+          ],
+          "dimension": "TF"
+        },
+        {
+          "id": 56,
+          "text": "你更重视：",
+          "options": [
+            {
+              "label": "A",
+              "text": "效率",
+              "score": 1
+            },
+            {
+              "label": "B",
+              "text": "人情",
+              "score": 1
+            }
+          ],
+          "dimension": "TF"
+        },
+        {
+          "id": 57,
+          "text": "你的沟通风格：",
+          "options": [
+            {
+              "label": "A",
+              "text": "直接坦率",
+              "score": 1
+            },
+            {
+              "label": "B",
+              "text": "委婉体贴",
+              "score": 1
+            }
+          ],
+          "dimension": "TF"
+        },
+        {
+          "id": 58,
+          "text": "你更关心：",
+          "options": [
+            {
+              "label": "A",
+              "text": "事情对不对",
+              "score": 1
+            },
+            {
+              "label": "B",
+              "text": "别人感受好不好",
+              "score": 1
+            }
+          ],
+          "dimension": "TF"
+        },
+        {
+          "id": 59,
+          "text": "你做选择时：",
+          "options": [
+            {
+              "label": "A",
+              "text": "用头脑分析",
+              "score": 1
+            },
+            {
+              "label": "B",
+              "text": "用心感受",
+              "score": 1
+            }
+          ],
+          "dimension": "TF"
+        },
+        {
+          "id": 60,
+          "text": "你更认同：",
+          "options": [
+            {
+              "label": "A",
+              "text": "规则就是规则",
+              "score": 1
+            },
+            {
+              "label": "B",
+              "text": "规则应该灵活",
+              "score": 1
+            }
+          ],
+          "dimension": "TF"
+        },
+        {
+          "id": 61,
+          "text": "你更容易被认为：",
+          "options": [
+            {
+              "label": "A",
+              "text": "冷静理性",
+              "score": 1
+            },
+            {
+              "label": "B",
+              "text": "热情感性",
+              "score": 1
+            }
+          ],
+          "dimension": "TF"
+        },
+        {
+          "id": 62,
+          "text": "你更喜欢：",
+          "options": [
+            {
+              "label": "A",
+              "text": "解决问题",
+              "score": 1
+            },
+            {
+              "label": "B",
+              "text": "支持他人",
+              "score": 1
+            }
+          ],
+          "dimension": "TF"
+        },
+        {
+          "id": 63,
+          "text": "你的优势是：",
+          "options": [
+            {
+              "label": "A",
+              "text": "逻辑思维",
+              "score": 1
+            },
+            {
+              "label": "B",
+              "text": "人际敏感",
+              "score": 1
+            }
+          ],
+          "dimension": "TF"
+        },
+        {
+          "id": 64,
+          "text": "你更看重团队的：",
+          "options": [
+            {
+              "label": "A",
+              "text": "目标达成",
+              "score": 1
+            },
+            {
+              "label": "B",
+              "text": "团队和谐",
+              "score": 1
+            }
+          ],
+          "dimension": "TF"
+        },
+        {
+          "id": 65,
+          "text": "你更倾向于：",
+          "options": [
+            {
+              "label": "A",
+              "text": "质疑权威",
+              "score": 1
+            },
+            {
+              "label": "B",
+              "text": "尊重权威",
+              "score": 1
+            }
+          ],
+          "dimension": "TF"
+        },
+        {
+          "id": 66,
+          "text": "你更欣赏的领导风格：",
+          "options": [
+            {
+              "label": "A",
+              "text": "公正严明",
+              "score": 1
+            },
+            {
+              "label": "B",
+              "text": "关怀备至",
+              "score": 1
+            }
+          ],
+          "dimension": "TF"
+        },
+        {
+          "id": 67,
+          "text": "你更在意：",
+          "options": [
+            {
+              "label": "A",
+              "text": "事情的结果",
+              "score": 1
+            },
+            {
+              "label": "B",
+              "text": "人的感受",
+              "score": 1
+            }
+          ],
+          "dimension": "TF"
+        },
+        {
+          "id": 68,
+          "text": "你认为好的决策应该：",
+          "options": [
+            {
+              "label": "A",
+              "text": "基于客观分析",
+              "score": 1
+            },
+            {
+              "label": "B",
+              "text": "考虑各方感受",
+              "score": 1
+            }
+          ],
+          "dimension": "TF"
+        },
+        {
+          "id": 69,
+          "text": "你更容易忽视：",
+          "options": [
+            {
+              "label": "A",
+              "text": "别人的感受",
+              "score": 1
+            },
+            {
+              "label": "B",
+              "text": "逻辑的漏洞",
+              "score": 1
+            }
+          ],
+          "dimension": "TF"
+        },
+        {
+          "id": 70,
+          "text": "你的价值观更偏向：",
+          "options": [
+            {
+              "label": "A",
+              "text": "真理",
+              "score": 1
+            },
+            {
+              "label": "B",
+              "text": "和谐",
+              "score": 1
+            }
+          ],
+          "dimension": "TF"
+        },
+        {
+          "id": 71,
+          "text": "你更喜欢：",
+          "options": [
+            {
+              "label": "A",
+              "text": "按计划行事",
+              "score": 1
+            },
+            {
+              "label": "B",
+              "text": "随机应变",
+              "score": 1
+            }
+          ],
+          "dimension": "JP"
+        },
+        {
+          "id": 72,
+          "text": "你的工作方式：",
+          "options": [
+            {
+              "label": "A",
+              "text": "提前完成",
+              "score": 1
+            },
+            {
+              "label": "B",
+              "text": "临近截止日期",
+              "score": 1
+            }
+          ],
+          "dimension": "JP"
+        },
+        {
+          "id": 73,
+          "text": "你更喜欢的生活：",
+          "options": [
+            {
+              "label": "A",
+              "text": "有条理的",
+              "score": 1
+            },
+            {
+              "label": "B",
+              "text": "灵活自由的",
+              "score": 1
+            }
+          ],
+          "dimension": "JP"
+        },
+        {
+          "id": 74,
+          "text": "你做决定时：",
+          "options": [
+            {
+              "label": "A",
+              "text": "快速决断",
+              "score": 1
+            },
+            {
+              "label": "B",
+              "text": "保持开放",
+              "score": 1
+            }
+          ],
+          "dimension": "JP"
+        },
+        {
+          "id": 75,
+          "text": "你的日程安排：",
+          "options": [
+            {
+              "label": "A",
+              "text": "详细规划",
+              "score": 1
+            },
+            {
+              "label": "B",
+              "text": "大致方向",
+              "score": 1
+            }
+          ],
+          "dimension": "JP"
+        },
+        {
+          "id": 76,
+          "text": "你更喜欢：",
+          "options": [
+            {
+              "label": "A",
+              "text": "事情有定论",
+              "score": 1
+            },
+            {
+              "label": "B",
+              "text": "保持可能性",
+              "score": 1
+            }
+          ],
+          "dimension": "JP"
+        },
+        {
+          "id": 77,
+          "text": "你的桌面通常：",
+          "options": [
+            {
+              "label": "A",
+              "text": "整洁有序",
+              "score": 1
+            },
+            {
+              "label": "B",
+              "text": "创意混乱",
+              "score": 1
+            }
+          ],
+          "dimension": "JP"
+        },
+        {
+          "id": 78,
+          "text": "你对待规则：",
+          "options": [
+            {
+              "label": "A",
+              "text": "严格遵守",
+              "score": 1
+            },
+            {
+              "label": "B",
+              "text": "灵活变通",
+              "score": 1
+            }
+          ],
+          "dimension": "JP"
+        },
+        {
+          "id": 79,
+          "text": "你更喜欢：",
+          "options": [
+            {
+              "label": "A",
+              "text": "确定的计划",
+              "score": 1
+            },
+            {
+              "label": "B",
+              "text": "即兴的安排",
+              "score": 1
+            }
+          ],
+          "dimension": "JP"
+        },
+        {
+          "id": 80,
+          "text": "你处理任务时：",
+          "options": [
+            {
+              "label": "A",
+              "text": "一个接一个",
+              "score": 1
+            },
+            {
+              "label": "B",
+              "text": "多个同时进行",
+              "score": 1
+            }
+          ],
+          "dimension": "JP"
+        },
+        {
+          "id": 81,
+          "text": "你更看重：",
+          "options": [
+            {
+              "label": "A",
+              "text": "结果",
+              "score": 1
+            },
+            {
+              "label": "B",
+              "text": "过程",
+              "score": 1
+            }
+          ],
+          "dimension": "JP"
+        },
+        {
+          "id": 82,
+          "text": "你的时间观念：",
+          "options": [
+            {
+              "label": "A",
+              "text": "严格守时",
+              "score": 1
+            },
+            {
+              "label": "B",
+              "text": "相对灵活",
+              "score": 1
+            }
+          ],
+          "dimension": "JP"
+        },
+        {
+          "id": 83,
+          "text": "你更喜欢的工作环境：",
+          "options": [
+            {
+              "label": "A",
+              "text": "结构化的",
+              "score": 1
+            },
+            {
+              "label": "B",
+              "text": "开放式的",
+              "score": 1
+            }
+          ],
+          "dimension": "JP"
+        },
+        {
+          "id": 84,
+          "text": "你对待截止日期：",
+          "options": [
+            {
+              "label": "A",
+              "text": "严格遵守",
+              "score": 1
+            },
+            {
+              "label": "B",
+              "text": "弹性处理",
+              "score": 1
+            }
+          ],
+          "dimension": "JP"
+        },
+        {
+          "id": 85,
+          "text": "你更倾向于：",
+          "options": [
+            {
+              "label": "A",
+              "text": "做出决定",
+              "score": 1
+            },
+            {
+              "label": "B",
+              "text": "收集更多信息",
+              "score": 1
+            }
+          ],
+          "dimension": "JP"
+        },
+        {
+          "id": 86,
+          "text": "你的生活节奏：",
+          "options": [
+            {
+              "label": "A",
+              "text": "规律稳定",
+              "score": 1
+            },
+            {
+              "label": "B",
+              "text": "多变有趣",
+              "score": 1
+            }
+          ],
+          "dimension": "JP"
+        },
+        {
+          "id": 87,
+          "text": "你更喜欢：",
+          "options": [
+            {
+              "label": "A",
+              "text": "完成任务的满足",
+              "score": 1
+            },
+            {
+              "label": "B",
+              "text": "开始新事物的兴奋",
+              "score": 1
+            }
+          ],
+          "dimension": "JP"
+        },
+        {
+          "id": 88,
+          "text": "你的计划：",
+          "options": [
+            {
+              "label": "A",
+              "text": "详细且固定",
+              "score": 1
+            },
+            {
+              "label": "B",
+              "text": "大致且灵活",
+              "score": 1
+            }
+          ],
+          "dimension": "JP"
+        },
+        {
+          "id": 89,
+          "text": "你更容易：",
+          "options": [
+            {
+              "label": "A",
+              "text": "过度计划",
+              "score": 1
+            },
+            {
+              "label": "B",
+              "text": "过度拖延",
+              "score": 1
+            }
+          ],
+          "dimension": "JP"
+        },
+        {
+          "id": 90,
+          "text": "你对待变化：",
+          "options": [
+            {
+              "label": "A",
+              "text": "感到不安",
+              "score": 1
+            },
+            {
+              "label": "B",
+              "text": "感到兴奋",
+              "score": 1
+            }
+          ],
+          "dimension": "JP"
+        },
+        {
+          "id": 91,
+          "text": "你更喜欢：",
+          "options": [
+            {
+              "label": "A",
+              "text": "明确的指示",
+              "score": 1
+            },
+            {
+              "label": "B",
+              "text": "自由发挥的空间",
+              "score": 1
+            }
+          ],
+          "dimension": "JP"
+        },
+        {
+          "id": 92,
+          "text": "你的工作习惯：",
+          "options": [
+            {
+              "label": "A",
+              "text": "先工作后娱乐",
+              "score": 1
+            },
+            {
+              "label": "B",
+              "text": "边工作边娱乐",
+              "score": 1
+            }
+          ],
+          "dimension": "JP"
+        },
+        {
+          "id": 93,
+          "text": "你更认同：",
+          "options": [
+            {
+              "label": "A",
+              "text": "计划赶不上变化，但还是要计划",
+              "score": 1
+            },
+            {
+              "label": "B",
+              "text": "计划赶不上变化，所以不用太计划",
+              "score": 1
+            }
+          ],
+          "dimension": "JP"
+        }
+      ]
+    },
+    "scoring_rules": {
+      "dimensions": {
+        "EI": {
+          "name": "外向/内向",
+          "options": [
+            "E",
+            "I"
+          ]
+        },
+        "SN": {
+          "name": "实感/直觉",
+          "options": [
+            "S",
+            "N"
+          ]
+        },
+        "TF": {
+          "name": "思考/情感",
+          "options": [
+            "T",
+            "F"
+          ]
+        },
+        "JP": {
+          "name": "判断/知觉",
+          "options": [
+            "J",
+            "P"
+          ]
+        }
+      }
+    },
+    "description": "迈尔斯-布里格斯类型指标，识别16种人格类型",
+    "status": "active"
+  }
+]

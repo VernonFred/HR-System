@@ -1,6 +1,5 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue';
-import AnalysisLevelSelector from '../candidate/AnalysisLevelSelector.vue';
+import { computed } from 'vue';
 
 interface ResumeData {
   name?: string;
@@ -48,13 +47,10 @@ const props = defineProps<{
   isRegenerating?: boolean;          // 是否正在重新生成画像
 }>();
 
-// 分析级别状态 - V5: 默认使用 pro
-const analysisLevel = ref<'pro' | 'expert'>('pro');
-
-// ⭐ 处理解析（传递当前选择的分析级别）
+// 深度分析级别固定为 pro（后端默认 DeepSeek），隐藏级别选择
 const handleParse = () => {
   if (props.onParse) {
-    props.onParse(analysisLevel.value);
+    props.onParse('pro');
   }
 };
 
@@ -120,33 +116,8 @@ const formattedDate = computed(() => {
       </div>
     </div>
     
-    <!-- AI分析级别选择区域 -->
-    <div v-if="onParse" class="analysis-section">
-      <div class="analysis-header">
-        <div class="analysis-info">
-        <i class="ri-magic-line"></i>
-        <div>
-            <h4>AI简历分析</h4>
-            <p>选择分析级别后点击"开始解析"，AI将分析简历并自动生成画像</p>
-          </div>
-        </div>
-      </div>
-      
-      <!-- 分析级别选择器 -->
-      <div class="level-selector-wrapper">
-        <AnalysisLevelSelector 
-          v-model="analysisLevel"
-          :disabled="isParsing || isRegenerating"
-        />
-      </div>
-      
-      <!-- 解析状态提示 -->
-      <div v-if="isParsing || isRegenerating" class="status-hint">
-        <i class="ri-loader-4-line spin"></i>
-        <span v-if="isParsing">正在解析简历...</span>
-        <span v-else>正在生成画像...</span>
-      </div>
-    </div>
+    <!-- AI分析级别选择区域（隐藏UI，固定使用深度分析） -->
+    <div v-if="false"></div>
     
     <!-- 解析结果 -->
     <div v-if="hasData" class="parsed-content">

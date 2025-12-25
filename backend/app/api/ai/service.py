@@ -104,7 +104,7 @@ async def ai_interpretation(
             messages=messages,
             level=level,
             max_tokens=1536,
-            temperature=0.3,
+            temperature=0.7,  # 提高temperature增加输出多样性
         )
         data = parse_json_safely(pick_content_text(resp))
         data = _fill_interpretation_defaults(data)
@@ -249,12 +249,44 @@ def _split_summary_to_points(summary: str, target_count: int = 3) -> List[str]:
     return paragraphs if paragraphs else [summary]
 
 
+def _detemplate_positions(positions: List[str]) -> List[str]:
+    """移除岗位推荐中的模板化句式，保留个性化内容."""
+    if not positions:
+        return positions
+    
+    # 需要移除的模板化片段
+    templates = [
+        "最适合B轮-C轮快速扩张期的",
+        "B轮-C轮快速扩张期",
+        "与候选人'敢于尝试、快速学习'的特质高度匹配",
+        "'敢于尝试、快速学习'的特质高度匹配",
+    ]
+    
+    result = []
+    for pos in positions:
+        cleaned = pos
+        for template in templates:
+            cleaned = cleaned.replace(template, "")
+        # 清理多余空格和标点
+        cleaned = cleaned.strip()
+        if cleaned.startswith("。") or cleaned.startswith("，"):
+            cleaned = cleaned[1:].strip()
+        if cleaned:
+            result.append(cleaned)
+    
+    return result
+
+
 def _fill_interpretation_defaults(data: Dict[str, Any]) -> Dict[str, Any]:
     """填充 AI 解读默认值 - 增强版"""
     # 处理summary_points：优先使用AI返回的，否则智能拆分summary
     summary_points = data.get("summary_points", [])
     if not summary_points and data.get("summary"):
         summary_points = _split_summary_to_points(data.get("summary", ""), target_count=3)
+    
+    # ⭐ 后处理：移除岗位推荐中的模板化句式
+    suitable_positions = _detemplate_positions(data.get("suitable_positions") or [])
+    unsuitable_positions = _detemplate_positions(data.get("unsuitable_positions") or [])
     
     return {
         "personality_dimensions": data.get("personality_dimensions") or data.get("dimensions") or [],
@@ -265,8 +297,8 @@ def _fill_interpretation_defaults(data: Dict[str, Any]) -> Dict[str, Any]:
         "summary": data.get("summary") or "",
         "summary_points": summary_points,  # 新增：3条核心观点
         "quick_tags": data.get("quick_tags") or [],  # ⭐ 新增：头部快速标签
-        "suitable_positions": data.get("suitable_positions") or [],
-        "unsuitable_positions": data.get("unsuitable_positions") or [],
+        "suitable_positions": suitable_positions,  # ⭐ 移除模板化句式
+        "unsuitable_positions": unsuitable_positions,  # ⭐ 移除模板化句式
         "development_suggestions": data.get("development_suggestions") or [],
         "interview_focus": data.get("interview_focus") or [],
     }

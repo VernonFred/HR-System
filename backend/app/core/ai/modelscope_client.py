@@ -50,6 +50,7 @@ class ModelScopeConfig:
 
 # ModelScope 模型配置
 MODELSCOPE_MODELS = {
+    # 保留 normal 级别为轻量兜底
     ModelLevel.NORMAL: ModelScopeConfig(
         model_id="Qwen/Qwen2.5-7B-Instruct",
         level=ModelLevel.NORMAL,
@@ -57,13 +58,15 @@ MODELSCOPE_MODELS = {
         max_tokens=1536,
         daily_limit=500
     ),
+    # 将 Pro 级别主力模型切换为 DeepSeek-R1（深度分析默认走 DeepSeek）
     ModelLevel.PRO: ModelScopeConfig(
-        model_id="Qwen/Qwen2.5-32B-Instruct",
+        model_id="deepseek-ai/DeepSeek-R1-0528",
         level=ModelLevel.PRO,
-        timeout=90,
+        timeout=120,
         max_tokens=2048,
-        daily_limit=500
+        daily_limit=100
     ),
+    # 专家级仍使用 DeepSeek-R1（与 Pro 一致，供专家模式使用）
     ModelLevel.EXPERT: ModelScopeConfig(
         model_id="deepseek-ai/DeepSeek-R1-0528",
         level=ModelLevel.EXPERT,

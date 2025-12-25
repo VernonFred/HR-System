@@ -267,46 +267,110 @@ def score_epq(answers: Dict[str, str], questions: List[Dict] = None) -> Dict:
     """
     EPQ艾森克人格问卷评分
     
-    88道题，是非题
-    四个维度：E(外向性), N(神经质), P(精神质), L(掩饰性)
+    支持两个版本：
+    - EPQ简版：48道题，每个维度12题
+    - EPQ完整版：88道题，E:21题, N:24题, P:23题, L:20题
     
-    支持答案格式：{"1": "是"} 或 {"epq_1": "yes"} 或 {1: "true"}
+    根据题目的dimension字段来确定维度，而非固定题号范围
+    
+    支持答案格式：{"1": "A"} 或 {"1": "是"} 或 {"epq_1": "yes"}
     """
     
-    # 维度题号范围（简化为按题号范围分配）
-    dimension_ranges = {
-        'E': (1, 22),    # 外向性 22题
-        'N': (23, 44),   # 神经质 22题
-        'P': (45, 66),   # 精神质 22题
-        'L': (67, 88)    # 掩饰性 22题
+    # 初始化各维度计数
+    dimension_counts = {
+        'E': {'yes': 0, 'total': 0},
+        'N': {'yes': 0, 'total': 0},
+        'P': {'yes': 0, 'total': 0},
+        'L': {'yes': 0, 'total': 0}
     }
     
+    # 如果有题目数据，根据题目的dimension字段来计分
+    if questions:
+        for q in questions:
+            q_id = str(q.get('id', ''))
+            dimension = q.get('dimension', '').upper()
+            
+            if dimension not in dimension_counts:
+                continue
+            
+            # 获取用户答案
+            answer = (
+                answers.get(q_id, '') or
+                answers.get(f'epq_{q_id}', '') or
+                answers.get(int(q_id) if q_id.isdigit() else q_id, '')
+            )
+            answer = str(answer).lower().strip()
+            
+            if not answer:
+                continue
+            
+            dimension_counts[dimension]['total'] += 1
+            
+            # 判断是否为"是"类答案（正向计分）
+            # 支持: A, 是, yes, true, 1, y
+            is_yes = answer in ['a', 'yes', 'true', '1', '是', 'y']
+            
+            # 检查题目是否为反向计分
+            reverse = q.get('reverse', False)
+            if reverse:
+                is_yes = not is_yes
+            
+            if is_yes:
+                dimension_counts[dimension]['yes'] += 1
+    else:
+        # 兼容旧逻辑：如果没有题目数据，尝试按题号范围分配
+        # 48题版本的范围
+        dimension_ranges_48 = {
+            'E': (1, 12),
+            'N': (13, 24),
+            'P': (25, 36),
+            'L': (37, 48)
+        }
+        # 88题版本的范围
+        dimension_ranges_88 = {
+            'E': (1, 21),
+            'N': (22, 45),
+            'P': (46, 68),
+            'L': (69, 88)
+        }
+        
+        # 检测是48题还是88题版本
+        max_question_id = 0
+        for key in answers.keys():
+            try:
+                q_id = int(str(key).replace('epq_', ''))
+                max_question_id = max(max_question_id, q_id)
+            except:
+                pass
+        
+        dimension_ranges = dimension_ranges_88 if max_question_id > 48 else dimension_ranges_48
+        
+        for dim_code, (start, end) in dimension_ranges.items():
+            for order in range(start, end + 1):
+                answer = (
+                    answers.get(str(order), '') or
+                    answers.get(f'epq_{order}', '') or
+                    answers.get(order, '')
+                )
+                answer = str(answer).lower().strip()
+                
+                if answer:
+                    dimension_counts[dim_code]['total'] += 1
+                    is_yes = answer in ['a', 'yes', 'true', '1', '是', 'y']
+                    if is_yes:
+                        dimension_counts[dim_code]['yes'] += 1
+    
+    # 计算各维度结果
     dimension_results = {}
     
-    for dim_code, (start, end) in dimension_ranges.items():
-        yes_count = 0
-        total_count = 0
-        
-        for order in range(start, end + 1):
-            # 尝试多种key格式
-            answer = (
-                answers.get(str(order), '') or
-                answers.get(f'epq_{order}', '') or
-                answers.get(order, '')
-            )
-            answer = str(answer).lower()
-            
-            # 判断是否为"是"类答案
-            is_yes = answer in ['yes', 'true', '1', '是', 'a', 'y']
-            
-            if answer:  # 只要有答案就计入总数
-                total_count += 1
-                if is_yes:
-                    yes_count += 1
+    for dim_code in ['E', 'N', 'P', 'L']:
+        yes_count = dimension_counts[dim_code]['yes']
+        total_count = dimension_counts[dim_code]['total']
         
         # 计算原始分和T分
         raw_score = yes_count
         if total_count > 0:
+            # 使用更合理的T分计算：基于该维度的总题数
             mean = total_count / 2  # 均值为题数的一半
             std = total_count / 4   # 标准差约为题数的1/4
             t_score = int((raw_score - mean) / std * 10 + 50) if std > 0 else 50
@@ -327,7 +391,8 @@ def score_epq(answers: Dict[str, str], questions: List[Dict] = None) -> Dict:
             'value': raw_score,
             't_score': t_score,
             'level': level,
-            'label': _get_epq_label(dim_code)
+            'label': _get_epq_label(dim_code),
+            'total_questions': total_count  # 添加总题数用于调试
         }
     
     # 确定人格类型

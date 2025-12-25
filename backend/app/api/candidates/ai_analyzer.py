@@ -267,8 +267,10 @@ async def generate_ai_analysis(
                 candidate_positions_for_ai = None
         
         # 构建AI请求参数 - V7岗位族版
+        # ⭐ 使用时间戳确保每次分析都是新的（禁用缓存以获得个性化结果）
+        import time
         payload = {
-            "submission_code": f"portrait-{candidate.id}",
+            "submission_code": f"portrait-{candidate.id}-{int(time.time())}",
             "test_type": test_type,
             "scores": scores,
             "candidate_profile": candidate_profile,

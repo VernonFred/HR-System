@@ -34,25 +34,17 @@ def determine_analysis_level(
     competency_scores: Optional[Dict[str, int]] = None,
 ) -> str:
     """
-    确定分析级别 - V5 版本：Pro(32B) 为默认.
+    确定分析级别.
     
-    Args:
-        position: 岗位名称
-        force_level: 强制指定级别 (pro/expert)，不再支持 normal
-        resume_data: 简历解析数据
-        competency_scores: 胜任力分数
-        
-    Returns:
-        分析级别字符串 (pro/expert)
+    现在默认直接使用 DeepSeek (pro)，仅在强制指定 expert 时仍使用 expert 流程。
     """
     # 强制指定级别（只接受 pro 或 expert）
     if force_level and force_level in ("pro", "expert"):
         logger.info(f"🎯 使用分析级别: {force_level}")
         return force_level
     
-    # V5: 默认使用 Pro (32B)
-    # 只有用户手动选择 expert 时才使用 DeepSeek-R1
-    logger.info("📊 使用默认分析级别: pro (Qwen2.5-32B)")
+    # 默认使用 pro（现已映射到 DeepSeek）
+    logger.info("📊 使用默认分析级别: pro (DeepSeek)")
     return "pro"
 
 

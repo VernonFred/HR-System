@@ -109,6 +109,18 @@ const getFieldIcon = (field: any) => {
   return iconMap[field.name] || "ri-input-cursor-move";
 };
 
+// ⭐ 获取页面文案（兼容驼峰和蛇形命名）
+const getPageText = (key: string): string => {
+  const pageTexts = assessment.value?.page_texts;
+  if (!pageTexts) return '';
+  
+  // 驼峰转蛇形
+  const snakeKey = key.replace(/([A-Z])/g, '_$1').toLowerCase();
+  
+  // 优先使用驼峰命名，兼容蛇形命名
+  return pageTexts[key] || pageTexts[snakeKey] || '';
+};
+
 const handleStart = async () => {
   // ⭐ 验证必填字段
   const missingFields = formFields.value.filter(f => f.required && !form.value[f.name]);
@@ -277,22 +289,27 @@ onMounted(() => {
             {{ assessment.description }}
           </p>
           
+          <!-- 欢迎语 -->
+          <div v-if="getPageText('welcomeText')" class="welcome-box">
+            <h3 class="welcome-text">{{ getPageText('welcomeText') }}</h3>
+          </div>
+          
           <!-- 测评说明 -->
-          <div v-if="assessment?.page_texts?.intro_text" class="intro-box">
+          <div v-if="getPageText('introText')" class="intro-box">
             <i class="ri-file-info-line"></i>
-            <p>{{ assessment.page_texts.intro_text }}</p>
+            <p>{{ getPageText('introText') }}</p>
           </div>
           
           <!-- 答题指导 -->
-          <div v-if="assessment?.page_texts?.guide_text" class="guide-box">
+          <div v-if="getPageText('guideText')" class="guide-box">
             <i class="ri-compass-3-line"></i>
-            <p>{{ assessment.page_texts.guide_text }}</p>
+            <p>{{ getPageText('guideText') }}</p>
           </div>
           
           <!-- 隐私声明 -->
-          <div v-if="assessment?.page_texts?.privacy_text" class="privacy-box">
+          <div v-if="getPageText('privacyText')" class="privacy-box">
             <i class="ri-shield-check-line"></i>
-            <p>{{ assessment.page_texts.privacy_text }}</p>
+            <p>{{ getPageText('privacyText') }}</p>
           </div>
         </div>
 
@@ -315,7 +332,7 @@ onMounted(() => {
               :id="field.name"
               :type="field.type"
               v-model="form[field.name]"
-              :placeholder="`请输入${field.label}`"
+              :placeholder="field.placeholder || `请输入${field.label}`"
               class="form-input"
               :required="field.required"
             />
@@ -328,7 +345,7 @@ onMounted(() => {
               class="form-input"
               :required="field.required"
             >
-              <option value="">请选择{{ field.label }}</option>
+              <option value="">{{ field.placeholder || `请选择${field.label}` }}</option>
               <!-- ⭐ V51: 兼容两种 options 格式: 字符串数组 或 {value, label} 对象数组 -->
               <option 
                 v-for="(opt, idx) in (field.options || [])" 
@@ -344,7 +361,7 @@ onMounted(() => {
               v-else-if="field.type === 'textarea'"
               :id="field.name"
               v-model="form[field.name]"
-              :placeholder="`请输入${field.label}`"
+              :placeholder="field.placeholder || `请输入${field.label}`"
               class="form-input"
               rows="3"
               :required="field.required"
@@ -536,6 +553,20 @@ onMounted(() => {
   color: #6b7280;
   margin: 0;
   line-height: 1.6;
+}
+
+/* 欢迎语 */
+.welcome-box {
+  margin-top: 1.5rem;
+  text-align: center;
+}
+
+.welcome-text {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #1e293b;
+  margin: 0;
+  line-height: 1.5;
 }
 
 /* 测评说明盒子 */
