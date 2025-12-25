@@ -27,7 +27,7 @@ export async function fetchCandidates(params: CandidateQuery = {}): Promise<Cand
       pageSize: params.pageSize || MOCK_CANDIDATES.length,
       total: MOCK_CANDIDATES.length,
     },
-    auth: false, // 暂时禁用认证
+    auth: true, // 使用真实接口，失败时仍可回退到 mock
   });
 }
 
@@ -36,6 +36,6 @@ export async function fetchCandidate(id: number): Promise<Candidate | undefined>
   return apiRequest<Candidate>({
     path: `/api/candidates/${id}`,
     fallback: mock,
-    auth: false, // 暂时禁用认证
+    auth: true, // 使用真实接口，失败时仍可回退到 mock
   });
 }

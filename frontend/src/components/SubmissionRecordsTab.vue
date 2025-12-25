@@ -8,7 +8,7 @@
  * 3. 导出数据
  * 4. 删除记录
  */
-import { ref, computed, defineAsyncComponent } from 'vue'
+import { ref, computed, defineAsyncComponent, watch } from 'vue'
 import type { Submission, Questionnaire } from '../api/assessments'
 
 // 异步加载提交详情弹窗
@@ -34,6 +34,10 @@ const searchQuery = ref('')
 const filterQuestionnaire = ref('all')
 const filterStatus = ref('all')
 const groupByCandidate = ref(false)
+
+// ===== 分页状态 =====
+const currentPage = ref(1)
+const pageSize = 10
 
 // V45: 年份/月份筛选
 const filterYear = ref<number | null>(null)
@@ -158,6 +162,26 @@ const filteredSubmissions = computed(() => {
   }
   
   return result
+})
+
+// ===== 分页相关 =====
+const totalFilteredCount = computed(() => filteredSubmissions.value.length)
+const totalPages = computed(() => Math.ceil(totalFilteredCount.value / pageSize))
+
+const paginatedSubmissions = computed(() => {
+  const start = (currentPage.value - 1) * pageSize
+  const end = start + pageSize
+  return filteredSubmissions.value.slice(start, end)
+})
+
+const changePage = (newPage: number) => {
+  if (newPage < 1 || newPage > totalPages.value) return
+  currentPage.value = newPage
+}
+
+// 筛选变化时重置页码
+watch([searchQuery, filterQuestionnaire, filterStatus, filterYear, filterMonth], () => {
+  currentPage.value = 1
 })
 
 // ===== 按候选人分组的提交记录 =====
@@ -538,7 +562,7 @@ const executeExport = async () => {
           </tr>
         </thead>
         <tbody>
-          <tr v-for="r in filteredSubmissions" :key="r.id" class="record-row" :class="{ selected: selectedSubmissions.has(r.id) }">
+          <tr v-for="r in paginatedSubmissions" :key="r.id" class="record-row" :class="{ selected: selectedSubmissions.has(r.id) }">
             <td v-if="isSelectMode" class="cell-checkbox">
               <input 
                 type="checkbox" 
@@ -573,7 +597,7 @@ const executeExport = async () => {
               </button>
             </td>
           </tr>
-          <tr v-if="filteredSubmissions.length === 0">
+          <tr v-if="paginatedSubmissions.length === 0">
             <td :colspan="isSelectMode ? 9 : 8" class="empty-cell">
               <div class="empty-state-inline">
                 <i class="ri-inbox-line"></i>
@@ -583,6 +607,17 @@ const executeExport = async () => {
           </tr>
         </tbody>
       </table>
+      
+      <!-- 分页控件 -->
+      <div v-if="totalFilteredCount > pageSize" class="pagination-bar">
+        <button class="page-btn" :disabled="currentPage === 1" @click="changePage(currentPage - 1)" title="上一页">
+          <i class="ri-arrow-left-s-line"></i>
+        </button>
+        <span class="page-info">{{ currentPage }} / {{ totalPages }} (共 {{ totalFilteredCount }} 条)</span>
+        <button class="page-btn" :disabled="currentPage >= totalPages" @click="changePage(currentPage + 1)" title="下一页">
+          <i class="ri-arrow-right-s-line"></i>
+        </button>
+      </div>
     </div>
 
     <!-- 分组视图 -->
@@ -1514,6 +1549,52 @@ const executeExport = async () => {
 
 .record-row:hover {
   background: #faf5ff;
+}
+
+/* 分页控件样式 */
+.pagination-bar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 16px;
+  margin-top: 16px;
+  background: rgba(124, 58, 237, 0.05);
+  border-radius: 12px;
+  border: 1px solid rgba(124, 58, 237, 0.1);
+}
+
+.page-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border: 1px solid rgba(124, 58, 237, 0.2);
+  border-radius: 8px;
+  background: white;
+  color: #7c3aed;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.page-btn:hover:not(:disabled) {
+  background: #7c3aed;
+  color: white;
+  border-color: #7c3aed;
+}
+
+.page-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.page-info {
+  font-size: 14px;
+  font-weight: 500;
+  color: #6b7280;
+  min-width: 140px;
+  text-align: center;
 }
 
 .cell-code {

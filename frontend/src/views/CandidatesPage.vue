@@ -204,6 +204,21 @@ const showTabSwitch = computed(() => {
   return !!activeCandidate.value;
 });
 
+// 总页数
+const totalPages = computed(() => Math.ceil(total.value / pageSize));
+
+// 切换页码
+const changePage = async (newPage: number) => {
+  if (newPage < 1 || newPage > totalPages.value) return;
+  page.value = newPage;
+  await loadCandidates();
+};
+
+// 搜索/筛选变化时重置页码（前端过滤不需要重新加载，只在切换年份/月份时可能需要）
+watch([filterYear, filterMonth], () => {
+  // 前端过滤，不需要重置page，因为数据已经加载
+});
+
 // 过滤后的候选人列表（支持按姓名、手机号、岗位、标签搜索 + V45: 年份/月份筛选）
 const filteredCandidates = computed(() => {
   let result = candidates.value;
@@ -952,6 +967,27 @@ onMounted(async () => {
           </div>
         </div>
         
+        <!-- 分页控件 -->
+        <div v-if="total > pageSize" class="pagination-bar">
+          <button 
+            class="page-btn" 
+            :disabled="page === 1" 
+            @click="changePage(page - 1)"
+            title="上一页"
+          >
+            <i class="ri-arrow-left-s-line"></i>
+          </button>
+          <span class="page-info">{{ page }} / {{ totalPages }}</span>
+          <button 
+            class="page-btn" 
+            :disabled="page >= totalPages" 
+            @click="changePage(page + 1)"
+            title="下一页"
+          >
+            <i class="ri-arrow-right-s-line"></i>
+          </button>
+        </div>
+        
         <!-- ⭐ AI重新生成画像 - 左侧圆形动画（无边框设计，更大更清晰） -->
         <div v-if="aiLoading && activeProfile" class="regen-circle-loader">
           <div class="regen-circle-content">
@@ -1219,7 +1255,7 @@ onMounted(async () => {
   border-radius: 16px;
   display: flex;
   flex-direction: column;
-  overflow: hidden;
+  overflow: visible;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
 }
 
@@ -2123,6 +2159,53 @@ onMounted(async () => {
 }
 
 /* ⭐ 美化后的人员卡片样式 */
+/* 分页控件样式 */
+.pagination-bar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 12px 16px;
+  margin: 8px 12px 12px 12px;
+  flex-shrink: 0;
+  background: rgba(99, 102, 241, 0.05);
+  border-radius: 12px;
+  border: 1px solid rgba(99, 102, 241, 0.1);
+}
+
+.page-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: 1px solid rgba(99, 102, 241, 0.2);
+  border-radius: 8px;
+  background: white;
+  color: var(--primary-600);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.page-btn:hover:not(:disabled) {
+  background: var(--primary-500);
+  color: white;
+  border-color: var(--primary-500);
+}
+
+.page-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.page-info {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--gray-600);
+  min-width: 60px;
+  text-align: center;
+}
+
 .candidate-row {
   display: flex;
   align-items: center;

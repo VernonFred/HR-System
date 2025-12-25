@@ -307,7 +307,7 @@ export const fetchSubmissions = (params?: {
   return apiRequest<{ items: Submission[]; total: number }>({
     path: `/api/assessments/submissions${qs ? `?${qs}` : ""}`,
     fallback: { items: filteredSubmissions, total: filteredSubmissions.length },
-    auth: false,
+    auth: true, // 使用真实接口，失败时回退到 mock
   });
 };
 

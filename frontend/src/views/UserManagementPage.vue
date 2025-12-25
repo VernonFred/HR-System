@@ -8,7 +8,7 @@
  * 3. 分组视图下支持展开查看每个人的所有提交记录
  * 4. V44: 支持单个删除和批量删除人员
  */
-import { ref, computed, onMounted, defineAsyncComponent } from "vue";
+import { ref, computed, onMounted, defineAsyncComponent, watch } from "vue";
 import { apiRequest, apiRequestWithBody } from "../api/client";
 
 // 异步加载提交详情弹窗
@@ -53,6 +53,10 @@ const searchQuery = ref("");
 const filterStatus = ref<"all" | "active" | "completed">("all");
 const viewMode = ref<"list" | "group">("list");
 const expandedPersons = ref<Set<string>>(new Set());
+
+// 分页状态
+const currentPage = ref(1);
+const pageSize = 10;
 
 // V45: 年份/月份筛选
 const filterYear = ref<number | null>(null);
@@ -231,6 +235,30 @@ const filteredPersons = computed(() => {
   return result;
 });
 
+// 过滤后总数
+const totalFilteredCount = computed(() => filteredPersons.value.length);
+
+// 总页数
+const totalPages = computed(() => Math.ceil(totalFilteredCount.value / pageSize));
+
+// 分页后的人员列表（用于显示）
+const paginatedPersons = computed(() => {
+  const start = (currentPage.value - 1) * pageSize;
+  const end = start + pageSize;
+  return filteredPersons.value.slice(start, end);
+});
+
+// 切换页码
+const changePage = (newPage: number) => {
+  if (newPage < 1 || newPage > totalPages.value) return;
+  currentPage.value = newPage;
+};
+
+// 搜索/筛选变化时重置页码
+watch([searchQuery, filterYear, filterMonth, filterStatus], () => {
+  currentPage.value = 1;
+});
+
 // 统计数据
 const stats = computed(() => ({
   total: persons.value.length,
@@ -245,8 +273,8 @@ const loadPersons = async () => {
   try {
     // 从候选人和提交记录中聚合人员数据
     const [candidatesRes, submissionsRes] = await Promise.all([
-      apiRequest<any>({ path: "/api/candidates?page=1&page_size=100", fallback: { items: [] }, auth: true }),
-      apiRequest<any>({ path: "/api/assessments/submissions", fallback: [], auth: true }),
+      apiRequest<any>({ path: "/api/candidates?page=1&page_size=1000", fallback: { items: [] }, auth: true }),
+      apiRequest<any>({ path: "/api/assessments/submissions?page=1&page_size=1000", fallback: [], auth: true }),
     ]);
     
     const personMap = new Map<string, PersonRecord>();
@@ -562,7 +590,7 @@ onMounted(() => {
             <span>加载中...</span>
           </div>
           
-      <div v-else-if="filteredPersons.length === 0" class="empty-state">
+      <div v-else-if="paginatedPersons.length === 0" class="empty-state">
             <i class="ri-user-unfollow-line"></i>
             <p>暂无人员数据</p>
           </div>
@@ -585,7 +613,7 @@ onMounted(() => {
               </tr>
             </thead>
             <tbody>
-            <tr v-for="person in filteredPersons" :key="person.phone || person.name" class="person-row" :class="{ selected: selectedPersons.has(person.phone || person.name) }">
+            <tr v-for="person in paginatedPersons" :key="person.phone || person.name" class="person-row" :class="{ selected: selectedPersons.has(person.phone || person.name) }">
                 <td v-if="isSelectMode" class="cell-checkbox"><input type="checkbox" :checked="selectedPersons.has(person.phone || person.name)" @change="togglePersonSelect(person)" /></td>
                 <td class="cell-name">
                 <div class="person-info">
@@ -632,6 +660,17 @@ onMounted(() => {
               </tr>
             </tbody>
           </table>
+          
+          <!-- 分页控件 -->
+          <div v-if="totalFilteredCount > pageSize" class="pagination-bar">
+            <button class="page-btn" :disabled="currentPage === 1" @click="changePage(currentPage - 1)" title="上一页">
+              <i class="ri-arrow-left-s-line"></i>
+            </button>
+            <span class="page-info">{{ currentPage }} / {{ totalPages }} (共 {{ totalFilteredCount }} 人)</span>
+            <button class="page-btn" :disabled="currentPage >= totalPages" @click="changePage(currentPage + 1)" title="下一页">
+              <i class="ri-arrow-right-s-line"></i>
+            </button>
+          </div>
         </div>
 
       <!-- 分组视图 -->
@@ -679,7 +718,7 @@ onMounted(() => {
         <!-- 人员分组卡片 -->
         <div class="person-groups">
           <div 
-            v-for="person in filteredPersons" 
+            v-for="person in paginatedPersons" 
             :key="person.phone || person.name"
             class="person-group-card"
             :class="{ expanded: expandedPersons.has(person.phone || person.name) }"
@@ -755,6 +794,17 @@ onMounted(() => {
               </div>
             </div>
           </div>
+        </div>
+        
+        <!-- 分页控件 -->
+        <div v-if="totalFilteredCount > pageSize" class="pagination-bar">
+          <button class="page-btn" :disabled="currentPage === 1" @click="changePage(currentPage - 1)" title="上一页">
+            <i class="ri-arrow-left-s-line"></i>
+          </button>
+          <span class="page-info">{{ currentPage }} / {{ totalPages }} (共 {{ totalFilteredCount }} 人)</span>
+          <button class="page-btn" :disabled="currentPage >= totalPages" @click="changePage(currentPage + 1)" title="下一页">
+            <i class="ri-arrow-right-s-line"></i>
+          </button>
         </div>
       </div>
     </div>
@@ -1278,6 +1328,52 @@ onMounted(() => {
 
 .person-row.selected {
   background: rgba(124, 58, 237, 0.05);
+}
+
+/* 分页控件样式 */
+.pagination-bar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 16px;
+  margin-top: 16px;
+  background: rgba(124, 58, 237, 0.05);
+  border-radius: 12px;
+  border: 1px solid rgba(124, 58, 237, 0.1);
+}
+
+.page-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border: 1px solid rgba(124, 58, 237, 0.2);
+  border-radius: 8px;
+  background: white;
+  color: #7c3aed;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.page-btn:hover:not(:disabled) {
+  background: #7c3aed;
+  color: white;
+  border-color: #7c3aed;
+}
+
+.page-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.page-info {
+  font-size: 14px;
+  font-weight: 500;
+  color: #6b7280;
+  min-width: 120px;
+  text-align: center;
 }
 
 /* V44: 复选框列 */
