@@ -376,7 +376,7 @@ async def get_public_assessment_info(
     questions_data = questionnaire.questions_data.get("questions", []) if questionnaire.questions_data else []
     
     return schemas.PublicAssessmentInfo(
-        name=questionnaire.name,
+        name=assessment.name,  # 使用用户自定义的测评名称
         type=questionnaire.type,
         questions_count=questionnaire.questions_count,
         estimated_minutes=questionnaire.estimated_minutes,

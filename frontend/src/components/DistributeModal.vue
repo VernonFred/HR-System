@@ -817,7 +817,7 @@ onMounted(() => {
           <div class="confirm-item">
             <div class="confirm-label">问卷类型</div>
             <div class="confirm-value">
-              {{ questionnaire?.name }} ({{ questionnaire?.questions_count }}题)
+              {{ questionnaire?.name }}
             </div>
           </div>
 
