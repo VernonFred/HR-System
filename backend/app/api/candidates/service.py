@@ -41,6 +41,31 @@ from app.services.cross_validation import CrossValidationService
 from app.services.resume_quality_analyzer import ResumeQualityAnalyzer  # 🟢 P2-2
 
 
+def _merge_fragments(items: List[str]) -> List[str]:
+    if not items:
+        return []
+    merged: List[str] = []
+    buffer = ""
+    end_punct = "。！？!?；;：:"
+    for item in items:
+        text = item.strip()
+        if not text:
+            continue
+        if not buffer:
+            buffer = text
+            continue
+        # 如果上一段没有结束标点，或任一段过短，则认为是同一句的分段
+        if buffer[-1] not in end_punct or len(buffer) < 18 or len(text) < 10:
+            joiner = "" if buffer.endswith(("，", "、", "；", ";", "：", ":")) else "，"
+            buffer = f"{buffer}{joiner}{text}"
+        else:
+            merged.append(buffer)
+            buffer = text
+    if buffer:
+        merged.append(buffer)
+    return merged
+
+
 def _normalize_list_field(value: Any) -> List[str]:
     if value is None:
         return []
@@ -52,12 +77,12 @@ def _normalize_list_field(value: Any) -> List[str]:
         single_char_ratio = sum(1 for item in items if len(item) == 1) / len(items)
         if len(items) >= 6 and single_char_ratio >= 0.8:
             merged = "".join(items)
-            parts = re.split(r"[\n,，、;；|]+", merged)
-            return [p.strip() for p in parts if p and p.strip()]
-        return items
+            parts = re.split(r"[\n、;；|]+", merged)
+            return _merge_fragments([p.strip() for p in parts if p and p.strip()])
+        return _merge_fragments(items)
     if isinstance(value, str):
-        parts = re.split(r"[\n,，、;；|]+", value)
-        return [p.strip() for p in parts if p and p.strip()]
+        parts = re.split(r"[\n、;；|]+", value)
+        return _merge_fragments([p.strip() for p in parts if p and p.strip()])
     text = str(value).strip()
     return [text] if text else []
 
