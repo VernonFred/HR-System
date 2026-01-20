@@ -11,6 +11,7 @@ import asyncio
 import json
 import logging
 import time
+import re
 from datetime import datetime
 from typing import Optional, List, Dict, Any
 
@@ -38,6 +39,18 @@ from .ai_analyzer import (
 from .dimension_mapping import calculate_dimension_score_from_assessments
 from app.services.cross_validation import CrossValidationService
 from app.services.resume_quality_analyzer import ResumeQualityAnalyzer  # 🟢 P2-2
+
+
+def _normalize_list_field(value: Any) -> List[str]:
+    if value is None:
+        return []
+    if isinstance(value, list):
+        return [str(item).strip() for item in value if str(item).strip()]
+    if isinstance(value, str):
+        parts = re.split(r"[\n,，、;；|]+", value)
+        return [p.strip() for p in parts if p and p.strip()]
+    text = str(value).strip()
+    return [text] if text else []
 from app.services.job_recommender import JobRecommender  # 🟢 P2-3
 
 logger = logging.getLogger(__name__)
@@ -493,23 +506,30 @@ async def build_candidate_portrait(
             logger.error(f"⚠️ 候选人{candidate_id}: 交叉验证计算失败: {str(e)}")
             cross_validation_data = None
     
+    ai_strengths = _normalize_list_field(ai_analysis.get("strengths", []))
+    ai_risks = _normalize_list_field(ai_analysis.get("risks", []))
+    ai_summary_points = _normalize_list_field(ai_analysis.get("summary_points", []))
+    ai_quick_tags = _normalize_list_field(ai_analysis.get("quick_tags", []))
+    ai_suitable_positions = _normalize_list_field(ai_analysis.get("suitable_positions", []))
+    ai_unsuitable_positions = _normalize_list_field(ai_analysis.get("unsuitable_positions", []))
+
     portrait = schemas.CandidatePortrait(
         basic_info=basic_info,
         assessments=assessments_info,
         job_match=job_match_info,
         overall_score=overall_score,
-        strengths=strengths or ai_analysis.get("strengths", []),
-        improvements=improvements or ai_analysis.get("risks", []),
+        strengths=strengths or ai_strengths,
+        improvements=improvements or ai_risks,
         personality_dimensions=[
             schemas.PersonalityDimension(**dim) 
             for dim in ai_analysis.get("personality_dimensions", [])
         ],
         competencies=competencies,
-        suitable_positions=ai_analysis.get("suitable_positions", []),
-        unsuitable_positions=ai_analysis.get("unsuitable_positions", []),
+        suitable_positions=ai_suitable_positions,
+        unsuitable_positions=ai_unsuitable_positions,
         ai_summary=ai_analysis.get("summary"),
-        ai_summary_points=clean_summary_points(summary_points),  # 清理序号前缀
-        quick_tags=quick_tags,  # 快速标签
+        ai_summary_points=clean_summary_points(summary_points) or ai_summary_points,  # 清理序号前缀
+        quick_tags=quick_tags or ai_quick_tags,  # 快速标签
         cross_validation=cross_validation_data,  # 🟢 P1-1: 交叉验证数据
         # 🟢 P1-2: 降级标识
         is_fallback_analysis=is_default_analysis,
