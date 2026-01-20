@@ -45,7 +45,16 @@ def _normalize_list_field(value: Any) -> List[str]:
     if value is None:
         return []
     if isinstance(value, list):
-        return [str(item).strip() for item in value if str(item).strip()]
+        items = [str(item).strip() for item in value if str(item).strip()]
+        if not items:
+            return []
+        # 如果是按单字符拆分的列表，先拼回字符串再按分隔符拆分
+        single_char_ratio = sum(1 for item in items if len(item) == 1) / len(items)
+        if len(items) >= 6 and single_char_ratio >= 0.8:
+            merged = "".join(items)
+            parts = re.split(r"[\n,，、;；|]+", merged)
+            return [p.strip() for p in parts if p and p.strip()]
+        return items
     if isinstance(value, str):
         parts = re.split(r"[\n,，、;；|]+", value)
         return [p.strip() for p in parts if p and p.strip()]
