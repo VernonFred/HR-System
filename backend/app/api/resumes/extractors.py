@@ -1,7 +1,11 @@
 """简历管理 - 文本提取服务."""
 from pathlib import Path
 from typing import Optional
+import logging
+import os
 import re
+
+logger = logging.getLogger(__name__)
 
 
 def extract_text_from_pdf(file_path: str) -> str:
@@ -10,25 +14,35 @@ def extract_text_from_pdf(file_path: str) -> str:
     
     使用pdfplumber库进行提取
     """
+    text = ""
     try:
         import pdfplumber
-        
-        text = ""
+
         with pdfplumber.open(file_path) as pdf:
             for page in pdf.pages:
                 page_text = page.extract_text()
                 if page_text:
                     text += page_text + "\n"
-        
-        return text.strip()
-        
     except ImportError:
-        print("pdfplumber未安装，使用mock数据")
-        # Fallback to mock data if library not installed
-        return _get_mock_pdf_text()
+        logger.warning("pdfplumber未安装，跳过PDF文本提取")
     except Exception as e:
-        print(f"PDF文本提取失败：{e}")
-        return ""
+        logger.warning("PDF文本提取失败：%s", e)
+
+    if text:
+        text = text.strip()
+
+    if text and not _looks_garbled(text):
+        return text
+
+    # OCR兜底
+    ocr_text = _extract_text_with_ocr(file_path)
+    if ocr_text:
+        return ocr_text
+
+    if _allow_mock_text():
+        return _get_mock_pdf_text()
+
+    return text or ""
 
 
 def extract_text_from_word(file_path: str) -> str:
@@ -39,19 +53,20 @@ def extract_text_from_word(file_path: str) -> str:
     """
     try:
         from docx import Document
-        
+
         doc = Document(file_path)
         text = "\n".join([para.text for para in doc.paragraphs if para.text.strip()])
-        
+
         return text.strip()
-        
     except ImportError:
-        print("python-docx未安装，使用mock数据")
-        # Fallback to mock data if library not installed
-        return _get_mock_word_text()
+        logger.warning("python-docx未安装，跳过Word文本提取")
     except Exception as e:
-        print(f"Word文本提取失败：{e}")
-        return ""
+        logger.warning("Word文本提取失败：%s", e)
+
+    if _allow_mock_text():
+        return _get_mock_word_text()
+
+    return ""
 
 
 def _get_mock_pdf_text() -> str:
@@ -118,6 +133,52 @@ def _get_mock_word_text() -> str:
     证书
     阿里云ACP认证
     """
+
+
+def _allow_mock_text() -> bool:
+    return os.getenv("USE_MOCK_RESUME_TEXT", "").lower() in ("1", "true", "yes", "on")
+
+
+def _looks_garbled(text: str) -> bool:
+    if not text:
+        return True
+    cleaned = re.sub(r"\s+", " ", text).strip()
+    if not cleaned:
+        return True
+    tokens = cleaned.split(" ")
+    single_char_ratio = sum(1 for t in tokens if len(t) == 1) / len(tokens)
+    cjk_ratio = len(re.findall(r"[\u4e00-\u9fff]", text)) / max(len(text), 1)
+    if len(tokens) >= 30 and single_char_ratio > 0.35:
+        return True
+    if len(text) > 200 and cjk_ratio < 0.1:
+        return True
+    return False
+
+
+def _extract_text_with_ocr(file_path: str) -> str:
+    try:
+        import pypdfium2 as pdfium
+        import pytesseract
+    except ImportError as e:
+        logger.warning("OCR依赖未安装，跳过OCR提取: %s", e)
+        return ""
+
+    try:
+        pdf = pdfium.PdfDocument(file_path)
+        texts = []
+        lang = os.getenv("OCR_LANG", "chi_sim+eng")
+        for page_index in range(len(pdf)):
+            page = pdf.get_page(page_index)
+            pil_image = page.render(scale=2).to_pil()
+            page.close()
+            text = pytesseract.image_to_string(pil_image, lang=lang)
+            if text:
+                texts.append(text)
+        pdf.close()
+        return "\n".join(texts).strip()
+    except Exception as e:
+        logger.warning("OCR提取失败：%s", e)
+        return ""
 
 
 def extract_text_from_file(file_path: str) -> Optional[str]:

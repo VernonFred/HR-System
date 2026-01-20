@@ -275,11 +275,11 @@ async def parse_resume(
         print(f"📄 开始AI解析简历 candidate={candidate_id}, level={analysis_level}")
         parsed_data = await parse_resume_with_ai(clean_resume_text, analysis_level)
         # 如果AI/规则解析未能识别姓名，用候选人信息兜底
-        if not parsed_data.name or parsed_data.name == "未知":
+        if candidate.name:
             parsed_data.name = candidate.name
-        if not parsed_data.email and candidate.email:
+        if candidate.email:
             parsed_data.email = candidate.email
-        if not parsed_data.phone and candidate.phone:
+        if candidate.phone:
             parsed_data.phone = candidate.phone
         
         # 4. 保存到数据库
