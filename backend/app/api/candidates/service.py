@@ -60,6 +60,20 @@ def _normalize_list_field(value: Any) -> List[str]:
         return [p.strip() for p in parts if p and p.strip()]
     text = str(value).strip()
     return [text] if text else []
+
+
+def _normalize_ai_insights(value: Any, candidate_name: Optional[str]) -> List[str]:
+    items = _normalize_list_field(value)
+    if not items:
+        return []
+    if all(len(item) == 1 for item in items):
+        merged = "".join(items).strip()
+        if candidate_name and merged == candidate_name:
+            return []
+        return [merged] if merged else []
+    if candidate_name and len(items) == 1 and items[0] == candidate_name:
+        return []
+    return items
 from app.services.job_recommender import JobRecommender  # 🟢 P2-3
 
 logger = logging.getLogger(__name__)
@@ -853,8 +867,10 @@ def _calculate_overall_assessment(
     
     # 5. 如果有AI分析，追加AI生成的内容
     if ai_analysis:
-        ai_strengths = ai_analysis.get("strengths", [])
-        ai_risks = ai_analysis.get("risks", [])
+        candidate = ai_analysis.get("candidate")
+        candidate_name = getattr(candidate, "name", None)
+        ai_strengths = _normalize_ai_insights(ai_analysis.get("strengths", []), candidate_name)
+        ai_risks = _normalize_ai_insights(ai_analysis.get("risks", []), candidate_name)
         # 追加（不覆盖）AI分析的前2条
         if ai_strengths:
             strengths.extend(ai_strengths[:2])
