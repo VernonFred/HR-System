@@ -745,7 +745,12 @@ def _calculate_overall_assessment(
     
     if ai_analysis and ai_analysis.get("candidate"):
         candidate = ai_analysis["candidate"]
-        has_resume = bool(getattr(candidate, "resume_path", None))
+        # 使用实际字段判断是否已上传简历
+        has_resume = bool(
+            getattr(candidate, "resume_file_path", None)
+            or getattr(candidate, "resume_original_name", None)
+            or getattr(candidate, "resume_uploaded_at", None)
+        )
         
         if has_resume:
             # 使用新的简历质量分析器
