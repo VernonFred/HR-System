@@ -99,6 +99,33 @@ const mockData: CandidateProfile = {
 // 使用实际数据或模拟数据
 const displayData = computed(() => props.profile || mockData);
 
+const normalizeList = (value: string[] | string | undefined): string[] => {
+  if (!value) return [];
+  if (Array.isArray(value)) {
+    return value.map(item => String(item).trim()).filter(Boolean);
+  }
+  return value
+    .split(/[\n,，、;；|]+/)
+    .map(item => item.trim())
+    .filter(Boolean);
+};
+
+const suitablePositionsList = computed(() =>
+  normalizeList(displayData.value.suitablePositions)
+);
+
+const unsuitablePositionsList = computed(() =>
+  normalizeList(displayData.value.unsuitablePositions)
+);
+
+const developmentSuggestionsList = computed(() =>
+  normalizeList(displayData.value.developmentSuggestions)
+);
+
+const interviewFocusList = computed(() =>
+  normalizeList(displayData.value.interviewFocus)
+);
+
 // 处理综合评价文本（支持数组或字符串格式）
 const getSummaryParagraphs = (text: string | string[] | undefined): string[] => {
   if (!text) return [];
@@ -2016,7 +2043,7 @@ const handleRetryAI = () => {
               </div>
               <div class="position-list">
                 <span
-                  v-for="(pos, i) in displayData.suitablePositions"
+                  v-for="(pos, i) in suitablePositionsList"
                   :key="i"
                   class="position-tag suitable-tag"
                 >
@@ -2034,7 +2061,7 @@ const handleRetryAI = () => {
               </div>
               <div class="position-list">
                 <span
-                  v-for="(pos, i) in displayData.unsuitablePositions"
+                  v-for="(pos, i) in unsuitablePositionsList"
                   :key="i"
                   class="position-tag unsuitable-tag"
                 >
@@ -2047,9 +2074,9 @@ const handleRetryAI = () => {
         </div>
 
         <!-- 新增：发展建议与面试焦点 -->
-        <div class="action-grid" v-if="displayData.developmentSuggestions?.length || displayData.interviewFocus?.length">
+        <div class="action-grid" v-if="developmentSuggestionsList.length || interviewFocusList.length">
           <!-- 发展建议 -->
-          <div class="action-card development-card" v-if="displayData.developmentSuggestions?.length">
+          <div class="action-card development-card" v-if="developmentSuggestionsList.length">
             <div class="action-header">
               <div class="icon-badge development-badge">
                 <i class="ri-lightbulb-line"></i>
@@ -2058,7 +2085,7 @@ const handleRetryAI = () => {
             </div>
             <ul class="action-list">
               <li
-                v-for="(item, i) in displayData.developmentSuggestions"
+                v-for="(item, i) in developmentSuggestionsList"
                 :key="i"
                 class="action-item development-item"
               >
@@ -2069,7 +2096,7 @@ const handleRetryAI = () => {
           </div>
 
           <!-- 面试关注点 -->
-          <div class="action-card interview-card" v-if="displayData.interviewFocus?.length">
+          <div class="action-card interview-card" v-if="interviewFocusList.length">
             <div class="action-header">
               <div class="icon-badge interview-badge">
                 <i class="ri-question-answer-line"></i>
@@ -2078,7 +2105,7 @@ const handleRetryAI = () => {
             </div>
             <ul class="action-list">
               <li
-                v-for="(item, i) in displayData.interviewFocus"
+                v-for="(item, i) in interviewFocusList"
                 :key="i"
                 class="action-item interview-item"
               >
