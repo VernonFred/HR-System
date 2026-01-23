@@ -240,6 +240,16 @@ watch(questionStats, () => {
   textAnswerPageMap.value = {}
 })
 
+watch([filterYear, filterMonth], () => {
+  groupListPage.value = 1
+})
+
+watch(groupListTotalPages, (total) => {
+  if (groupListPage.value > total) {
+    groupListPage.value = total
+  }
+})
+
 // ===== 计算属性 =====
 // V45: 使用筛选后的提交记录
 const completedSubmissions = computed(() => 
@@ -667,6 +677,8 @@ const getLatestSubmission = (subs: Submission[]) => {
 
 const groupPageSize = 10
 const groupPageMap = ref<Record<string, number>>({})
+const groupListPageSize = 10
+const groupListPage = ref(1)
 
 const getGroupPage = (group: GroupedCandidate) => {
   return groupPageMap.value[getGroupKey(group)] || 1
@@ -693,6 +705,11 @@ const changeGroupPage = (group: GroupedCandidate, page: number) => {
   const totalPages = getGroupTotalPages(group)
   if (page < 1 || page > totalPages) return
   setGroupPage(group, page)
+}
+
+const changeGroupListPage = (page: number) => {
+  if (page < 1 || page > groupListTotalPages.value) return
+  groupListPage.value = page
 }
 
 const groupedSubmissions = computed<GroupedCandidate[]>(() => {
@@ -752,6 +769,25 @@ const groupedSubmissions = computed<GroupedCandidate[]>(() => {
   })
 })
 
+const groupListTotalPages = computed(() =>
+  Math.ceil(groupedSubmissions.value.length / groupListPageSize) || 1
+)
+
+const paginatedGroupedSubmissions = computed<GroupedCandidate[]>(() => {
+  const start = (groupListPage.value - 1) * groupListPageSize
+  const end = start + groupListPageSize
+  return groupedSubmissions.value.slice(start, end)
+})
+
+const visibleGroupKeys = computed(() =>
+  paginatedGroupedSubmissions.value.map(group => getGroupKey(group))
+)
+
+const areVisibleGroupsExpanded = computed(() => {
+  if (visibleGroupKeys.value.length === 0) return false
+  return visibleGroupKeys.value.every(key => expandedCandidates.value.has(key))
+})
+
 // ===== 方法 =====
 const close = () => {
   emit('close')
@@ -785,14 +821,16 @@ const toggleCandidateExpand = (key: string) => {
 
 // 全部展开/收起
 const toggleAllCandidates = () => {
-  if (expandedCandidates.value.size === groupedSubmissions.value.length) {
-    expandedCandidates.value.clear()
-  } else {
-    groupedSubmissions.value.forEach(g => {
-      expandedCandidates.value.add(getGroupKey(g))
-      setGroupPage(g, 1)
-    })
+  const keys = visibleGroupKeys.value
+  if (areVisibleGroupsExpanded.value) {
+    keys.forEach(key => expandedCandidates.value.delete(key))
+    return
   }
+  keys.forEach(key => {
+    expandedCandidates.value.add(key)
+    const group = groupedSubmissions.value.find(g => getGroupKey(g) === key)
+    if (group) setGroupPage(group, 1)
+  })
 }
 
 const formatDate = (dateStr: string | null | undefined) => {
@@ -965,8 +1003,8 @@ const executeExport = async () => {
               </div>
               <div class="controls-divider"></div>
               <button class="btn-toggle-all" @click="toggleAllCandidates">
-                <i :class="expandedCandidates.size === groupedSubmissions.length ? 'ri-contract-up-down-line' : 'ri-expand-up-down-line'"></i>
-                {{ expandedCandidates.size === groupedSubmissions.length ? '全部收起' : '全部展开' }}
+                <i :class="areVisibleGroupsExpanded ? 'ri-contract-up-down-line' : 'ri-expand-up-down-line'"></i>
+                {{ areVisibleGroupsExpanded ? '全部收起' : '全部展开' }}
               </button>
               <button class="btn-export" @click="openExportModal">
                 <i class="ri-download-line"></i>
@@ -1010,7 +1048,7 @@ const executeExport = async () => {
             <!-- 候选人分组卡片 -->
             <div class="candidate-groups">
               <div 
-                v-for="group in groupedSubmissions" 
+                v-for="group in paginatedGroupedSubmissions" 
                 :key="getGroupKey(group)"
                 class="candidate-group-card"
                 :class="{ expanded: expandedCandidates.has(getGroupKey(group)) }"
@@ -1107,6 +1145,27 @@ const executeExport = async () => {
                   </div>
                 </div>
               </div>
+            </div>
+            <div v-if="groupListTotalPages > 1" class="group-list-pagination">
+              <button
+                class="page-btn"
+                :disabled="groupListPage === 1"
+                @click="changeGroupListPage(groupListPage - 1)"
+                title="上一页"
+              >
+                <i class="ri-arrow-left-s-line"></i>
+              </button>
+              <span class="page-info">
+                {{ groupListPage }} / {{ groupListTotalPages }} (共 {{ groupedSubmissions.length }} 人)
+              </span>
+              <button
+                class="page-btn"
+                :disabled="groupListPage >= groupListTotalPages"
+                @click="changeGroupListPage(groupListPage + 1)"
+                title="下一页"
+              >
+                <i class="ri-arrow-right-s-line"></i>
+              </button>
             </div>
           </div>
         </div>

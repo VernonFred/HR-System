@@ -204,6 +204,48 @@
   padding: 0;
 }
 
+.group-list-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid #f1f5f9;
+}
+
+.group-list-pagination .page-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+  background: white;
+  color: #64748b;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.group-list-pagination .page-btn:hover:not(:disabled) {
+  background: #f8fafc;
+  border-color: #7c3aed;
+  color: #7c3aed;
+}
+
+.group-list-pagination .page-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.group-list-pagination .page-info {
+  font-size: 13px;
+  color: #64748b;
+  min-width: 120px;
+  text-align: center;
+}
+
 /* V45: 优化按钮布局 - 紧凑排列，无边框 */
 .grouped-controls {
   display: flex;
