@@ -11,6 +11,10 @@ export interface Questionnaire {
   id: number;
   name: string;
   type: string; // EPQ/DISC/MBTI
+  category?: string;
+  custom_type?: string;
+  scoring_config?: any;
+  purpose?: string;
   questions_count: number;
   estimated_minutes: number;
   status: string;
@@ -26,11 +30,15 @@ export interface QuestionnaireDetail extends Questionnaire {
 export interface QuestionnaireCreate {
   name: string;
   type: string;
+  category?: string;
   description?: string;
   questions_count?: number;
   estimated_minutes?: number;
   questions_data?: any;
   scoring_rules?: any;
+  custom_type?: string;
+  scoring_config?: any;
+  purpose?: string;
 }
 
 export const fetchQuestionnaires = (params?: {

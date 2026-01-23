@@ -54,10 +54,10 @@ const editorStep = ref<'info' | 'questions'>('info')
 const form = ref({
   name: '',
   type: 'CUSTOM',
-  category: 'survey',
+  category: 'scored',
   description: '',
   estimated_minutes: 10,
-  purpose: 'survey' as 'survey' | 'assessment',
+  purpose: 'assessment' as 'survey' | 'assessment',
   // 评分配置
   simpleScoring: {
     totalScore: 100,
@@ -70,6 +70,14 @@ const form = ref({
     { grade: 'D', label: '待提升', minScore: 0, maxScore: 59 },
   ],
 })
+
+const scoringEnabled = ref(true)
+
+const setScoringEnabled = (enabled: boolean) => {
+  scoringEnabled.value = enabled
+  form.value.category = enabled ? 'scored' : 'survey'
+  form.value.purpose = enabled ? 'assessment' : 'survey'
+}
 
 // 题目列表
 const editorQuestions = ref<EditorQuestion[]>([])
@@ -337,8 +345,14 @@ const save = async () => {
       scoreB: q.scoreB,
     }))
     
-    // 确定 category - 问卷中心的问卷都是 scored 类型
-    let category = 'scored'
+    // 是否启用评分配置
+    const category = scoringEnabled.value ? 'scored' : 'survey'
+    const customType = scoringEnabled.value ? 'scored' : 'non_scored'
+    const scoringConfig = scoringEnabled.value ? {
+      totalScore: form.value.simpleScoring.totalScore,
+      passingScore: form.value.simpleScoring.passingScore,
+      gradeConfig: form.value.gradeConfig,
+    } : {}
     
     const data: QuestionnaireCreate = {
       name: form.value.name,
@@ -349,12 +363,9 @@ const save = async () => {
       estimated_minutes: form.value.estimated_minutes,
       questions_data: { questions: questionsData },
       scoring_rules: {},
-      custom_type: 'scored',
-      scoring_config: {
-        totalScore: form.value.simpleScoring.totalScore,
-        passingScore: form.value.simpleScoring.passingScore,
-        gradeConfig: form.value.gradeConfig,
-      },
+      custom_type: customType,
+      scoring_config: scoringConfig,
+      purpose: scoringEnabled.value ? 'assessment' : 'survey',
     }
     
     if (isEdit.value && props.questionnaire) {
@@ -411,9 +422,7 @@ onMounted(async () => {
     const hasScoring = questions.some(q => 
       q.options?.some(opt => opt.score > 0) || q.type === 'rating'
     )
-    if (hasScoring) {
-      form.value.purpose = 'assessment'
-    }
+    setScoringEnabled(hasScoring)
     
     // 直接跳转到题目编辑步骤
     editorStep.value = 'questions'
@@ -447,10 +456,12 @@ onMounted(async () => {
         }))
       }
       
+      const scored = detail.category === 'scored' || (detail as any).custom_type === 'scored'
+      setScoringEnabled(scored)
+
       // 加载评分配置
       const scoringConfig = (detail as any).scoring_config
-      if (scoringConfig) {
-        form.value.purpose = 'assessment'
+      if (scored && scoringConfig) {
         if (scoringConfig.totalScore) {
           form.value.simpleScoring.totalScore = scoringConfig.totalScore
         }
@@ -555,9 +566,27 @@ watch(previewIndex, () => {
             <div class="scoring-config-section">
               <div class="config-section-header">
                 <h4><i class="ri-settings-4-line"></i> 评分配置</h4>
+                <div class="scoring-toggle">
+                  <button
+                    type="button"
+                    class="toggle-btn"
+                    :class="{ active: scoringEnabled }"
+                    @click="setScoringEnabled(true)"
+                  >
+                    开启
+                  </button>
+                  <button
+                    type="button"
+                    class="toggle-btn"
+                    :class="{ active: !scoringEnabled }"
+                    @click="setScoringEnabled(false)"
+                  >
+                    不开启
+                  </button>
+                </div>
               </div>
               
-              <div class="scoring-config-card">
+              <div v-if="scoringEnabled" class="scoring-config-card">
                 <div class="config-row">
                   <div class="form-group">
                     <label class="form-label">满分</label>
@@ -618,13 +647,16 @@ watch(previewIndex, () => {
                   </div>
                 </div>
               </div>
+              <div v-else class="scoring-config-disabled">
+                已关闭评分配置，本问卷将按调查问卷处理。
+              </div>
             </div>
           </div>
 
           <!-- 提示 -->
           <div class="custom-tip">
             <i class="ri-lightbulb-line"></i>
-            <span>请在下一步中添加题目并配置评分</span>
+            <span>{{ scoringEnabled ? '请在下一步中添加题目并配置评分' : '请在下一步中添加题目' }}</span>
           </div>
         </div>
 
@@ -1110,6 +1142,14 @@ watch(previewIndex, () => {
   border-top: 1px solid #e2e8f0;
 }
 
+.config-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
 .config-section-header h4 {
   display: flex;
   align-items: center;
@@ -1117,17 +1157,50 @@ watch(previewIndex, () => {
   font-size: 15px;
   font-weight: 600;
   color: #1e293b;
-  margin: 0 0 16px 0;
+  margin: 0;
 }
 
 .config-section-header h4 i {
   color: #6366f1;
 }
 
+.scoring-toggle {
+  display: flex;
+  gap: 6px;
+  background: #f1f5f9;
+  padding: 4px;
+  border-radius: 999px;
+}
+
+.scoring-toggle .toggle-btn {
+  border: none;
+  background: transparent;
+  color: #64748b;
+  font-size: 12px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.scoring-toggle .toggle-btn.active {
+  background: #6366f1;
+  color: #fff;
+}
+
 .scoring-config-card {
   background: #f8fafc;
   border-radius: 12px;
   padding: 20px;
+}
+
+.scoring-config-disabled {
+  padding: 16px;
+  border-radius: 10px;
+  border: 1px dashed #cbd5f5;
+  background: #f8fafc;
+  color: #64748b;
+  font-size: 13px;
 }
 
 .config-row {

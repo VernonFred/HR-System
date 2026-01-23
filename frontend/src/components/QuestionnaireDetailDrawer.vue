@@ -520,6 +520,28 @@ onMounted(() => {
   }
 })
 
+watch(trendContainerRef, (el, prev) => {
+  if (trendResizeObserver.value && prev) {
+    trendResizeObserver.value.unobserve(prev)
+  }
+  if (el) {
+    updateTrendWidth()
+    if (typeof ResizeObserver !== 'undefined') {
+      if (!trendResizeObserver.value) {
+        trendResizeObserver.value = new ResizeObserver((entries) => {
+          const entry = entries[0]
+          if (!entry) return
+          const width = Math.max(0, Math.floor(entry.contentRect.width))
+          if (width > 0) {
+            trendChartWidth.value = width
+          }
+        })
+      }
+      trendResizeObserver.value.observe(el)
+    }
+  }
+})
+
 onBeforeUnmount(() => {
   if (trendResizeObserver.value && trendContainerRef.value) {
     trendResizeObserver.value.unobserve(trendContainerRef.value)
