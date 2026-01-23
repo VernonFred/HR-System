@@ -7,6 +7,8 @@
  * 2. 问卷统计 Tab - 显示统计数据（参与人数、平均分、等级分布、题目分析）
  */
 import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue'
+import type { EChartsOption } from 'echarts/core'
+import EChartContainer from './EChartContainer.vue'
 import type { Questionnaire, Submission, QuestionStat, TextSummary, TextAnswerGroup } from '../api/assessments'
 import { fetchQuestionnaireQuestionStats, type QuestionnaireQuestionStats } from '../api/assessments'
 
@@ -340,6 +342,69 @@ const getQuestionTypeLabel = (type: string): string => {
 // V46: 判断是否为文本题
 const isTextQuestion = (type: string): boolean => {
   return ['text', 'textarea'].includes(type)
+}
+
+const isSingleChoiceQuestion = (type: string): boolean => {
+  return ['single', 'radio', 'yesno', 'choice'].includes(type)
+}
+
+const getQuestionChartHeight = (question: QuestionStat): number => {
+  if (isSingleChoiceQuestion(question.type)) return 220
+  const extra = Math.max(0, (question.options?.length || 0) - 6) * 18
+  return Math.min(360, 240 + extra)
+}
+
+const getQuestionChartOption = (question: QuestionStat): EChartsOption => {
+  const options = question.options || []
+  if (isSingleChoiceQuestion(question.type)) {
+    return {
+      tooltip: { trigger: 'item', formatter: '{b}: {c}人 ({d}%)' },
+      legend: {
+        type: 'scroll',
+        left: 'center',
+        bottom: 0,
+        textStyle: { color: '#64748b', fontSize: 12 },
+      },
+      series: [
+        {
+          type: 'pie',
+          radius: ['40%', '70%'],
+          avoidLabelOverlap: true,
+          label: { show: false },
+          labelLine: { show: false },
+          data: options.map(opt => ({
+            name: opt.text,
+            value: opt.count,
+          })),
+        },
+      ],
+    }
+  }
+
+  return {
+    tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
+    grid: { left: '3%', right: '4%', top: '6%', bottom: '6%', containLabel: true },
+    xAxis: {
+      type: 'value',
+      minInterval: 1,
+      axisLabel: { color: '#94a3b8' },
+      splitLine: { lineStyle: { color: '#f1f5f9' } },
+    },
+    yAxis: {
+      type: 'category',
+      data: options.map(opt => opt.text),
+      axisLabel: { color: '#64748b', width: 140, overflow: 'truncate' },
+    },
+    series: [
+      {
+        type: 'bar',
+        data: options.map(opt => opt.count),
+        barWidth: 14,
+        itemStyle: { color: '#7c3aed' },
+        label: { show: true, position: 'right', color: '#7c3aed', formatter: '{c}人' },
+      },
+    ],
+  }
 }
 
 const pad2 = (value: number | string) => String(value).padStart(2, '0')
@@ -1401,21 +1466,15 @@ const executeExport = async () => {
                   
                   <!-- 选择题/量表题选项分布 -->
                   <div v-if="!isTextQuestion(q.type)" class="option-distribution">
-                    <div 
-                      v-for="opt in q.options" 
-                      :key="opt.index"
-                      class="option-bar"
-                    >
-                      <div class="option-info">
-                        <span class="option-text">{{ opt.text }}</span>
-                        <span class="option-stats">{{ opt.count }}人 ({{ opt.percentage }}%)</span>
-                      </div>
-                      <div class="option-track">
-                        <div 
-                          class="option-fill"
-                          :style="{ width: `${opt.percentage}%` }"
-                        ></div>
-                      </div>
+                    <div v-if="q.options.length > 0" class="option-chart">
+                      <EChartContainer
+                        :option="getQuestionChartOption(q)"
+                        theme="light"
+                        :style="{ height: `${getQuestionChartHeight(q)}px` }"
+                      />
+                    </div>
+                    <div v-else class="empty-option-chart">
+                      暂无统计数据
                     </div>
                   </div>
                   

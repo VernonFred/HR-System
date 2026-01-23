@@ -1321,6 +1321,23 @@
   gap: 12px;
 }
 
+.option-chart {
+  width: 100%;
+  background: #f8fafc;
+  border-radius: 12px;
+  padding: 8px;
+}
+
+.empty-option-chart {
+  padding: 16px;
+  border-radius: 10px;
+  border: 1px dashed #e2e8f0;
+  background: #f8fafc;
+  color: #94a3b8;
+  font-size: 13px;
+  text-align: center;
+}
+
 .option-bar {
   display: flex;
   flex-direction: column;
