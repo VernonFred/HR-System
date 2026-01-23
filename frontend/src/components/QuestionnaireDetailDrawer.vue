@@ -240,16 +240,6 @@ watch(questionStats, () => {
   textAnswerPageMap.value = {}
 })
 
-watch([filterYear, filterMonth], () => {
-  groupListPage.value = 1
-})
-
-watch(groupListTotalPages, (total) => {
-  if (groupListPage.value > total) {
-    groupListPage.value = total
-  }
-})
-
 // ===== 计算属性 =====
 // V45: 使用筛选后的提交记录
 const completedSubmissions = computed(() => 
@@ -786,6 +776,16 @@ const visibleGroupKeys = computed(() =>
 const areVisibleGroupsExpanded = computed(() => {
   if (visibleGroupKeys.value.length === 0) return false
   return visibleGroupKeys.value.every(key => expandedCandidates.value.has(key))
+})
+
+watch([filterYear, filterMonth], () => {
+  groupListPage.value = 1
+})
+
+watch(groupListTotalPages, (total) => {
+  if (groupListPage.value > total) {
+    groupListPage.value = total
+  }
 })
 
 // ===== 方法 =====
