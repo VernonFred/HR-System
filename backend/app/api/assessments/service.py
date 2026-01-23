@@ -827,6 +827,7 @@ async def get_question_answer_statistics(
     from sqlmodel import select
     from collections import Counter, defaultdict
     from datetime import datetime, timedelta, timezone
+    import re
     
     # 获取问卷信息
     questionnaire = session.get(Questionnaire, questionnaire_id)
@@ -931,13 +932,55 @@ async def get_question_answer_statistics(
         # 构建选项统计
         option_stats = []
         total_answers = sum(answer_counts.values()) if answer_counts else len(text_answers)
+        text_summary = None
         
         if q_type == "text" or q_type == "textarea":
-            # 文本题：显示部分回答样本
-            option_stats = [
-                {"text": ans, "count": 1}
-                for ans in text_answers[:10]  # 只显示前10个
-            ]
+            # 文本题：智能聚合与分组
+            empty_texts = {
+                "无", "没有", "没有意见", "无意见", "无建议", "暂无", "无想法", "无改进",
+                "没", "没意见", "没建议", "无所谓", "没有建议", "没有改进"
+            }
+            short_tag_max_len = 10
+
+            def normalize_text(value: str) -> str:
+                text = value.strip()
+                text = re.sub(r"\s+", "", text)
+                text = text.strip("，。,.!?！？；;：:、\"'“”‘’()（）[]【】{}")
+                return text
+
+            tag_counts = Counter()
+            long_map = {}
+            empty_count = 0
+
+            for raw in text_answers:
+                normalized = normalize_text(raw)
+                if not normalized:
+                    continue
+                lower = normalized.lower()
+                if lower in empty_texts:
+                    empty_count += 1
+                    continue
+                if len(normalized) <= short_tag_max_len:
+                    tag_counts[normalized] += 1
+                    continue
+                key = normalized
+                if key in long_map:
+                    long_map[key]["count"] += 1
+                else:
+                    long_map[key] = {"text": raw.strip(), "count": 1}
+
+            tags = [{"text": t, "count": c} for t, c in tag_counts.most_common()]
+            long_answers = sorted(
+                long_map.values(),
+                key=lambda item: (-item["count"], -len(item["text"]))
+            )
+
+            text_summary = {
+                "tags": tags,
+                "long_answers": long_answers,
+                "empty_count": empty_count,
+                "total_answers": len(text_answers)
+            }
         elif q_type == "scale" or q_type == "rating":
             # V46: 量表题/评分题 - 根据 scale 配置生成选项统计
             scale_config = question.get("scale", {})
@@ -994,7 +1037,8 @@ async def get_question_answer_statistics(
             "text": q_text,
             "type": q_type,
             "total_answers": total_answers,
-            "options": option_stats
+            "options": option_stats,
+            "text_summary": text_summary
         })
     
     # 计算平均分（仅评分问卷）

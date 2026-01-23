@@ -6,8 +6,8 @@
  * 1. 提交记录 Tab - 显示该问卷的所有提交记录（支持折叠/展开）
  * 2. 问卷统计 Tab - 显示统计数据（参与人数、平均分、等级分布、题目分析）
  */
-import { ref, computed, watch, onMounted } from 'vue'
-import type { Questionnaire, Submission } from '../api/assessments'
+import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue'
+import type { Questionnaire, Submission, QuestionStat, TextSummary, TextAnswerGroup } from '../api/assessments'
 import { fetchQuestionnaireQuestionStats, type QuestionnaireQuestionStats } from '../api/assessments'
 
 // ===== Props =====
@@ -140,6 +140,59 @@ const trendRange = ref<'week' | 'month'>('week')
 const questionPageSize = 4
 const questionCurrentPage = ref(1)
 
+// 文本题分页与聚合展示
+const textAnswerPageSize = 10
+const textAnswerPageMap = ref<Record<string, number>>({})
+
+const getTextSummary = (question: QuestionStat): TextSummary => {
+  return question.text_summary || {}
+}
+
+const getTextTags = (question: QuestionStat): TextAnswerGroup[] => {
+  return getTextSummary(question).tags || []
+}
+
+const getTextLongAnswers = (question: QuestionStat): TextAnswerGroup[] => {
+  return getTextSummary(question).long_answers || []
+}
+
+const getTextEmptyCount = (question: QuestionStat): number => {
+  return getTextSummary(question).empty_count || 0
+}
+
+const getTextPage = (question: QuestionStat): number => {
+  return textAnswerPageMap.value[question.id] || 1
+}
+
+const setTextPage = (question: QuestionStat, page: number) => {
+  const totalPages = getTextTotalPages(question)
+  const nextPage = Math.min(Math.max(page, 1), totalPages)
+  textAnswerPageMap.value = {
+    ...textAnswerPageMap.value,
+    [question.id]: nextPage
+  }
+}
+
+const getTextTotalPages = (question: QuestionStat): number => {
+  const total = getTextLongAnswers(question).length
+  return Math.max(1, Math.ceil(total / textAnswerPageSize))
+}
+
+const getTextLongAnswerPage = (question: QuestionStat): TextAnswerGroup[] => {
+  const page = getTextPage(question)
+  const start = (page - 1) * textAnswerPageSize
+  return getTextLongAnswers(question).slice(start, start + textAnswerPageSize)
+}
+
+const hasTextSummary = (question: QuestionStat): boolean => {
+  const summary = getTextSummary(question)
+  return Boolean(
+    (summary.tags && summary.tags.length > 0) ||
+    (summary.long_answers && summary.long_answers.length > 0) ||
+    (summary.empty_count && summary.empty_count > 0)
+  )
+}
+
 // 加载问卷统计数据
 const loadQuestionStats = async () => {
   if (!props.questionnaire?.id) return
@@ -181,6 +234,10 @@ watch(() => props.questionnaire?.id, (newId) => {
     loadQuestionStats()
     }
   }
+})
+
+watch(questionStats, () => {
+  textAnswerPageMap.value = {}
 })
 
 // ===== 计算属性 =====
@@ -286,7 +343,7 @@ const isTextQuestion = (type: string): boolean => {
 }
 
 const pad2 = (value: number | string) => String(value).padStart(2, '0')
-const trendChartWidth = 600
+const trendChartWidth = ref(600)
 const trendChartHeight = 100
 const trendChartPaddingX = 0
 const trendChartPaddingY = 10
@@ -415,7 +472,7 @@ const trendPoints = computed(() => {
   const maxCount = Math.max(...data.map(d => d.count), 1)
   
   return data.map((d, i) => ({
-    x: trendChartPaddingX + (i / (data.length - 1 || 1)) * (trendChartWidth - trendChartPaddingX * 2),
+    x: trendChartPaddingX + (i / (data.length - 1 || 1)) * (trendChartWidth.value - trendChartPaddingX * 2),
     y: trendChartHeight - trendChartPaddingY - (d.count / maxCount) * (trendChartHeight - trendChartPaddingY * 2),
     count: d.count,
     date: d.date
@@ -424,12 +481,54 @@ const trendPoints = computed(() => {
 
 const trendLabelPoints = computed(() => {
   if (trendPoints.value.length === 0) return []
-  if (trendRange.value === 'week') return trendPoints.value
-  const interval = Math.ceil(trendPoints.value.length / 6)
-  return trendPoints.value.filter((_, idx) => idx % interval === 0 || idx === trendPoints.value.length - 1)
+  const labelPoints = trendRange.value === 'week'
+    ? trendPoints.value
+    : (() => {
+        const interval = Math.ceil(trendPoints.value.length / 6)
+        return trendPoints.value.filter((_, idx) => idx % interval === 0 || idx === trendPoints.value.length - 1)
+      })()
+  return labelPoints.map((point, idx) => ({
+    ...point,
+    anchor: idx === 0 ? 'start' : (idx === labelPoints.length - 1 ? 'end' : 'middle')
+  }))
 })
 
 const trendContainerRef = ref<HTMLElement | null>(null)
+const trendResizeObserver = ref<ResizeObserver | null>(null)
+
+const updateTrendWidth = () => {
+  const width = trendContainerRef.value?.clientWidth || 0
+  if (width > 0) {
+    trendChartWidth.value = width
+  }
+}
+
+onMounted(() => {
+  updateTrendWidth()
+  if (typeof ResizeObserver !== 'undefined' && trendContainerRef.value) {
+    trendResizeObserver.value = new ResizeObserver((entries) => {
+      const entry = entries[0]
+      if (!entry) return
+      const width = Math.max(0, Math.floor(entry.contentRect.width))
+      if (width > 0) {
+        trendChartWidth.value = width
+      }
+    })
+    trendResizeObserver.value.observe(trendContainerRef.value)
+  } else if (typeof window !== 'undefined') {
+    window.addEventListener('resize', updateTrendWidth)
+  }
+})
+
+onBeforeUnmount(() => {
+  if (trendResizeObserver.value && trendContainerRef.value) {
+    trendResizeObserver.value.unobserve(trendContainerRef.value)
+    trendResizeObserver.value.disconnect()
+  }
+  if (typeof window !== 'undefined') {
+    window.removeEventListener('resize', updateTrendWidth)
+  }
+})
 const trendTooltip = ref({ visible: false, x: 0, y: 0, text: '' })
 
 const updateTrendTooltipPosition = (event: MouseEvent) => {
@@ -470,7 +569,7 @@ const trendAreaPath = computed(() => {
   if (trendPoints.value.length === 0) return ''
   const points = trendPoints.value
   const firstX = points[0]?.x || 0
-  const lastX = points[points.length - 1]?.x || trendChartWidth
+  const lastX = points[points.length - 1]?.x || trendChartWidth.value
   return `${trendLinePath.value} L ${lastX} ${trendBaselineY} L ${firstX} ${trendBaselineY} Z`
 })
 
@@ -1108,7 +1207,7 @@ const executeExport = async () => {
             <!-- V43: 提交趋势（优化样式） -->
             <div v-if="questionStats?.daily_trend && questionStats.daily_trend.length > 0" class="submission-trend">
               <div class="trend-header">
-                <h4><i class="ri-calendar-line"></i> 提交趋势（{{ trendRange === 'week' ? '本周' : '近一个月' }}）</h4>
+                <h4><i class="ri-calendar-line"></i> 提交趋势</h4>
                 <div class="trend-range">
                   <button
                     class="range-btn"
@@ -1188,7 +1287,7 @@ const executeExport = async () => {
                       :key="`label-${idx}`"
                       :x="point.x"
                       :y="trendLabelY"
-                      text-anchor="middle"
+                      :text-anchor="point.anchor"
                       class="trend-axis-label"
                     >
                       {{ formatTrendDate(point.date) }}
@@ -1242,7 +1341,51 @@ const executeExport = async () => {
                   <!-- 文本题答案展示 -->
                   <div v-else class="text-answers">
                     <div class="text-answer-count">共收到 {{ q.total_answers }} 条回答</div>
-                    <div v-if="q.options.length > 0" class="text-answer-samples">
+                    <div v-if="hasTextSummary(q)" class="text-answer-summary">
+                      <div
+                        v-if="getTextTags(q).length > 0 || getTextEmptyCount(q) > 0"
+                        class="text-answer-tags"
+                      >
+                        <span
+                          v-for="(tag, idx) in getTextTags(q)"
+                          :key="`tag-${q.id}-${idx}`"
+                          class="text-tag"
+                        >
+                          {{ tag.text }} <em>×{{ tag.count }}</em>
+                        </span>
+                        <span v-if="getTextEmptyCount(q) > 0" class="text-tag muted">
+                          无/没有意见 <em>×{{ getTextEmptyCount(q) }}</em>
+                        </span>
+                      </div>
+                      <div v-if="getTextLongAnswers(q).length > 0" class="text-answer-samples">
+                        <div
+                          v-for="(ans, idx) in getTextLongAnswerPage(q)"
+                          :key="`ans-${q.id}-${idx}`"
+                          class="text-answer-item"
+                        >
+                          "{{ ans.text }}"
+                          <span class="text-answer-count-badge">×{{ ans.count }}</span>
+                        </div>
+                        <div v-if="getTextTotalPages(q) > 1" class="text-answer-pagination">
+                          <button
+                            class="page-btn"
+                            :disabled="getTextPage(q) === 1"
+                            @click="setTextPage(q, getTextPage(q) - 1)"
+                          >
+                            <i class="ri-arrow-left-s-line"></i>
+                          </button>
+                          <span class="page-info">{{ getTextPage(q) }} / {{ getTextTotalPages(q) }}</span>
+                          <button
+                            class="page-btn"
+                            :disabled="getTextPage(q) === getTextTotalPages(q)"
+                            @click="setTextPage(q, getTextPage(q) + 1)"
+                          >
+                            <i class="ri-arrow-right-s-line"></i>
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                    <div v-else-if="q.options.length > 0" class="text-answer-samples">
                       <div v-for="(ans, idx) in q.options.slice(0, 5)" :key="idx" class="text-answer-item">
                         "{{ ans.text }}"
                       </div>

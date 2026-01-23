@@ -386,10 +386,22 @@ export const fetchSubmissionStatistics = (params?: {
 
 // ⭐ V42: 题目答案统计接口
 export interface QuestionOptionStat {
-  index: number;
+  index?: number;
   text: string;
   count: number;
-  percentage: number;
+  percentage?: number;
+}
+
+export interface TextAnswerGroup {
+  text: string;
+  count: number;
+}
+
+export interface TextSummary {
+  tags?: TextAnswerGroup[];
+  long_answers?: TextAnswerGroup[];
+  empty_count?: number;
+  total_answers?: number;
 }
 
 export interface QuestionStat {
@@ -399,6 +411,7 @@ export interface QuestionStat {
   type: string;  // single, multiple, text, rating
   total_answers: number;
   options: QuestionOptionStat[];
+  text_summary?: TextSummary;
 }
 
 export interface DailyTrend {
