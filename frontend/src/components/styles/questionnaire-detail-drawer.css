@@ -1328,6 +1328,33 @@
   padding: 8px;
 }
 
+.option-chart-toggle {
+  display: flex;
+  justify-content: flex-end;
+  gap: 6px;
+  padding: 4px 4px 0;
+}
+
+.option-chart-toggle .toggle-btn {
+  border: none;
+  background: #f1f5f9;
+  color: #64748b;
+  font-size: 12px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.option-chart-toggle .toggle-btn.active {
+  background: #7c3aed;
+  color: #fff;
+}
+
+.option-chart-body {
+  padding: 8px;
+}
+
 .empty-option-chart {
   padding: 16px;
   border-radius: 10px;

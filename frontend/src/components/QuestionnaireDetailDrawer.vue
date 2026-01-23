@@ -356,31 +356,6 @@ const getQuestionChartHeight = (question: QuestionStat): number => {
 
 const getQuestionChartOption = (question: QuestionStat): EChartsOption => {
   const options = question.options || []
-  if (isSingleChoiceQuestion(question.type)) {
-    return {
-      tooltip: { trigger: 'item', formatter: '{b}: {c}人 ({d}%)' },
-      legend: {
-        type: 'scroll',
-        left: 'center',
-        bottom: 0,
-        textStyle: { color: '#64748b', fontSize: 12 },
-      },
-      series: [
-        {
-          type: 'pie',
-          radius: ['40%', '70%'],
-          avoidLabelOverlap: true,
-          label: { show: false },
-          labelLine: { show: false },
-          data: options.map(opt => ({
-            name: opt.text,
-            value: opt.count,
-          })),
-        },
-      ],
-    }
-  }
-
   return {
     tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
     grid: { left: '3%', right: '4%', top: '6%', bottom: '6%', containLabel: true },
@@ -404,6 +379,46 @@ const getQuestionChartOption = (question: QuestionStat): EChartsOption => {
         label: { show: true, position: 'right', color: '#7c3aed', formatter: '{c}人' },
       },
     ],
+  }
+}
+
+const getQuestionPieOption = (question: QuestionStat): EChartsOption => {
+  const options = question.options || []
+  return {
+    tooltip: { trigger: 'item', formatter: '{b}: {c}人 ({d}%)' },
+    legend: {
+      type: 'scroll',
+      left: 'center',
+      bottom: 0,
+      textStyle: { color: '#64748b', fontSize: 12 },
+    },
+    series: [
+      {
+        type: 'pie',
+        radius: ['40%', '70%'],
+        avoidLabelOverlap: true,
+        label: { show: false },
+        labelLine: { show: false },
+        data: options.map(opt => ({
+          name: opt.text,
+          value: opt.count,
+        })),
+      },
+    ],
+  }
+}
+
+const questionChartModeMap = ref<Record<string, 'pie' | 'bar'>>({})
+
+const getQuestionChartMode = (question: QuestionStat): 'pie' | 'bar' => {
+  return questionChartModeMap.value[question.id] || 'pie'
+}
+
+const toggleQuestionChartMode = (question: QuestionStat) => {
+  const current = getQuestionChartMode(question)
+  questionChartModeMap.value = {
+    ...questionChartModeMap.value,
+    [question.id]: current === 'pie' ? 'bar' : 'pie'
   }
 }
 
@@ -1207,8 +1222,8 @@ const executeExport = async () => {
                     >
                       下一页
                     </button>
-                  </div>
                 </div>
+              </div>
               </div>
             </div>
             <div v-if="groupListTotalPages > 1" class="group-list-pagination">
@@ -1467,11 +1482,42 @@ const executeExport = async () => {
                   <!-- 选择题/量表题选项分布 -->
                   <div v-if="!isTextQuestion(q.type)" class="option-distribution">
                     <div v-if="q.options.length > 0" class="option-chart">
-                      <EChartContainer
-                        :option="getQuestionChartOption(q)"
-                        theme="light"
-                        :style="{ height: `${getQuestionChartHeight(q)}px` }"
-                      />
+                      <div v-if="isSingleChoiceQuestion(q.type)" class="option-chart-toggle">
+                        <button
+                          type="button"
+                          class="toggle-btn"
+                          :class="{ active: getQuestionChartMode(q) === 'pie' }"
+                          @click="toggleQuestionChartMode(q)"
+                        >
+                          环形图
+                        </button>
+                        <button
+                          type="button"
+                          class="toggle-btn"
+                          :class="{ active: getQuestionChartMode(q) === 'bar' }"
+                          @click="toggleQuestionChartMode(q)"
+                        >
+                          条形图
+                        </button>
+                      </div>
+                      <div v-if="isSingleChoiceQuestion(q.type) && getQuestionChartMode(q) === 'bar'" class="option-chart-body">
+                        <div class="option-bar" v-for="opt in q.options" :key="opt.index ?? opt.text">
+                          <div class="option-info">
+                            <span class="option-text">{{ opt.text }}</span>
+                            <span class="option-stats">{{ opt.count }}人 ({{ opt.percentage }}%)</span>
+                          </div>
+                          <div class="option-track">
+                            <div class="option-fill" :style="{ width: `${opt.percentage}%` }"></div>
+                          </div>
+                        </div>
+                      </div>
+                      <div v-else class="option-chart-body">
+                        <EChartContainer
+                          :option="isSingleChoiceQuestion(q.type) ? getQuestionPieOption(q) : getQuestionChartOption(q)"
+                          theme="light"
+                          :style="{ height: `${getQuestionChartHeight(q)}px` }"
+                        />
+                      </div>
                     </div>
                     <div v-else class="empty-option-chart">
                       暂无统计数据
