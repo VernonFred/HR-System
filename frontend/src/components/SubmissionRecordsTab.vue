@@ -36,6 +36,8 @@ const filterStatus = ref('all')
 const groupByCandidate = ref(false)
 const groupPageSize = 10
 const groupPage = ref<Record<string, number>>({})
+const groupListPageSize = 10
+const groupListPage = ref(1)
 
 type DisplaySubmission = Submission & {
   __anonymousAggregate?: boolean
@@ -295,9 +297,25 @@ const changePage = (newPage: number) => {
   currentPage.value = newPage
 }
 
+const changeGroupListPage = (newPage: number) => {
+  if (newPage < 1 || newPage > groupListTotalPages.value) return
+  groupListPage.value = newPage
+}
+
 // 筛选变化时重置页码
 watch([searchQuery, filterQuestionnaire, filterStatus, filterYear, filterMonth], () => {
   currentPage.value = 1
+  groupListPage.value = 1
+})
+
+watch(groupByCandidate, () => {
+  groupListPage.value = 1
+})
+
+watch(groupListTotalPages, (total) => {
+  if (groupListPage.value > total) {
+    groupListPage.value = total
+  }
 })
 
 // ===== 按候选人分组的提交记录 =====
@@ -310,7 +328,7 @@ interface GroupedCandidate {
   submissions: Submission[]
 }
 
-const groupedSubmissions = computed<GroupedCandidate[]>(() => {
+const groupedSubmissionsAll = computed<GroupedCandidate[]>(() => {
   const groups = new Map<string, GroupedCandidate>()
 
   const anonSubs = anonymousSubmissions.value
@@ -364,6 +382,23 @@ const groupedSubmissions = computed<GroupedCandidate[]>(() => {
     const timeB = b.latestSubmission?.submitted_at ? new Date(b.latestSubmission.submitted_at).getTime() : 0
     return timeB - timeA
   })
+})
+
+const groupListTotalPages = computed(() => Math.ceil(groupedSubmissionsAll.value.length / groupListPageSize) || 1)
+
+const paginatedGroupedSubmissions = computed<GroupedCandidate[]>(() => {
+  const start = (groupListPage.value - 1) * groupListPageSize
+  const end = start + groupListPageSize
+  return groupedSubmissionsAll.value.slice(start, end)
+})
+
+const visibleGroupKeys = computed(() =>
+  paginatedGroupedSubmissions.value.map(group => getGroupKey(group))
+)
+
+const areVisibleGroupsExpanded = computed(() => {
+  if (visibleGroupKeys.value.length === 0) return false
+  return visibleGroupKeys.value.every(key => expandedCandidates.value.has(key))
 })
 
 // ===== 辅助函数 =====
@@ -456,13 +491,15 @@ const toggleCandidateExpand = (key: string) => {
 
 // 全部展开/收起
 const toggleAllCandidates = () => {
-  if (expandedCandidates.value.size === groupedSubmissions.value.length) {
-    expandedCandidates.value.clear()
-  } else {
-    const keys = groupedSubmissions.value.map(g => getGroupKey(g))
-    expandedCandidates.value = new Set(keys)
-    keys.forEach(key => setGroupPage(key, 1))
+  const keys = visibleGroupKeys.value
+  if (areVisibleGroupsExpanded.value) {
+    keys.forEach(key => expandedCandidates.value.delete(key))
+    return
   }
+  keys.forEach(key => {
+    expandedCandidates.value.add(key)
+    setGroupPage(key, 1)
+  })
 }
 
 // 打开导出弹窗
@@ -660,7 +697,7 @@ const executeExport = async () => {
       </div>
       <div class="summary-item" v-if="groupByCandidate">
         <i class="ri-user-line"></i>
-        <span class="summary-value">{{ groupedSubmissions.length }}</span>
+        <span class="summary-value">{{ groupedSubmissionsAll.length }}</span>
         <span class="summary-label">位候选人</span>
       </div>
       <div class="summary-item completed">
@@ -778,8 +815,8 @@ const executeExport = async () => {
       <!-- V45: 分组模式控制栏 -->
       <div class="grouped-controls">
         <button class="btn-toggle-all" @click="toggleAllCandidates">
-          <i :class="expandedCandidates.size === groupedSubmissions.length ? 'ri-contract-up-down-line' : 'ri-expand-up-down-line'"></i>
-          {{ expandedCandidates.size === groupedSubmissions.length ? '全部收起' : '全部展开' }}
+          <i :class="areVisibleGroupsExpanded ? 'ri-contract-up-down-line' : 'ri-expand-up-down-line'"></i>
+          {{ areVisibleGroupsExpanded ? '全部收起' : '全部展开' }}
         </button>
         <button class="btn-export" @click="openExportModal">
           <i class="ri-download-line"></i>
@@ -822,7 +859,7 @@ const executeExport = async () => {
       <!-- 候选人分组卡片 -->
       <div class="candidate-groups">
         <div 
-          v-for="group in groupedSubmissions" 
+          v-for="group in paginatedGroupedSubmissions" 
           :key="getGroupKey(group)"
           class="candidate-group-card"
           :class="{ expanded: expandedCandidates.has(getGroupKey(group)) }"
@@ -922,9 +959,18 @@ const executeExport = async () => {
         </div>
         
         <!-- 空状态 -->
-        <div v-if="groupedSubmissions.length === 0" class="empty-grouped">
+        <div v-if="groupedSubmissionsAll.length === 0" class="empty-grouped">
           <i class="ri-inbox-line"></i>
           <span>暂无提交记录</span>
+        </div>
+        <div v-if="groupedSubmissionsAll.length > groupListPageSize" class="pagination-bar">
+          <button class="page-btn" :disabled="groupListPage === 1" @click="changeGroupListPage(groupListPage - 1)" title="上一页">
+            <i class="ri-arrow-left-s-line"></i>
+          </button>
+          <span class="page-info">{{ groupListPage }} / {{ groupListTotalPages }} (共 {{ groupedSubmissionsAll.length }} 人)</span>
+          <button class="page-btn" :disabled="groupListPage >= groupListTotalPages" @click="changeGroupListPage(groupListPage + 1)" title="下一页">
+            <i class="ri-arrow-right-s-line"></i>
+          </button>
         </div>
       </div>
     </div>
