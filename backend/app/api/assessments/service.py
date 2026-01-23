@@ -816,7 +816,8 @@ def _get_scale_label(score: int, scale_min: int, scale_max: int, min_label: str,
 
 async def get_question_answer_statistics(
     session: Session,
-    questionnaire_id: int
+    questionnaire_id: int,
+    trend_range: str = "week"
 ) -> dict:
     """
     V42: 获取问卷的题目答案统计数据.
@@ -825,7 +826,7 @@ async def get_question_answer_statistics(
     """
     from sqlmodel import select
     from collections import Counter, defaultdict
-    from datetime import datetime, timedelta
+    from datetime import datetime, timedelta, timezone
     
     # 获取问卷信息
     questionnaire = session.get(Questionnaire, questionnaire_id)
@@ -1014,14 +1015,43 @@ async def get_question_answer_statistics(
     if durations:
         average_duration = round(sum(durations) / len(durations), 1)
     
-    # 计算每日提交趋势（最近7天）
+    # 计算每日提交趋势（按本地时间统计）
     daily_trend = []
-    today = datetime.now().date()
-    for i in range(6, -1, -1):
-        day = today - timedelta(days=i)
-        count = sum(1 for s in submissions if s.submitted_at and s.submitted_at.date() == day)
+    local_tz = timezone(timedelta(hours=8))
+
+    def to_local_date(dt: datetime) -> Optional[datetime.date]:
+        if not dt:
+            return None
+        # SQLite 中的时间多数为本地时间（无时区），默认按本地时间处理
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=local_tz)
+        return dt.astimezone(local_tz).date()
+
+    today = datetime.now(local_tz).date()
+
+    def build_week_days(base_date: datetime.date) -> list[datetime.date]:
+        monday = base_date - timedelta(days=base_date.weekday())
+        return [monday + timedelta(days=i) for i in range(7)]
+
+    def build_month_days(base_date: datetime.date) -> list[datetime.date]:
+        start = base_date - timedelta(days=29)
+        return [start + timedelta(days=i) for i in range(30)]
+
+    if trend_range == "month":
+        days = build_month_days(today)
+    elif trend_range == "week":
+        days = build_week_days(today)
+    else:
+        days = [today - timedelta(days=i) for i in range(6, -1, -1)]
+
+    for day in days:
+        count = sum(
+            1
+            for s in submissions
+            if s.submitted_at and to_local_date(s.submitted_at) == day
+        )
         daily_trend.append({
-            "date": day.strftime("%m/%d"),
+            "date": day.isoformat(),
             "count": count
         })
     

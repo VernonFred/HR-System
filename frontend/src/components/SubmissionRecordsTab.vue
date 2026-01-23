@@ -34,6 +34,37 @@ const searchQuery = ref('')
 const filterQuestionnaire = ref('all')
 const filterStatus = ref('all')
 const groupByCandidate = ref(false)
+const groupPageSize = 10
+const groupPage = ref<Record<string, number>>({})
+
+type DisplaySubmission = Submission & {
+  __anonymousAggregate?: boolean
+  anonymous_count?: number
+}
+
+const isEmptyIdentity = (value?: string) => {
+  const normalized = (value || '').trim().toLowerCase()
+  if (!normalized) return true
+  return ['匿名', '未知', 'unknown', 'n/a', 'na', '-', '—', '--', 'null'].includes(normalized)
+}
+
+const isAnonymousSubmission = (name?: string, phone?: string) => {
+  if (!isEmptyIdentity(phone)) return false
+  return isEmptyIdentity(name)
+}
+
+const isAggregateSubmission = (submission: Submission | DisplaySubmission) => {
+  return Boolean((submission as DisplaySubmission).__anonymousAggregate)
+}
+
+const getGroupKey = (group: GroupedCandidate) => group.phone || group.name || 'unknown'
+
+const getGroupDisplayName = (group: GroupedCandidate) => {
+  if (isAnonymousSubmission(group.name, group.phone)) {
+    return `匿名填写（${group.totalSubmissions}人）`
+  }
+  return group.name || '未知'
+}
 
 // ===== 分页状态 =====
 const currentPage = ref(1)
@@ -80,6 +111,7 @@ const toggleSelectMode = () => {
 
 // 切换单条记录选择
 const toggleSubmissionSelect = (id: number) => {
+  if (id < 0) return
   if (selectedSubmissions.value.has(id)) {
     selectedSubmissions.value.delete(id)
   } else {
@@ -89,10 +121,10 @@ const toggleSubmissionSelect = (id: number) => {
 
 // 全选/取消全选
 const toggleSelectAll = () => {
-  if (selectedSubmissions.value.size === filteredSubmissions.value.length) {
+  if (selectedSubmissions.value.size === selectableSubmissions.value.length) {
     selectedSubmissions.value.clear()
   } else {
-    selectedSubmissions.value = new Set(filteredSubmissions.value.map(s => s.id))
+    selectedSubmissions.value = new Set(selectableSubmissions.value.map(s => s.id))
   }
 }
 
@@ -164,15 +196,99 @@ const filteredSubmissions = computed(() => {
   return result
 })
 
+const getSubmissionTime = (submission: Submission) => {
+  return submission.submitted_at || submission.started_at || ''
+}
+
+const getLatestSubmission = (subs: Submission[]) => {
+  let latest: Submission | null = null
+  for (const sub of subs) {
+    const time = getSubmissionTime(sub)
+    if (!time) continue
+    if (!latest || new Date(time) > new Date(getSubmissionTime(latest))) {
+      latest = sub
+    }
+  }
+  return latest || subs[0] || null
+}
+
+const anonymousSubmissions = computed(() =>
+  filteredSubmissions.value.filter(s => isAnonymousSubmission(s.candidate_name, s.candidate_phone))
+)
+
+const displaySubmissions = computed<DisplaySubmission[]>(() => {
+  const anonSubs = anonymousSubmissions.value
+  const normalSubs = filteredSubmissions.value.filter(
+    s => !isAnonymousSubmission(s.candidate_name, s.candidate_phone)
+  )
+
+  if (anonSubs.length === 0) {
+    return normalSubs
+  }
+
+  const questionnaireNames = Array.from(
+    new Set(anonSubs.map(s => s.questionnaire_name).filter(Boolean))
+  )
+  const questionnaireName =
+    questionnaireNames.length === 1 ? questionnaireNames[0] : '多个问卷'
+  const latestSubmission = getLatestSubmission(anonSubs)
+  const latestTime = latestSubmission ? getSubmissionTime(latestSubmission) : ''
+
+  const aggregate: DisplaySubmission = {
+    id: -1,
+    code: `ANON-${anonSubs.length}`,
+    candidate_name: `匿名填写（${anonSubs.length}人）`,
+    candidate_phone: '',
+    questionnaire_name: questionnaireName || '匿名提交',
+    questionnaire_type:
+      questionnaireNames.length === 1 ? anonSubs[0]?.questionnaire_type : undefined,
+    status: 'anonymous',
+    started_at: latestTime || new Date().toISOString(),
+    submitted_at: latestTime || undefined,
+    __anonymousAggregate: true,
+    anonymous_count: anonSubs.length,
+  }
+
+  return [aggregate, ...normalSubs]
+})
+
 // ===== 分页相关 =====
-const totalFilteredCount = computed(() => filteredSubmissions.value.length)
-const totalPages = computed(() => Math.ceil(totalFilteredCount.value / pageSize))
+const actualFilteredCount = computed(() => filteredSubmissions.value.length)
+const displayFilteredCount = computed(() => displaySubmissions.value.length)
+const totalPages = computed(() => Math.ceil(displayFilteredCount.value / pageSize))
+const selectableSubmissions = computed(() =>
+  displaySubmissions.value.filter(s => !isAggregateSubmission(s))
+)
 
 const paginatedSubmissions = computed(() => {
   const start = (currentPage.value - 1) * pageSize
   const end = start + pageSize
-  return filteredSubmissions.value.slice(start, end)
+  return displaySubmissions.value.slice(start, end)
 })
+
+const getGroupPage = (key: string) => groupPage.value[key] || 1
+
+const setGroupPage = (key: string, page: number) => {
+  groupPage.value = { ...groupPage.value, [key]: page }
+}
+
+const getGroupTotalPages = (group: GroupedCandidate) =>
+  Math.max(1, Math.ceil(group.submissions.length / groupPageSize))
+
+const getGroupSubmissions = (group: GroupedCandidate) => {
+  const key = getGroupKey(group)
+  const page = getGroupPage(key)
+  const start = (page - 1) * groupPageSize
+  const end = start + groupPageSize
+  return group.submissions.slice(start, end)
+}
+
+const changeGroupPage = (group: GroupedCandidate, nextPage: number) => {
+  const key = getGroupKey(group)
+  const total = getGroupTotalPages(group)
+  if (nextPage < 1 || nextPage > total) return
+  setGroupPage(key, nextPage)
+}
 
 const changePage = (newPage: number) => {
   if (newPage < 1 || newPage > totalPages.value) return
@@ -196,10 +312,26 @@ interface GroupedCandidate {
 
 const groupedSubmissions = computed<GroupedCandidate[]>(() => {
   const groups = new Map<string, GroupedCandidate>()
-  
+
+  const anonSubs = anonymousSubmissions.value
+  if (anonSubs.length > 0) {
+    const latest = getLatestSubmission(anonSubs)
+    groups.set('__anonymous__', {
+      phone: '',
+      name: `匿名填写（${anonSubs.length}人）`,
+      totalSubmissions: anonSubs.length,
+      completedCount: anonSubs.filter(s => s.status === 'completed').length,
+      latestSubmission: latest,
+      submissions: anonSubs
+    })
+  }
+
   for (const sub of filteredSubmissions.value) {
+    if (isAnonymousSubmission(sub.candidate_name, sub.candidate_phone)) {
+      continue
+    }
     const key = sub.candidate_phone || sub.candidate_name || 'unknown'
-    
+
     if (!groups.has(key)) {
       groups.set(key, {
         phone: sub.candidate_phone || '',
@@ -210,22 +342,22 @@ const groupedSubmissions = computed<GroupedCandidate[]>(() => {
         submissions: []
       })
     }
-    
+
     const group = groups.get(key)!
     group.totalSubmissions++
     if (sub.status === 'completed') {
       group.completedCount++
     }
     group.submissions.push(sub)
-    
+
     // 更新最新提交
-    if (!group.latestSubmission || 
-        (sub.submitted_at && group.latestSubmission.submitted_at && 
+    if (!group.latestSubmission ||
+        (sub.submitted_at && group.latestSubmission.submitted_at &&
          new Date(sub.submitted_at) > new Date(group.latestSubmission.submitted_at))) {
       group.latestSubmission = sub
     }
   }
-  
+
   // 按最新提交时间排序
   return Array.from(groups.values()).sort((a, b) => {
     const timeA = a.latestSubmission?.submitted_at ? new Date(a.latestSubmission.submitted_at).getTime() : 0
@@ -251,13 +383,15 @@ const getStatusLabel = (status: string) => {
   const labels: Record<string, string> = {
     'completed': '已完成',
     'in_progress': '进行中',
-    'pending': '待处理'
+    'pending': '待处理',
+    'anonymous': '匿名汇总'
   }
   return labels[status] || status
 }
 
 // ⭐ 获取人格类型（从result_details中提取）
-const getPersonalityType = (submission: Submission) => {
+const getPersonalityType = (submission: Submission | DisplaySubmission) => {
+  if (isAggregateSubmission(submission)) return '匿名'
   if (submission.status !== 'completed') return '--'
   
   const details = submission.result_details
@@ -292,7 +426,8 @@ const openSubmissionDetail = (submission: Submission) => {
   showSubmissionDetailModal.value = true
 }
 
-const handleDeleteSubmission = (submission: Submission) => {
+const handleDeleteSubmission = (submission: Submission | DisplaySubmission) => {
+  if (isAggregateSubmission(submission)) return
   deleteTargetSubmission.value = submission
   showDeleteConfirmModal.value = true
 }
@@ -315,6 +450,7 @@ const toggleCandidateExpand = (key: string) => {
     expandedCandidates.value.delete(key)
   } else {
     expandedCandidates.value.add(key)
+    setGroupPage(key, 1)
   }
 }
 
@@ -323,9 +459,9 @@ const toggleAllCandidates = () => {
   if (expandedCandidates.value.size === groupedSubmissions.value.length) {
     expandedCandidates.value.clear()
   } else {
-    expandedCandidates.value = new Set(
-      groupedSubmissions.value.map(g => g.phone || g.name)
-    )
+    const keys = groupedSubmissions.value.map(g => getGroupKey(g))
+    expandedCandidates.value = new Set(keys)
+    keys.forEach(key => setGroupPage(key, 1))
   }
 }
 
@@ -496,8 +632,8 @@ const executeExport = async () => {
         <label class="select-all-checkbox">
           <input 
             type="checkbox" 
-            :checked="selectedSubmissions.size === filteredSubmissions.length && filteredSubmissions.length > 0"
-            :indeterminate="selectedSubmissions.size > 0 && selectedSubmissions.size < filteredSubmissions.length"
+            :checked="selectedSubmissions.size === selectableSubmissions.length && selectableSubmissions.length > 0"
+            :indeterminate="selectedSubmissions.size > 0 && selectedSubmissions.size < selectableSubmissions.length"
             @change="toggleSelectAll"
           />
           <span>全选</span>
@@ -519,7 +655,7 @@ const executeExport = async () => {
     <!-- 统计信息 -->
     <div class="records-summary">
       <div class="summary-item">
-        <span class="summary-value">{{ filteredSubmissions.length }}</span>
+        <span class="summary-value">{{ actualFilteredCount }}</span>
         <span class="summary-label">条记录</span>
       </div>
       <div class="summary-item" v-if="groupByCandidate">
@@ -547,7 +683,7 @@ const executeExport = async () => {
             <th v-if="isSelectMode" class="cell-checkbox">
               <input 
                 type="checkbox" 
-                :checked="selectedSubmissions.size === filteredSubmissions.length && filteredSubmissions.length > 0"
+                :checked="selectedSubmissions.size === selectableSubmissions.length && selectableSubmissions.length > 0"
                 @change="toggleSelectAll"
               />
             </th>
@@ -563,36 +699,53 @@ const executeExport = async () => {
         </thead>
         <tbody>
           <tr v-for="r in paginatedSubmissions" :key="r.id" class="record-row" :class="{ selected: selectedSubmissions.has(r.id) }">
-            <td v-if="isSelectMode" class="cell-checkbox">
+            <td v-if="isSelectMode && !isAggregateSubmission(r)" class="cell-checkbox">
               <input 
                 type="checkbox" 
                 :checked="selectedSubmissions.has(r.id)"
                 @change="toggleSubmissionSelect(r.id)"
               />
             </td>
-            <td class="cell-code">{{ r.code }}</td>
+            <td class="cell-code">{{ isAggregateSubmission(r) ? '-' : r.code }}</td>
             <td class="cell-name">
               <div class="candidate-info">
                 <span class="candidate-avatar">{{ (r.candidate_name || 'U')[0].toUpperCase() }}</span>
                 <span>{{ r.candidate_name }}</span>
               </div>
             </td>
-            <td class="cell-phone">{{ r.candidate_phone }}</td>
+            <td class="cell-phone">{{ isAggregateSubmission(r) ? '-' : r.candidate_phone }}</td>
             <td class="cell-questionnaire">{{ r.questionnaire_name || "N/A" }}</td>
             <td class="cell-type">
-              <span class="type-badge" :class="getPersonalityTypeClass(r)">
+              <span
+                v-if="!isAggregateSubmission(r)"
+                class="type-badge"
+                :class="getPersonalityTypeClass(r)"
+              >
                 {{ getPersonalityType(r) }}
               </span>
+              <span v-else class="type-badge type-pending">汇总</span>
             </td>
             <td class="cell-status">
-              <span :class="['status-pill', r.status === 'completed' ? 'status-completed' : 'status-progress']">
+              <span
+                v-if="!isAggregateSubmission(r)"
+                :class="['status-pill', r.status === 'completed' ? 'status-completed' : 'status-progress']"
+              >
                 <i :class="r.status === 'completed' ? 'ri-checkbox-circle-fill' : 'ri-time-fill'"></i>
                 {{ getStatusLabel(r.status) }}
               </span>
+              <span v-else class="status-pill status-progress">
+                <i class="ri-group-line"></i>
+                匿名汇总
+              </span>
             </td>
-            <td class="cell-time">{{ formatDate(r.submitted_at) }}</td>
+            <td class="cell-time">{{ isAggregateSubmission(r) ? '--' : formatDate(r.submitted_at) }}</td>
             <td class="cell-actions">
-              <button class="btn-action-delete" title="删除记录" @click="handleDeleteSubmission(r)">
+              <button
+                v-if="!isAggregateSubmission(r)"
+                class="btn-action-delete"
+                title="删除记录"
+                @click="handleDeleteSubmission(r)"
+              >
                 <i class="ri-delete-bin-line"></i>
               </button>
             </td>
@@ -609,11 +762,11 @@ const executeExport = async () => {
       </table>
       
       <!-- 分页控件 -->
-      <div v-if="totalFilteredCount > pageSize" class="pagination-bar">
+      <div v-if="displayFilteredCount > pageSize" class="pagination-bar">
         <button class="page-btn" :disabled="currentPage === 1" @click="changePage(currentPage - 1)" title="上一页">
           <i class="ri-arrow-left-s-line"></i>
         </button>
-        <span class="page-info">{{ currentPage }} / {{ totalPages }} (共 {{ totalFilteredCount }} 条)</span>
+        <span class="page-info">{{ currentPage }} / {{ totalPages }} (共 {{ actualFilteredCount }} 条)</span>
         <button class="page-btn" :disabled="currentPage >= totalPages" @click="changePage(currentPage + 1)" title="下一页">
           <i class="ri-arrow-right-s-line"></i>
         </button>
@@ -647,7 +800,7 @@ const executeExport = async () => {
           <label class="select-all-checkbox">
             <input 
               type="checkbox" 
-              :checked="selectedSubmissions.size === filteredSubmissions.length && filteredSubmissions.length > 0"
+              :checked="selectedSubmissions.size === selectableSubmissions.length && selectableSubmissions.length > 0"
               @change="toggleSelectAll"
             />
             <span>全选</span>
@@ -670,20 +823,20 @@ const executeExport = async () => {
       <div class="candidate-groups">
         <div 
           v-for="group in groupedSubmissions" 
-          :key="group.phone || group.name"
+          :key="getGroupKey(group)"
           class="candidate-group-card"
-          :class="{ expanded: expandedCandidates.has(group.phone || group.name) }"
+          :class="{ expanded: expandedCandidates.has(getGroupKey(group)) }"
         >
           <!-- 分组头部 -->
           <div 
             class="group-header"
-            @click="toggleCandidateExpand(group.phone || group.name)"
+            @click="toggleCandidateExpand(getGroupKey(group))"
           >
             <div class="group-main">
               <span class="group-avatar">{{ (group.name || 'U')[0].toUpperCase() }}</span>
               <div class="group-info">
                 <div class="group-name-row">
-                <span class="group-name">{{ group.name || '未知' }}</span>
+                <span class="group-name">{{ getGroupDisplayName(group) }}</span>
                 <span class="group-phone">{{ group.phone }}</span>
             </div>
             <div class="group-stats">
@@ -702,13 +855,16 @@ const executeExport = async () => {
                 </div>
               </div>
             </div>
-            <i :class="['expand-icon', expandedCandidates.has(group.phone || group.name) ? 'ri-arrow-up-s-line' : 'ri-arrow-down-s-line']"></i>
+            <i :class="['expand-icon', expandedCandidates.has(getGroupKey(group)) ? 'ri-arrow-up-s-line' : 'ri-arrow-down-s-line']"></i>
           </div>
           
           <!-- 展开的测评列表 -->
-          <div v-if="expandedCandidates.has(group.phone || group.name)" class="group-submissions">
+          <div v-if="expandedCandidates.has(getGroupKey(group))" class="group-submissions">
+            <div v-if="group.submissions.length === 0" class="submission-item empty-submissions">
+              <span class="submission-questionnaire">匿名提交已汇总</span>
+            </div>
             <div 
-              v-for="(sub, idx) in group.submissions" 
+              v-for="(sub, idx) in getGroupSubmissions(group)" 
               :key="sub.id"
               class="submission-item"
               :class="{ selected: selectedSubmissions.has(sub.id) }"
@@ -722,7 +878,7 @@ const executeExport = async () => {
                 @click.stop
                 @change="toggleSubmissionSelect(sub.id)"
               />
-              <div class="submission-order">#{{ idx + 1 }}</div>
+              <div class="submission-order">#{{ (getGroupPage(getGroupKey(group)) - 1) * groupPageSize + idx + 1 }}</div>
               <div class="submission-info">
                 <span class="submission-questionnaire">{{ sub.questionnaire_name || 'N/A' }}</span>
               </div>
@@ -742,6 +898,25 @@ const executeExport = async () => {
                   <i class="ri-delete-bin-line"></i>
                 </button>
               </div>
+            </div>
+            <div v-if="group.submissions.length > groupPageSize" class="group-pagination">
+              <button
+                class="page-btn"
+                :disabled="getGroupPage(getGroupKey(group)) <= 1"
+                @click.stop="changeGroupPage(group, getGroupPage(getGroupKey(group)) - 1)"
+              >
+                上一页
+              </button>
+              <span class="page-info">
+                {{ getGroupPage(getGroupKey(group)) }} / {{ getGroupTotalPages(group) }}
+              </span>
+              <button
+                class="page-btn"
+                :disabled="getGroupPage(getGroupKey(group)) >= getGroupTotalPages(group)"
+                @click.stop="changeGroupPage(group, getGroupPage(getGroupKey(group)) + 1)"
+              >
+                下一页
+              </button>
             </div>
           </div>
         </div>
@@ -1595,6 +1770,15 @@ const executeExport = async () => {
   color: #6b7280;
   min-width: 140px;
   text-align: center;
+}
+
+/* 分组内分页控件 */
+.group-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 8px 0 4px;
 }
 
 .cell-code {

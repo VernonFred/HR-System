@@ -169,6 +169,7 @@ export interface PageTexts {
   introText?: string;
   guideText?: string;
   privacyText?: string;
+  showBasicInfoTitle?: boolean; // 是否显示“请填写您的基本信息”
   successTitle?: string;
   successMessage?: string;
   resultText?: string;
@@ -420,9 +421,11 @@ export interface QuestionnaireQuestionStats {
   grade_percentages: Record<string, number>;
 }
 
-export const fetchQuestionnaireQuestionStats = (questionnaireId: number) => {
+export const fetchQuestionnaireQuestionStats = (questionnaireId: number, range: 'week' | 'month' = 'week') => {
+  const ts = Date.now();
+  const search = new URLSearchParams({ range, ts: String(ts) })
   return apiRequest<QuestionnaireQuestionStats>({
-    path: `/api/assessments/questionnaires/${questionnaireId}/question-stats`,
+    path: `/api/assessments/questionnaires/${questionnaireId}/question-stats?${search.toString()}`,
     fallback: {
       questionnaire_id: questionnaireId,
       questionnaire_name: '',

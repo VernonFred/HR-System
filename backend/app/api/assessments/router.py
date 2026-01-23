@@ -207,14 +207,24 @@ async def get_submissions(
         session, assessment_id, status, skip, limit, category=category
     )
     
+    def normalize_display_name(name: Optional[str], phone: Optional[str]) -> Optional[str]:
+        trimmed_name = (name or "").strip()
+        trimmed_phone = (phone or "").strip()
+        if trimmed_phone:
+            return trimmed_name or name
+        if not trimmed_name or trimmed_name.lower() in {"匿名", "未知", "unknown", "n/a", "na", "null", "-", "--"}:
+            return "匿名"
+        return trimmed_name or name
+    
     # ⭐ 关联查询问卷信息
     result_items = []
     for sub in submissions:
         questionnaire = await service.get_questionnaire(session, sub.questionnaire_id)
+        display_name = normalize_display_name(sub.candidate_name, sub.candidate_phone)
         item = schemas.SubmissionResponse(
             id=sub.id,
             code=sub.code,
-            candidate_name=sub.candidate_name,
+            candidate_name=display_name,
             candidate_phone=sub.candidate_phone,
             candidate_email=sub.candidate_email,  # V45: 返回邮箱
             gender=sub.gender,  # V45: 返回性别
@@ -255,10 +265,20 @@ async def get_submission_detail(
     # 获取候选人信息（从 candidates 表）
     candidate_info = await service.get_candidate_by_submission(session, submission_id)
     
+    def normalize_display_name(name: Optional[str], phone: Optional[str]) -> Optional[str]:
+        trimmed_name = (name or "").strip()
+        trimmed_phone = (phone or "").strip()
+        if trimmed_phone:
+            return trimmed_name or name
+        if not trimmed_name or trimmed_name.lower() in {"匿名", "未知", "unknown", "n/a", "na", "null", "-", "--"}:
+            return "匿名"
+        return trimmed_name or name
+
+    display_name = normalize_display_name(submission.candidate_name, submission.candidate_phone)
     return {
         "id": submission.id,
         "code": submission.code,  # ⭐ 修复：字段名是 code 不是 submission_code
-        "candidate_name": submission.candidate_name or (candidate_info.get("name") if candidate_info else None),
+        "candidate_name": display_name or (candidate_info.get("name") if candidate_info else None),
         "candidate_phone": submission.candidate_phone or (candidate_info.get("phone") if candidate_info else None),
         "questionnaire_name": questionnaire.name if questionnaire else None,
         "questionnaire_type": questionnaire.type if questionnaire else None,
@@ -302,6 +322,7 @@ async def get_submission_statistics(
 @router.get("/questionnaires/{questionnaire_id}/question-stats")
 async def get_questionnaire_question_stats(
     questionnaire_id: int,
+    trend_range: Optional[str] = Query("week", alias="range", description="趋势范围: week/month"),
     session: Session = Depends(get_session)
 ):
     """
@@ -309,7 +330,7 @@ async def get_questionnaire_question_stats(
     
     返回每道题的选项分布统计，用于问卷统计页面的数据可视化。
     """
-    stats = await service.get_question_answer_statistics(session, questionnaire_id)
+    stats = await service.get_question_answer_statistics(session, questionnaire_id, trend_range=trend_range)
     return stats
 
 
@@ -370,7 +391,17 @@ async def get_public_assessment_info(
         {"id": 4, "name": "target_position", "label": "应聘岗位", "type": "text", "enabled": True, "required": False, "builtin": True, "icon": "ri-briefcase-line"},
     ]
     
-    form_fields_data = assessment.form_fields if assessment.form_fields else default_form_fields
+    form_fields_data = assessment.form_fields
+    # 允许空列表表示“不显示任何字段”，仅在未配置或空对象时回退默认
+    if form_fields_data is None or form_fields_data == {}:
+        form_fields_data = default_form_fields
+    elif isinstance(form_fields_data, dict):
+        # 兼容可能的历史结构：{"fields": [...]}
+        fields = form_fields_data.get("fields")
+        if isinstance(fields, list):
+            form_fields_data = fields
+        elif not form_fields_data:
+            form_fields_data = default_form_fields
     
     # ⭐ 获取问卷题目数据（用于前端 fallback）
     questions_data = questionnaire.questions_data.get("questions", []) if questionnaire.questions_data else []

@@ -1009,7 +1009,7 @@
   font-size: 16px;
   font-weight: 600;
   color: #334155;
-  margin: 0 0 20px;
+  margin: 0;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -1019,6 +1019,37 @@
   color: #7c3aed;
 }
 
+.trend-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.trend-range {
+  display: flex;
+  gap: 8px;
+  background: #f8fafc;
+  padding: 4px;
+  border-radius: 999px;
+}
+
+.range-btn {
+  border: none;
+  background: transparent;
+  color: #64748b;
+  font-size: 12px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  cursor: pointer;
+}
+
+.range-btn.active {
+  background: #7c3aed;
+  color: #ffffff;
+}
+
 /* V43: 新的趋势图样式（折线图） */
 .trend-chart-v43 {
   margin-top: 16px;
@@ -1026,8 +1057,7 @@
 
 .trend-line-container {
   position: relative;
-  height: 140px;
-  padding-bottom: 30px;
+  height: 150px;
 }
 
 .trend-grid {
@@ -1035,7 +1065,7 @@
   top: 0;
   left: 0;
   right: 0;
-  bottom: 30px;
+  bottom: 32px;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
@@ -1048,39 +1078,30 @@
 
 .trend-svg {
   position: absolute;
-  top: 5px;
+  top: 0;
   left: 0;
   right: 0;
-  height: calc(100% - 35px);
+  height: 100%;
+  overflow: visible;
 }
 
-.trend-labels {
+.trend-tooltip {
   position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  display: flex;
-  justify-content: space-between;
-  padding: 0 10px;
-}
-
-.trend-label-item {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 4px;
-}
-
-.label-count {
+  transform: translate(-50%, -100%);
+  padding: 4px 8px;
+  border-radius: 6px;
+  background: rgba(15, 23, 42, 0.9);
+  color: #f8fafc;
   font-size: 12px;
-  font-weight: 600;
-  color: #7c3aed;
-  min-height: 16px;
+  pointer-events: none;
+  white-space: nowrap;
+  z-index: 2;
+  box-shadow: 0 6px 16px rgba(15, 23, 42, 0.25);
 }
 
-.label-date {
+.trend-axis-label {
   font-size: 11px;
-  color: #94a3b8;
+  fill: #94a3b8;
 }
 
 /* V43: 题目分析（带分页） */

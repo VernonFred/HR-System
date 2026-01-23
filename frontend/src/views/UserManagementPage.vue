@@ -279,9 +279,18 @@ const loadPersons = async () => {
     
     const personMap = new Map<string, PersonRecord>();
     
+    const isAnonymous = (name?: string, phone?: string) => {
+      const trimmedName = (name || "").trim();
+      const trimmedPhone = (phone || "").trim();
+      if (trimmedPhone) return false;
+      if (!trimmedName) return true;
+      return ["匿名", "未知", "unknown"].includes(trimmedName.toLowerCase());
+    };
+
     // 处理候选人数据
     const candidates = candidatesRes?.items || candidatesRes || [];
     candidates.forEach((c: any) => {
+      if (isAnonymous(c.name, c.phone)) return;
       const key = c.phone || c.name;
       if (!personMap.has(key)) {
         personMap.set(key, {
@@ -304,6 +313,7 @@ const loadPersons = async () => {
     // 处理提交记录
     const submissions = submissionsRes?.items || submissionsRes || [];
     submissions.forEach((s: any) => {
+      if (isAnonymous(s.candidate_name, s.candidate_phone)) return;
       const key = s.candidate_phone || s.candidate_name;
       
       const submissionRecord: SubmissionRecord = {

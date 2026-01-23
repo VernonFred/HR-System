@@ -121,6 +121,24 @@ const getPageText = (key: string): string => {
   return pageTexts[key] || pageTexts[snakeKey] || '';
 };
 
+// ⭐ 获取页面开关（兼容驼峰和蛇形命名）
+const getPageFlag = (key: string, defaultValue: boolean = true): boolean => {
+  const pageTexts = assessment.value?.page_texts;
+  if (!pageTexts) return defaultValue;
+
+  const snakeKey = key.replace(/([A-Z])/g, '_$1').toLowerCase();
+  const value = pageTexts[key] ?? pageTexts[snakeKey];
+
+  if (typeof value === 'boolean') return value;
+  if (typeof value === 'string') {
+    const normalized = value.trim().toLowerCase();
+    if (['false', '0', 'no', '否'].includes(normalized)) return false;
+    if (['true', '1', 'yes', '是'].includes(normalized)) return true;
+  }
+
+  return defaultValue;
+};
+
 const handleStart = async () => {
   // ⭐ 验证必填字段
   const missingFields = formFields.value.filter(f => f.required && !form.value[f.name]);
@@ -129,8 +147,11 @@ const handleStart = async () => {
     return;
   }
 
+  const candidateName = form.value.candidate_name || form.value.name || "";
+  const candidatePhone = form.value.candidate_phone || form.value.phone || "";
+
   // 手机号验证（如果有）
-  if (form.value.candidate_phone && !/^1[3-9]\d{9}$/.test(form.value.candidate_phone)) {
+  if (candidatePhone && !/^1[3-9]\d{9}$/.test(candidatePhone)) {
     alert("请输入有效的手机号");
     return;
   }
@@ -139,11 +160,7 @@ const handleStart = async () => {
     loading.value = true;
     
     // ⭐ 先检查是否可以提交
-    const checkResult = await checkCanSubmit(
-      code.value, 
-      form.value.candidate_phone || "",
-      form.value.candidate_name || ""
-    );
+    const checkResult = await checkCanSubmit(code.value, candidatePhone, candidateName);
     
     submitCheckResult.value = checkResult;
     
@@ -190,6 +207,14 @@ const handleStart = async () => {
         customData[field.name] = value;
       }
     });
+
+    // 没有配置字段时仍保证必备字段存在（允许为空字符串）
+    if (!("candidate_name" in builtinFields)) {
+      builtinFields.candidate_name = candidateName;
+    }
+    if (!("candidate_phone" in builtinFields)) {
+      builtinFields.candidate_phone = candidatePhone;
+    }
     
     // ⭐ 传入 questionnaire 类型和题目数据，确保 fallback 时能返回正确的题目
     const res = await startAssessment(code.value, {
@@ -316,7 +341,7 @@ onMounted(() => {
         <div class="divider"></div>
 
         <div class="form-section">
-          <h3 class="form-title">请填写您的基本信息</h3>
+          <h3 v-if="getPageFlag('showBasicInfoTitle', true)" class="form-title">请填写您的基本信息</h3>
 
           <!-- ⭐ 动态表单字段 -->
           <div v-for="field in formFields" :key="field.name" class="form-group">

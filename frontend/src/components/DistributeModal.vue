@@ -58,6 +58,7 @@ const pageTexts = ref<PageTexts>({
   introText: '本测评旨在了解您的职业特质，帮助我们更好地为您匹配适合的岗位。',
   guideText: '请在安静的环境下完成，按照第一反应作答，没有对错之分。',
   privacyText: '您的信息将被严格保密，仅用于招聘评估目的。',
+  showBasicInfoTitle: true,
   successTitle: '测评完成！',
   successMessage: '感谢您认真完成本次测评，您的回答对我们非常重要。',
   resultText: '我们将在 1-3 个工作日内完成评估分析。',
@@ -241,21 +242,29 @@ const getFieldIcon = (field: FormField) => {
 // ===== 配置持久化 =====
 const STORAGE_KEY = 'distribute_config'
 
+const isPlainObject = (value: unknown): value is Record<string, any> => {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
+
 // 保存配置到 localStorage
 const saveConfig = () => {
-  const config = {
-    form: {
-      validityType: form.value.validityType,
-      expiryDays: form.value.expiryDays,
-      allowRepeat: form.value.allowRepeat,
-      repeatCheckBy: form.value.repeatCheckBy,
-      repeatIntervalHours: form.value.repeatIntervalHours,
-      maxSubmissions: form.value.maxSubmissions,
-    },
-    formFields: formFields.value,
-    pageTexts: pageTexts.value,
+  try {
+    const config = {
+      form: {
+        validityType: form.value.validityType,
+        expiryDays: form.value.expiryDays,
+        allowRepeat: form.value.allowRepeat,
+        repeatCheckBy: form.value.repeatCheckBy,
+        repeatIntervalHours: form.value.repeatIntervalHours,
+        maxSubmissions: form.value.maxSubmissions,
+      },
+      formFields: formFields.value,
+      pageTexts: pageTexts.value,
+    }
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(config))
+  } catch (e) {
+    console.warn('保存分发配置失败:', e)
   }
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(config))
 }
 
 // 从 localStorage 加载配置
@@ -265,7 +274,7 @@ const loadConfig = () => {
     if (saved) {
       const config = JSON.parse(saved)
       // 恢复表单配置
-      if (config.form) {
+      if (isPlainObject(config.form)) {
         form.value.validityType = config.form.validityType || 'temporary'
         form.value.expiryDays = config.form.expiryDays || 7
         form.value.allowRepeat = config.form.allowRepeat || false
@@ -278,7 +287,7 @@ const loadConfig = () => {
         formFields.value = config.formFields
       }
       // 恢复页面文案
-      if (config.pageTexts) {
+      if (isPlainObject(config.pageTexts)) {
         pageTexts.value = { ...pageTexts.value, ...config.pageTexts }
       }
     }
@@ -508,7 +517,7 @@ onMounted(() => {
             </div>
             
             <div class="preview-form">
-              <p class="preview-hint">请填写您的基本信息</p>
+              <p v-if="pageTexts.showBasicInfoTitle !== false" class="preview-hint">请填写您的基本信息</p>
                   
               <div 
                 v-for="field in enabledFields" 
@@ -605,6 +614,17 @@ onMounted(() => {
                     maxlength="80"
                   ></textarea>
                 <span class="char-count">{{ pageTexts.privacyText?.length || 0 }}/80</span>
+              </div>
+              <div class="form-item-group">
+                <div class="group-header">
+                  <label><i class="ri-information-line"></i> 基本信息提示</label>
+                  <div class="toggle-switch" @click="pageTexts.showBasicInfoTitle = !pageTexts.showBasicInfoTitle">
+                    <div :class="['toggle-track', { active: pageTexts.showBasicInfoTitle }]">
+                      <div class="toggle-thumb"></div>
+                    </div>
+                    <span class="toggle-label">{{ pageTexts.showBasicInfoTitle ? '显示' : '隐藏' }}</span>
+                  </div>
+                </div>
               </div>
             </div>
             
@@ -729,7 +749,7 @@ onMounted(() => {
                         
                         <!-- 表单区域 -->
                         <div class="form-area">
-                          <div class="form-title">请填写您的基本信息</div>
+                          <div v-if="pageTexts.showBasicInfoTitle !== false" class="form-title">请填写您的基本信息</div>
                           <div class="form-fields">
                             <div class="field-row" v-for="f in enabledFields.slice(0, 2)" :key="f.id">
                               <span class="field-label">{{ f.label }}</span>

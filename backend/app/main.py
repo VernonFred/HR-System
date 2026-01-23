@@ -595,10 +595,21 @@ def list_candidates(
     from app.models_assessment import Submission, Questionnaire
     
     candidate_map: dict[tuple[str, str], dict] = {}
+
+    def is_anonymous(name: Optional[str], phone: Optional[str]) -> bool:
+        trimmed_name = (name or "").strip()
+        trimmed_phone = (phone or "").strip()
+        if trimmed_phone:
+            return False
+        if not trimmed_name:
+            return True
+        return trimmed_name.lower() in {"匿名", "未知", "unknown"}
     
     # ⭐ 步骤1：先从 candidates 表获取所有候选人
     all_candidates = session.exec(select(Candidate)).all()
     for c in all_candidates:
+        if is_anonymous(c.name, c.phone):
+            continue
         key = (c.phone or '', c.name)
         candidate_map[key] = {
             'name': c.name,
@@ -624,6 +635,8 @@ def list_candidates(
     
     # 按 (phone, name) 分组聚合
     for sub in all_submissions:
+        if is_anonymous(sub.candidate_name, sub.candidate_phone):
+            continue
         key = (sub.candidate_phone, sub.candidate_name)
         
         if key not in candidate_map:

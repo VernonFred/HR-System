@@ -134,6 +134,7 @@ const confirmBatchDelete = () => {
 const questionStats = ref<QuestionnaireQuestionStats | null>(null)
 const statsLoading = ref(false)
 const statsError = ref<string | null>(null)
+const trendRange = ref<'week' | 'month'>('week')
 
 // ⭐ V43: 题目分析分页
 const questionPageSize = 4
@@ -147,7 +148,7 @@ const loadQuestionStats = async () => {
   statsError.value = null
   
   try {
-    const data = await fetchQuestionnaireQuestionStats(props.questionnaire.id)
+    const data = await fetchQuestionnaireQuestionStats(props.questionnaire.id, trendRange.value)
     questionStats.value = data
   } catch (err) {
     console.error('加载问卷统计失败:', err)
@@ -161,6 +162,12 @@ const loadQuestionStats = async () => {
 // V46: 每次切换都重新加载，确保数据最新
 watch(activeTab, (newTab) => {
   if (newTab === 'statistics' && props.questionnaire?.id) {
+    loadQuestionStats()
+  }
+})
+
+watch(trendRange, () => {
+  if (activeTab.value === 'statistics' && props.questionnaire?.id) {
     loadQuestionStats()
   }
 })
@@ -278,21 +285,179 @@ const isTextQuestion = (type: string): boolean => {
   return ['text', 'textarea'].includes(type)
 }
 
+const pad2 = (value: number | string) => String(value).padStart(2, '0')
+const trendChartWidth = 600
+const trendChartHeight = 100
+const trendChartPaddingX = 0
+const trendChartPaddingY = 10
+const trendLabelOffset = 18
+const trendSvgHeight = trendChartHeight + trendLabelOffset
+const trendBaselineY = trendChartHeight - trendChartPaddingY
+const trendLabelY = trendChartHeight + 12
+
+const toDateKey = (date: Date) =>
+  `${date.getFullYear()}-${pad2(date.getMonth() + 1)}-${pad2(date.getDate())}`
+
+const parseTrendDateKey = (dateStr: string, dateMap: Map<string, string>) => {
+  if (!dateStr) return null
+  if (dateStr.includes('/')) {
+    const [month, day] = dateStr.split('/')
+    if (!month || !day) return null
+    const key = `${pad2(month)}/${pad2(day)}`
+    return dateMap.get(key) || null
+  }
+  if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) return dateStr
+  const parsed = new Date(dateStr)
+  if (Number.isNaN(parsed.getTime())) return null
+  return toDateKey(parsed)
+}
+
+const buildWeekDays = (baseDate: Date) => {
+  const dayOfWeek = baseDate.getDay()
+  const diffToMonday = (dayOfWeek + 6) % 7
+  const monday = new Date(baseDate)
+  monday.setDate(baseDate.getDate() - diffToMonday)
+  monday.setHours(0, 0, 0, 0)
+  return Array.from({ length: 7 }, (_, idx) => {
+    const date = new Date(monday)
+    date.setDate(monday.getDate() + idx)
+    return date
+  })
+}
+
+const buildMonthDays = (baseDate: Date) => {
+  const start = new Date(baseDate)
+  start.setDate(baseDate.getDate() - 29)
+  start.setHours(0, 0, 0, 0)
+  return Array.from({ length: 30 }, (_, idx) => {
+    const date = new Date(start)
+    date.setDate(start.getDate() + idx)
+    return date
+  })
+}
+
+const getRangeDays = () => {
+  const today = new Date()
+  return trendRange.value === 'month' ? buildMonthDays(today) : buildWeekDays(today)
+}
+
+const buildTrendSeriesFromApi = () => {
+  const raw = questionStats.value?.daily_trend || []
+  const rangeDays = getRangeDays()
+  const dateMap = new Map<string, string>()
+  rangeDays.forEach(date => {
+    dateMap.set(`${pad2(date.getMonth() + 1)}/${pad2(date.getDate())}`, toDateKey(date))
+  })
+  const map = new Map<string, number>()
+  raw.forEach(day => {
+    const key = parseTrendDateKey(day.date, dateMap)
+    if (key) map.set(key, day.count ?? 0)
+  })
+  return rangeDays.map(date => {
+    const key = toDateKey(date)
+    return {
+      date: key,
+      count: map.get(key) || 0
+    }
+  })
+}
+
+const buildTrendSeriesFromSubmissions = () => {
+  const rangeDays = getRangeDays()
+  const map = new Map<string, number>()
+  completedSubmissions.value.forEach(sub => {
+    if (!sub.submitted_at) return
+    const parsed = new Date(sub.submitted_at)
+    if (Number.isNaN(parsed.getTime())) return
+    const dateKey = toDateKey(parsed)
+    map.set(dateKey, (map.get(dateKey) || 0) + 1)
+  })
+  return rangeDays.map(date => {
+    const key = toDateKey(date)
+    return {
+      date: key,
+      count: map.get(key) || 0
+    }
+  })
+}
+
+const trendSeries = computed(() => {
+  const apiSeries = buildTrendSeriesFromApi()
+  const localSeries = buildTrendSeriesFromSubmissions()
+  const apiHasCounts = apiSeries.some(day => day.count > 0)
+  const localHasCounts = localSeries.some(day => day.count > 0)
+
+  if (trendRange.value === 'month') {
+    if (!apiHasCounts && localHasCounts) return localSeries
+    return apiSeries
+  }
+
+  if (!apiHasCounts && localHasCounts) return localSeries
+  const latestSubmission = completedSubmissions.value
+    .map(sub => sub.submitted_at)
+    .filter(Boolean)
+    .map(value => new Date(value as string))
+    .filter(date => !Number.isNaN(date.getTime()))
+    .sort((a, b) => b.getTime() - a.getTime())[0]
+
+  if (!latestSubmission) return apiSeries
+  const latestKey = toDateKey(latestSubmission)
+  const apiCount = apiSeries.find(day => day.date === latestKey)?.count || 0
+  const localCount = localSeries.find(day => day.date === latestKey)?.count || 0
+  if (localCount > apiCount) return localSeries
+  return apiSeries
+})
+
 // ⭐ V43: 趋势图SVG路径计算
 const trendPoints = computed(() => {
-  if (!questionStats.value?.daily_trend) return []
-  const data = questionStats.value.daily_trend
+  if (trendSeries.value.length === 0) return []
+  const data = trendSeries.value
   const maxCount = Math.max(...data.map(d => d.count), 1)
-  const width = 600
-  const height = 100
-  const padding = 10
   
   return data.map((d, i) => ({
-    x: padding + (i / (data.length - 1 || 1)) * (width - padding * 2),
-    y: height - padding - (d.count / maxCount) * (height - padding * 2),
-    count: d.count
+    x: trendChartPaddingX + (i / (data.length - 1 || 1)) * (trendChartWidth - trendChartPaddingX * 2),
+    y: trendChartHeight - trendChartPaddingY - (d.count / maxCount) * (trendChartHeight - trendChartPaddingY * 2),
+    count: d.count,
+    date: d.date
   }))
 })
+
+const trendLabelPoints = computed(() => {
+  if (trendPoints.value.length === 0) return []
+  if (trendRange.value === 'week') return trendPoints.value
+  const interval = Math.ceil(trendPoints.value.length / 6)
+  return trendPoints.value.filter((_, idx) => idx % interval === 0 || idx === trendPoints.value.length - 1)
+})
+
+const trendContainerRef = ref<HTMLElement | null>(null)
+const trendTooltip = ref({ visible: false, x: 0, y: 0, text: '' })
+
+const updateTrendTooltipPosition = (event: MouseEvent) => {
+  const container = trendContainerRef.value
+  if (!container) return
+  const rect = container.getBoundingClientRect()
+  const rawX = event.clientX - rect.left
+  const rawY = event.clientY - rect.top
+  const x = Math.max(12, Math.min(rawX, rect.width - 12))
+  const y = Math.max(12, rawY - 12)
+  trendTooltip.value.x = x
+  trendTooltip.value.y = y
+}
+
+const showTrendTooltip = (event: MouseEvent, point: { date: string; count: number }) => {
+  trendTooltip.value.visible = true
+  trendTooltip.value.text = `${formatTrendDate(point.date)}：${point.count}人`
+  updateTrendTooltipPosition(event)
+}
+
+const moveTrendTooltip = (event: MouseEvent) => {
+  if (!trendTooltip.value.visible) return
+  updateTrendTooltipPosition(event)
+}
+
+const hideTrendTooltip = () => {
+  trendTooltip.value.visible = false
+}
 
 const trendLinePath = computed(() => {
   if (trendPoints.value.length === 0) return ''
@@ -305,17 +470,23 @@ const trendAreaPath = computed(() => {
   if (trendPoints.value.length === 0) return ''
   const points = trendPoints.value
   const firstX = points[0]?.x || 0
-  const lastX = points[points.length - 1]?.x || 600
-  return `${trendLinePath.value} L ${lastX} 95 L ${firstX} 95 Z`
+  const lastX = points[points.length - 1]?.x || trendChartWidth
+  return `${trendLinePath.value} L ${lastX} ${trendBaselineY} L ${firstX} ${trendBaselineY} Z`
 })
 
 // 格式化趋势日期
 const formatTrendDate = (dateStr: string) => {
+  if (!dateStr) return ''
   // 输入格式如 "12/02" 或 "2025-12-02"
   if (dateStr.includes('/')) {
-    return dateStr // 已经是短格式
+    return dateStr
+  }
+  if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+    const [, month, day] = dateStr.split('-')
+    return `${Number(month)}/${day}`
   }
   const date = new Date(dateStr)
+  if (Number.isNaN(date.getTime())) return dateStr
   return `${date.getMonth() + 1}/${String(date.getDate()).padStart(2, '0')}`
 }
 
@@ -327,13 +498,105 @@ interface GroupedCandidate {
   totalSubmissions: number
   latestSubmission: Submission | null
   completedCount: number
+  __anonymousAggregate?: boolean
+}
+
+const ANONYMOUS_NAMES = new Set(['匿名', '未知', 'unknown', 'n/a', 'na', '-', '--', 'null', ''])
+
+const isAnonymousSubmission = (name?: string, phone?: string) => {
+  const safeName = (name || '').trim().toLowerCase()
+  const safePhone = (phone || '').trim()
+  if (safePhone) return false
+  return !safeName || ANONYMOUS_NAMES.has(safeName)
+}
+
+const getGroupKey = (group: GroupedCandidate) => {
+  if (group.__anonymousAggregate) return '__anonymous__'
+  return group.phone || group.name || 'unknown'
+}
+
+const getGroupDisplayName = (group: GroupedCandidate) => {
+  if (group.__anonymousAggregate || isAnonymousSubmission(group.name, group.phone)) {
+    return `匿名填写（${group.totalSubmissions}人）`
+  }
+  return group.name || '未知'
+}
+
+const getGroupInitial = (group: GroupedCandidate) => {
+  const name = getGroupDisplayName(group)
+  return name ? name[0].toUpperCase() : 'U'
+}
+
+const getLatestSubmission = (subs: Submission[]) => {
+  let latest: Submission | null = null
+  subs.forEach(sub => {
+    const time = sub.submitted_at || sub.started_at
+    if (!time) return
+    if (!latest) {
+      latest = sub
+      return
+    }
+    const latestTime = latest.submitted_at || latest.started_at
+    if (latestTime && new Date(time) > new Date(latestTime)) {
+      latest = sub
+    }
+  })
+  return latest
+}
+
+const groupPageSize = 10
+const groupPageMap = ref<Record<string, number>>({})
+
+const getGroupPage = (group: GroupedCandidate) => {
+  return groupPageMap.value[getGroupKey(group)] || 1
+}
+
+const setGroupPage = (group: GroupedCandidate, page: number) => {
+  groupPageMap.value = {
+    ...groupPageMap.value,
+    [getGroupKey(group)]: page
+  }
+}
+
+const getGroupTotalPages = (group: GroupedCandidate) => {
+  return Math.max(1, Math.ceil(group.submissions.length / groupPageSize))
+}
+
+const getGroupSubmissions = (group: GroupedCandidate) => {
+  const page = getGroupPage(group)
+  const start = (page - 1) * groupPageSize
+  return group.submissions.slice(start, start + groupPageSize)
+}
+
+const changeGroupPage = (group: GroupedCandidate, page: number) => {
+  const totalPages = getGroupTotalPages(group)
+  if (page < 1 || page > totalPages) return
+  setGroupPage(group, page)
 }
 
 const groupedSubmissions = computed<GroupedCandidate[]>(() => {
   const groups = new Map<string, GroupedCandidate>()
   
   // V45: 使用筛选后的提交记录
+  const anonymousSubs = filteredSubmissions.value.filter(sub =>
+    isAnonymousSubmission(sub.candidate_name, sub.candidate_phone)
+  )
+
+  if (anonymousSubs.length > 0) {
+    const latest = getLatestSubmission(anonymousSubs)
+    groups.set('__anonymous__', {
+      phone: '',
+      name: `匿名填写（${anonymousSubs.length}人）`,
+      submissions: anonymousSubs,
+      totalSubmissions: anonymousSubs.length,
+      latestSubmission: latest,
+      completedCount: anonymousSubs.filter(s => s.status === 'completed').length,
+      __anonymousAggregate: true
+    })
+  }
+
   filteredSubmissions.value.forEach(sub => {
+    if (isAnonymousSubmission(sub.candidate_name, sub.candidate_phone)) return
     const key = sub.candidate_phone || sub.candidate_name || 'unknown'
     
     if (!groups.has(key)) {
@@ -394,6 +657,8 @@ const toggleCandidateExpand = (key: string) => {
     expandedCandidates.value.delete(key)
   } else {
     expandedCandidates.value.add(key)
+    const group = groupedSubmissions.value.find(g => getGroupKey(g) === key)
+    if (group) setGroupPage(group, 1)
   }
 }
 
@@ -402,7 +667,10 @@ const toggleAllCandidates = () => {
   if (expandedCandidates.value.size === groupedSubmissions.value.length) {
     expandedCandidates.value.clear()
   } else {
-    groupedSubmissions.value.forEach(g => expandedCandidates.value.add(g.phone || g.name))
+    groupedSubmissions.value.forEach(g => {
+      expandedCandidates.value.add(getGroupKey(g))
+      setGroupPage(g, 1)
+    })
   }
 }
 
@@ -622,14 +890,14 @@ const executeExport = async () => {
             <div class="candidate-groups">
               <div 
                 v-for="group in groupedSubmissions" 
-                :key="group.phone || group.name"
+                :key="getGroupKey(group)"
                 class="candidate-group-card"
-                :class="{ expanded: expandedCandidates.has(group.phone || group.name) }"
+                :class="{ expanded: expandedCandidates.has(getGroupKey(group)) }"
               >
                 <!-- 分组头部 V42: 调整布局，标签放名字旁边 -->
                 <div 
                   class="group-header"
-                  @click="toggleCandidateExpand(group.phone || group.name)"
+                  @click="toggleCandidateExpand(getGroupKey(group))"
                 >
                   <!-- ⭐ V44: 选择模式下显示复选框 -->
                   <input 
@@ -641,10 +909,10 @@ const executeExport = async () => {
                     @change="group.submissions.forEach(s => toggleSubmissionSelect(s.id))"
                   />
                   <div class="group-main">
-                    <span class="group-avatar">{{ (group.name || 'U')[0].toUpperCase() }}</span>
+                    <span class="group-avatar">{{ getGroupInitial(group) }}</span>
                     <div class="group-info">
                       <div class="group-name-row">
-                        <span class="group-name">{{ group.name || '未知' }}</span>
+                        <span class="group-name">{{ getGroupDisplayName(group) }}</span>
                         <span class="group-phone">{{ group.phone }}</span>
                       </div>
                       <div class="group-stats">
@@ -663,18 +931,20 @@ const executeExport = async () => {
                       </div>
                     </div>
                   </div>
-                  <i :class="['expand-icon', expandedCandidates.has(group.phone || group.name) ? 'ri-arrow-up-s-line' : 'ri-arrow-down-s-line']"></i>
+                  <i :class="['expand-icon', expandedCandidates.has(getGroupKey(group)) ? 'ri-arrow-up-s-line' : 'ri-arrow-down-s-line']"></i>
                 </div>
                 
                 <!-- 展开的提交列表 -->
-                <div v-if="expandedCandidates.has(group.phone || group.name)" class="group-submissions">
+                <div v-if="expandedCandidates.has(getGroupKey(group))" class="group-submissions">
                   <div 
-                    v-for="(sub, idx) in group.submissions" 
+                    v-for="(sub, idx) in getGroupSubmissions(group)" 
                     :key="sub.id"
                     class="submission-item"
                     :class="{ selected: selectedSubmission?.id === sub.id }"
                   >
-                    <div class="submission-order">#{{ idx + 1 }}</div>
+                    <div class="submission-order">
+                      #{{ (getGroupPage(group) - 1) * groupPageSize + idx + 1 }}
+                    </div>
                     <div class="submission-info">
                       <span class="submission-time">
                         {{ sub.submitted_at ? formatDate(sub.submitted_at) : '进行中' }}
@@ -693,6 +963,26 @@ const executeExport = async () => {
                         <i class="ri-delete-bin-line"></i>
                       </button>
                     </div>
+                  </div>
+
+                  <div v-if="getGroupTotalPages(group) > 1" class="group-pagination">
+                    <button
+                      class="page-btn"
+                      :disabled="getGroupPage(group) <= 1"
+                      @click="changeGroupPage(group, getGroupPage(group) - 1)"
+                    >
+                      上一页
+                    </button>
+                    <span class="page-info">
+                      {{ getGroupPage(group) }} / {{ getGroupTotalPages(group) }}
+                    </span>
+                    <button
+                      class="page-btn"
+                      :disabled="getGroupPage(group) >= getGroupTotalPages(group)"
+                      @click="changeGroupPage(group, getGroupPage(group) + 1)"
+                    >
+                      下一页
+                    </button>
                   </div>
                 </div>
               </div>
@@ -817,15 +1107,44 @@ const executeExport = async () => {
 
             <!-- V43: 提交趋势（优化样式） -->
             <div v-if="questionStats?.daily_trend && questionStats.daily_trend.length > 0" class="submission-trend">
-              <h4><i class="ri-calendar-line"></i> 提交趋势（近7天）</h4>
+              <div class="trend-header">
+                <h4><i class="ri-calendar-line"></i> 提交趋势（{{ trendRange === 'week' ? '本周' : '近一个月' }}）</h4>
+                <div class="trend-range">
+                  <button
+                    class="range-btn"
+                    :class="{ active: trendRange === 'week' }"
+                    @click="trendRange = 'week'"
+                  >
+                    本周
+                  </button>
+                  <button
+                    class="range-btn"
+                    :class="{ active: trendRange === 'month' }"
+                    @click="trendRange = 'month'"
+                  >
+                    近一个月
+                  </button>
+                </div>
+              </div>
               <div class="trend-chart-v43">
-                <div class="trend-line-container">
+                <div class="trend-line-container" ref="trendContainerRef">
                   <!-- 背景网格 -->
                   <div class="trend-grid">
                     <div class="grid-line" v-for="i in 4" :key="i"></div>
                   </div>
+                  <div
+                    v-if="trendTooltip.visible"
+                    class="trend-tooltip"
+                    :style="{ left: `${trendTooltip.x}px`, top: `${trendTooltip.y}px` }"
+                  >
+                    {{ trendTooltip.text }}
+                  </div>
                   <!-- 数据点和连线 -->
-                  <svg class="trend-svg" viewBox="0 0 600 100" preserveAspectRatio="none">
+                  <svg
+                    class="trend-svg"
+                    :viewBox="`0 0 ${trendChartWidth} ${trendSvgHeight}`"
+                    preserveAspectRatio="none"
+                  >
                     <defs>
                       <linearGradient id="areaGradient" x1="0%" y1="0%" x2="0%" y2="100%">
                         <stop offset="0%" style="stop-color: #7c3aed; stop-opacity: 0.3" />
@@ -847,9 +1166,14 @@ const executeExport = async () => {
                       stroke-linejoin="round"
                     />
                     <!-- 数据点 -->
-                    <circle 
+                  <g
                       v-for="(point, idx) in trendPoints" 
                       :key="idx"
+                    @mouseenter="showTrendTooltip($event, point)"
+                    @mousemove="moveTrendTooltip"
+                    @mouseleave="hideTrendTooltip"
+                  >
+                    <circle 
                       :cx="point.x" 
                       :cy="point.y" 
                       r="4"
@@ -857,18 +1181,20 @@ const executeExport = async () => {
                       stroke="#7c3aed"
                       stroke-width="2"
                     />
-                  </svg>
-                  <!-- 数据标签 -->
-                  <div class="trend-labels">
-                    <div 
-                      v-for="(day, idx) in questionStats.daily_trend" 
-                      :key="idx"
-                      class="trend-label-item"
+                  </g>
+                  <g class="trend-axis-labels">
+                    <text
+                      v-for="(point, idx) in trendLabelPoints"
+                      :key="`label-${idx}`"
+                      :x="point.x"
+                      :y="trendLabelY"
+                      text-anchor="middle"
+                      class="trend-axis-label"
                     >
-                      <span class="label-count" v-if="day.count > 0">{{ day.count }}</span>
-                      <span class="label-date">{{ formatTrendDate(day.date) }}</span>
-                    </div>
-                  </div>
+                      {{ formatTrendDate(point.date) }}
+                    </text>
+                  </g>
+                  </svg>
                 </div>
               </div>
             </div>
