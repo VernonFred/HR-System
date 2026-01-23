@@ -1474,30 +1474,32 @@ const executeExport = async () => {
                   <div class="question-header">
                     <span class="question-index">Q{{ q.index }}</span>
                     <span class="question-text">{{ q.text }}</span>
-                    <span class="question-type-badge" :class="`type-${q.type}`">
-                      {{ getQuestionTypeLabel(q.type) }}
-                    </span>
-                    <span
-                      v-if="isSingleChoiceQuestion(q.type) && q.options.length > 0"
-                      class="question-type-toggle"
-                    >
-                      <button
-                        type="button"
-                        class="toggle-btn"
-                        :class="{ active: getQuestionChartMode(q) === 'pie' }"
-                        @click="toggleQuestionChartMode(q)"
+                    <div class="question-type-group">
+                      <span class="question-type-badge" :class="`type-${q.type}`">
+                        {{ getQuestionTypeLabel(q.type) }}
+                      </span>
+                      <span
+                        v-if="isSingleChoiceQuestion(q.type) && q.options.length > 0"
+                        class="question-type-toggle"
                       >
-                        环形图
-                      </button>
-                      <button
-                        type="button"
-                        class="toggle-btn"
-                        :class="{ active: getQuestionChartMode(q) === 'bar' }"
-                        @click="toggleQuestionChartMode(q)"
-                      >
-                        条形图
-                      </button>
-                    </span>
+                        <button
+                          type="button"
+                          class="toggle-btn"
+                          :class="{ active: getQuestionChartMode(q) === 'pie' }"
+                          @click="toggleQuestionChartMode(q)"
+                        >
+                          环形图
+                        </button>
+                        <button
+                          type="button"
+                          class="toggle-btn"
+                          :class="{ active: getQuestionChartMode(q) === 'bar' }"
+                          @click="toggleQuestionChartMode(q)"
+                        >
+                          条形图
+                        </button>
+                      </span>
+                    </div>
                   </div>
                   
                   <!-- 选择题/量表题选项分布 -->

@@ -1259,7 +1259,7 @@
 
 .question-header {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   gap: 12px;
   margin-bottom: 16px;
 }
@@ -1286,6 +1286,13 @@
   line-height: 1.5;
 }
 
+.question-type-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
 .question-type-badge {
   flex-shrink: 0;
   padding: 4px 10px;
@@ -1295,7 +1302,7 @@
 }
 
 .question-type-badge.type-single {
-  background: #dbeafe;
+  background: rgba(37, 99, 235, 0.12);
   color: #2563eb;
 }
 
@@ -1318,7 +1325,7 @@
 .option-distribution {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 18px;
 }
 
 .option-chart {
@@ -1333,7 +1340,6 @@
   align-items: center;
   gap: 6px;
   padding: 2px;
-  margin-left: 4px;
 }
 
 .question-type-toggle .toggle-btn {
