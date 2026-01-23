@@ -1328,14 +1328,15 @@
   padding: 8px;
 }
 
-.option-chart-toggle {
-  display: flex;
-  justify-content: flex-end;
+.question-type-toggle {
+  display: inline-flex;
+  align-items: center;
   gap: 6px;
-  padding: 4px 4px 0;
+  padding: 2px;
+  margin-left: 4px;
 }
 
-.option-chart-toggle .toggle-btn {
+.question-type-toggle .toggle-btn {
   border: none;
   background: #f1f5f9;
   color: #64748b;
@@ -1346,7 +1347,7 @@
   transition: all 0.2s ease;
 }
 
-.option-chart-toggle .toggle-btn.active {
+.question-type-toggle .toggle-btn.active {
   background: #7c3aed;
   color: #fff;
 }

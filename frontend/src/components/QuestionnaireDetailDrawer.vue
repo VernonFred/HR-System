@@ -1477,29 +1477,32 @@ const executeExport = async () => {
                     <span class="question-type-badge" :class="`type-${q.type}`">
                       {{ getQuestionTypeLabel(q.type) }}
                     </span>
+                    <span
+                      v-if="isSingleChoiceQuestion(q.type) && q.options.length > 0"
+                      class="question-type-toggle"
+                    >
+                      <button
+                        type="button"
+                        class="toggle-btn"
+                        :class="{ active: getQuestionChartMode(q) === 'pie' }"
+                        @click="toggleQuestionChartMode(q)"
+                      >
+                        环形图
+                      </button>
+                      <button
+                        type="button"
+                        class="toggle-btn"
+                        :class="{ active: getQuestionChartMode(q) === 'bar' }"
+                        @click="toggleQuestionChartMode(q)"
+                      >
+                        条形图
+                      </button>
+                    </span>
                   </div>
                   
                   <!-- 选择题/量表题选项分布 -->
                   <div v-if="!isTextQuestion(q.type)" class="option-distribution">
                     <div v-if="q.options.length > 0" class="option-chart">
-                      <div v-if="isSingleChoiceQuestion(q.type)" class="option-chart-toggle">
-                        <button
-                          type="button"
-                          class="toggle-btn"
-                          :class="{ active: getQuestionChartMode(q) === 'pie' }"
-                          @click="toggleQuestionChartMode(q)"
-                        >
-                          环形图
-                        </button>
-                        <button
-                          type="button"
-                          class="toggle-btn"
-                          :class="{ active: getQuestionChartMode(q) === 'bar' }"
-                          @click="toggleQuestionChartMode(q)"
-                        >
-                          条形图
-                        </button>
-                      </div>
                       <div v-if="isSingleChoiceQuestion(q.type) && getQuestionChartMode(q) === 'bar'" class="option-chart-body">
                         <div class="option-bar" v-for="opt in q.options" :key="opt.index ?? opt.text">
                           <div class="option-info">
