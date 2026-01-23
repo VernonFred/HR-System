@@ -11,6 +11,7 @@ interface Questionnaire {
   name: string
   type: string
   description?: string
+  creator?: string
   questions_count: number
   estimated_minutes: number
   status: 'active' | 'inactive'
@@ -170,6 +171,10 @@ onUnmounted(() => {
       </div>
       
       <p class="card-desc">{{ questionnaire.description }}</p>
+
+      <div v-if="questionnaire.creator" class="card-creator">
+        创建人 {{ questionnaire.creator }}
+      </div>
       
       <div class="card-date">
         创建于 {{ formattedDate }}
@@ -421,6 +426,12 @@ onUnmounted(() => {
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
+}
+
+.card-creator {
+  font-size: 0.75rem;
+  color: #94a3b8;
+  margin-bottom: 0.5rem;
 }
 
 .card-date {

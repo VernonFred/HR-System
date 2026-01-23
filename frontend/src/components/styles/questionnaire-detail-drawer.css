@@ -1306,6 +1306,13 @@
   color: #2563eb;
 }
 
+.question-type-badge.type-radio,
+.question-type-badge.type-yesno,
+.question-type-badge.type-choice {
+  background: rgba(37, 99, 235, 0.12);
+  color: #2563eb;
+}
+
 .question-type-badge.type-multiple {
   background: #d1fae5;
   color: #059669;
@@ -1360,6 +1367,12 @@
 
 .option-chart-body {
   padding: 8px;
+}
+
+.option-chart-bars {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
 }
 
 .empty-option-chart {

@@ -15,6 +15,7 @@ export interface Questionnaire {
   custom_type?: string;
   scoring_config?: any;
   purpose?: string;
+  creator?: string;
   questions_count: number;
   estimated_minutes: number;
   status: string;

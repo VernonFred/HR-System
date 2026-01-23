@@ -1505,7 +1505,7 @@ const executeExport = async () => {
                   <!-- 选择题/量表题选项分布 -->
                   <div v-if="!isTextQuestion(q.type)" class="option-distribution">
                     <div v-if="q.options.length > 0" class="option-chart">
-                      <div v-if="isSingleChoiceQuestion(q.type) && getQuestionChartMode(q) === 'bar'" class="option-chart-body">
+                      <div v-if="isSingleChoiceQuestion(q.type) && getQuestionChartMode(q) === 'bar'" class="option-chart-body option-chart-bars">
                         <div class="option-bar" v-for="opt in q.options" :key="opt.index ?? opt.text">
                           <div class="option-info">
                             <span class="option-text">{{ opt.text }}</span>

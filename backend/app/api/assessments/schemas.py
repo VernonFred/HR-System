@@ -80,6 +80,7 @@ class QuestionnaireResponse(QuestionnaireBase):
     status: str
     created_at: datetime
     updated_at: datetime
+    creator: Optional[str] = None
     # ⭐ 新增：自定义问卷字段
     custom_type: Optional[str] = None
     scoring_config: Optional[Dict[str, Any]] = None  # 允许为 None

@@ -38,6 +38,12 @@ class Questionnaire(SQLModel, table=True):
     created_at: datetime = Field(default_factory=datetime.now)
     updated_at: datetime = Field(default_factory=datetime.now)
 
+    @property
+    def creator(self) -> Optional[str]:
+        meta = (self.questions_data or {}).get("meta") or {}
+        creator = meta.get("creator")
+        return creator or None
+
 
 class Assessment(SQLModel, table=True):
     """测评表（分发记录）."""
