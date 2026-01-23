@@ -81,6 +81,32 @@ async def update_questionnaire(
     return questionnaire
 
 
+async def copy_questionnaire(session: Session, questionnaire_id: int) -> Optional[Questionnaire]:
+    """复制问卷."""
+    questionnaire = session.get(Questionnaire, questionnaire_id)
+    if not questionnaire:
+        return None
+
+    copied = Questionnaire(
+        name=f"{questionnaire.name}（副本）",
+        type=questionnaire.type,
+        category=questionnaire.category,
+        description=questionnaire.description,
+        questions_count=questionnaire.questions_count,
+        estimated_minutes=questionnaire.estimated_minutes,
+        questions_data=questionnaire.questions_data,
+        scoring_rules=questionnaire.scoring_rules,
+        custom_type=questionnaire.custom_type,
+        scoring_config=questionnaire.scoring_config,
+        purpose=questionnaire.purpose,
+        status=questionnaire.status,
+    )
+    session.add(copied)
+    session.commit()
+    session.refresh(copied)
+    return copied
+
+
 async def delete_questionnaire(session: Session, questionnaire_id: int) -> bool:
     """删除问卷."""
     questionnaire = session.get(Questionnaire, questionnaire_id)

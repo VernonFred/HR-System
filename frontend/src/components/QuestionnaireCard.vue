@@ -29,6 +29,7 @@ const emit = defineEmits<{
   (e: 'view-links', q: Questionnaire): void
   (e: 'distribute', q: Questionnaire): void
   (e: 'view-detail', q: Questionnaire): void
+  (e: 'copy', q: Questionnaire): void
   (e: 'disabled-distribute-click'): void
 }>()
 
@@ -69,6 +70,11 @@ function handleDelete() {
   if (isDeleteDisabled.value) return // 内置测评问卷禁止删除
   closeMenu()
   emit('delete', props.questionnaire)
+}
+
+function handleCopy() {
+  closeMenu()
+  emit('copy', props.questionnaire)
 }
 
 function handleToggleStatus() {
@@ -127,6 +133,10 @@ onUnmounted(() => {
           <button @click.stop="handleEdit">
             <i class="ri-edit-line"></i>
             编辑问卷
+          </button>
+          <button @click.stop="handleCopy">
+            <i class="ri-file-copy-line"></i>
+            复制问卷
           </button>
           <button 
             class="danger" 

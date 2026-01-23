@@ -106,6 +106,18 @@ async def update_questionnaire(
     return questionnaire
 
 
+@router.post("/questionnaires/{questionnaire_id}/copy", response_model=schemas.QuestionnaireResponse, status_code=201)
+async def copy_questionnaire(
+    questionnaire_id: int,
+    session: Session = Depends(get_session)
+):
+    """复制问卷."""
+    questionnaire = await service.copy_questionnaire(session, questionnaire_id)
+    if not questionnaire:
+        raise HTTPException(status_code=404, detail="问卷不存在")
+    return questionnaire
+
+
 @router.delete("/questionnaires/{questionnaire_id}", status_code=204)
 async def delete_questionnaire(
     questionnaire_id: int,

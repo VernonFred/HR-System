@@ -10,6 +10,7 @@
  * 5. 候选人视角预览
  */
 import { ref, computed, onMounted, watch } from 'vue'
+import { useAuthStore } from '../stores/auth'
 import CandidatePreviewPanel from './CandidatePreviewPanel.vue'
 import QuestionEditDialog, { type EditorQuestion } from './QuestionEditDialog.vue'
 import {
@@ -49,10 +50,13 @@ const questionControls = [
 const isEdit = computed(() => !!props.questionnaire)
 const loading = ref(false)
 const editorStep = ref<'info' | 'questions'>('info')
+const authStore = useAuthStore()
+const questionsMeta = ref<Record<string, any>>({})
 
 // 表单数据
 const form = ref({
   name: '',
+  creator: '',
   type: 'CUSTOM',
   category: 'scored',
   description: '',
@@ -361,7 +365,13 @@ const save = async () => {
       description: form.value.description,
       questions_count: editorQuestions.value.length,
       estimated_minutes: form.value.estimated_minutes,
-      questions_data: { questions: questionsData },
+      questions_data: {
+        questions: questionsData,
+        meta: {
+          ...questionsMeta.value,
+          creator: form.value.creator,
+        },
+      },
       scoring_rules: {},
       custom_type: customType,
       scoring_config: scoringConfig,
@@ -385,6 +395,9 @@ const save = async () => {
 
 // ===== 生命周期 =====
 onMounted(async () => {
+  if (!form.value.creator) {
+    form.value.creator = authStore.username || 'Admin'
+  }
   // V43: 处理导入的问卷数据
   if (props.importedData && props.importedData.questions.length > 0) {
     const { metadata, questions } = props.importedData
@@ -393,6 +406,10 @@ onMounted(async () => {
     form.value.name = metadata.name || '导入的问卷'
     form.value.description = metadata.description || ''
     form.value.estimated_minutes = metadata.estimated_minutes || 15
+    if (metadata.creator) {
+      form.value.creator = metadata.creator
+    }
+    questionsMeta.value = { ...(metadata || {}) }
     
     // 转换题目格式 - V45: 修复选项格式转换
     editorQuestions.value = questions.map((q, idx) => {
@@ -454,6 +471,13 @@ onMounted(async () => {
           scoreA: q.scoreA,
           scoreB: q.scoreB,
         }))
+      }
+
+      if (detail.questions_data?.meta) {
+        questionsMeta.value = { ...detail.questions_data.meta }
+        if (detail.questions_data.meta.creator) {
+          form.value.creator = detail.questions_data.meta.creator
+        }
       }
       
       const scored = detail.category === 'scored' || (detail as any).custom_type === 'scored'
@@ -534,6 +558,16 @@ watch(previewIndex, () => {
                 class="form-input" 
                 v-model="form.name" 
                 placeholder="请输入问卷名称"
+              />
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">问卷创建人</label>
+              <input
+                type="text"
+                class="form-input"
+                v-model="form.creator"
+                placeholder="请输入创建人（选填）"
               />
             </div>
             

@@ -129,6 +129,14 @@ export const deleteQuestionnaire = (id: number) => {
   });
 };
 
+export const copyQuestionnaire = (id: number) => {
+  return apiRequestWithBody<Questionnaire>({
+    path: `/api/assessments/questionnaires/${id}/copy`,
+    method: "POST",
+    auth: false,
+  });
+};
+
 // ========== 测评管理 ==========
 
 export interface Assessment {

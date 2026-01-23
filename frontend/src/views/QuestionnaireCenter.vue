@@ -20,6 +20,7 @@ import {
   fetchQuestionnaires,
   fetchAssessments,
   fetchSubmissions,
+  copyQuestionnaire,
   deleteQuestionnaire,
   deleteSubmission,  // ⭐ V44: 导入删除提交记录API
   importQuestionnaire,
@@ -239,6 +240,17 @@ const confirmDelete = (q: Questionnaire) => {
   showDeleteConfirm.value = true
 }
 
+const handleCopyQuestionnaire = async (q: Questionnaire) => {
+  try {
+    const copied = await copyQuestionnaire(q.id)
+    showMessage(`已复制问卷：${copied.name}`, 'success')
+    await loadData()
+  } catch (error) {
+    console.error('复制问卷失败:', error)
+    showMessage('复制问卷失败，请重试', 'error')
+  }
+}
+
 const cancelDelete = () => {
   showDeleteConfirm.value = false
   deleteTarget.value = null
@@ -354,6 +366,7 @@ onMounted(() => {
           category="custom"
           @view-detail="openDetailDrawer"
           @edit="openEditModal"
+          @copy="handleCopyQuestionnaire"
           @delete="confirmDelete"
           @distribute="openDistributeModal"
           @view-links="openViewLinksPanel"
