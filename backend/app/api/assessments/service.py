@@ -1,6 +1,6 @@
 """问卷/测评管理 - 业务逻辑."""
 from datetime import datetime
-from typing import List, Tuple, Optional
+from typing import List, Tuple, Optional, Dict, Any
 from sqlmodel import Session, select, func, and_
 import random
 import string
@@ -129,6 +129,8 @@ def generate_assessment_code() -> str:
 
 async def create_assessment(session: Session, data: dict) -> Assessment:
     """创建测评."""
+    if "routing_config" in data:
+        data["routing_config"] = await normalize_routing_config(session, data.get("routing_config"), strict=True)
     code = generate_assessment_code()
     assessment_data = {**data, "code": code}
     assessment = Assessment(**assessment_data)
@@ -152,6 +154,121 @@ async def get_assessment_by_code(session: Session, code: str) -> Optional[Assess
     """根据code获取测评."""
     statement = select(Assessment).where(Assessment.code == code)
     return session.exec(statement).first()
+
+
+async def normalize_routing_config(
+    session: Session,
+    raw_config: Optional[Dict[str, Any]],
+    strict: bool = True
+) -> Dict[str, Any]:
+    """标准化并校验部门路由配置."""
+    base_config: Dict[str, Any] = {
+        "enabled": False,
+        "department_field": "department",
+        "fallback_to_default": True,
+        "mappings": [],
+    }
+
+    if not isinstance(raw_config, dict):
+        return base_config
+
+    enabled = bool(raw_config.get("enabled", False))
+    department_field = str(raw_config.get("department_field") or "department").strip() or "department"
+    fallback_to_default = bool(raw_config.get("fallback_to_default", True))
+
+    mappings: List[Dict[str, Any]] = []
+    raw_mappings = raw_config.get("mappings")
+    if isinstance(raw_mappings, list):
+        for item in raw_mappings:
+            if not isinstance(item, dict):
+                continue
+
+            department_value = str(item.get("department_value") or "").strip()
+            questionnaire_id_raw = item.get("questionnaire_id")
+
+            try:
+                questionnaire_id = int(questionnaire_id_raw) if questionnaire_id_raw is not None else None
+            except (TypeError, ValueError):
+                questionnaire_id = None
+
+            if not department_value or questionnaire_id is None:
+                if strict and enabled:
+                    raise ValueError("部门路由配置无效：请为每个映射填写部门和目标问卷")
+                continue
+
+            questionnaire = session.get(Questionnaire, questionnaire_id)
+            if not questionnaire:
+                if strict and enabled:
+                    raise ValueError(f"部门路由配置无效：问卷ID {questionnaire_id} 不存在")
+                continue
+
+            mappings.append({
+                "department_value": department_value,
+                "questionnaire_id": questionnaire_id,
+            })
+
+    deduped_by_department: Dict[str, Dict[str, Any]] = {}
+    for item in mappings:
+        deduped_by_department[item["department_value"]] = item
+
+    return {
+        "enabled": enabled,
+        "department_field": department_field,
+        "fallback_to_default": fallback_to_default,
+        "mappings": list(deduped_by_department.values()),
+    }
+
+
+async def resolve_questionnaire_id(
+    session: Session,
+    assessment: Assessment,
+    submission_data: Dict[str, Any]
+) -> int:
+    """根据部门路由配置解析本次填写应该使用的问卷ID."""
+    default_questionnaire_id = assessment.questionnaire_id
+    routing_config = await normalize_routing_config(session, assessment.routing_config, strict=False)
+
+    if not routing_config.get("enabled"):
+        return default_questionnaire_id
+
+    department_field = str(routing_config.get("department_field") or "department").strip() or "department"
+    fallback_to_default = bool(routing_config.get("fallback_to_default", True))
+
+    custom_data = submission_data.get("custom_data")
+    raw_department = ""
+    if isinstance(custom_data, dict):
+        raw_department = custom_data.get(department_field) or ""
+    if not raw_department:
+        raw_department = submission_data.get(department_field) or ""
+
+    department_value = str(raw_department).strip()
+    if not department_value:
+        return default_questionnaire_id
+
+    mappings = routing_config.get("mappings") if isinstance(routing_config.get("mappings"), list) else []
+    target_questionnaire_id: Optional[int] = None
+    for item in mappings:
+        if not isinstance(item, dict):
+            continue
+        if str(item.get("department_value") or "").strip() == department_value:
+            try:
+                target_questionnaire_id = int(item.get("questionnaire_id"))
+            except (TypeError, ValueError):
+                target_questionnaire_id = None
+            break
+
+    if target_questionnaire_id is None:
+        if fallback_to_default:
+            return default_questionnaire_id
+        raise ValueError(f"部门“{department_value}”未配置对应问卷")
+
+    target_questionnaire = session.get(Questionnaire, target_questionnaire_id)
+    if target_questionnaire and target_questionnaire.status == "active":
+        return target_questionnaire_id
+
+    if fallback_to_default:
+        return default_questionnaire_id
+    raise ValueError(f"部门“{department_value}”对应问卷不可用")
 
 
 # ========== 提交记录管理 ==========
@@ -276,7 +393,12 @@ async def increment_start_count(session: Session, assessment_id: int) -> None:
         session.commit()
 
 
-async def create_submission(session: Session, assessment_id: int, data: dict) -> Submission:
+async def create_submission(
+    session: Session,
+    assessment_id: int,
+    data: dict,
+    questionnaire_id_override: Optional[int] = None
+) -> Submission:
     """创建提交记录（候选人开始测评）."""
     # 获取测评信息
     assessment = session.get(Assessment, assessment_id)
@@ -287,6 +409,8 @@ async def create_submission(session: Session, assessment_id: int, data: dict) ->
     
     # ⭐ 提取 custom_data 中的关键字段（如果存在）
     custom_data = data.get("custom_data", {})
+    if not isinstance(custom_data, dict):
+        custom_data = {}
     
     # V45: 调试日志 - 查看传入的数据
     print(f"[create_submission] 传入数据: {data}")
@@ -339,7 +463,7 @@ async def create_submission(session: Session, assessment_id: int, data: dict) ->
         **data,
         "code": code,
         "assessment_id": assessment_id,
-        "questionnaire_id": assessment.questionnaire_id,
+        "questionnaire_id": questionnaire_id_override or assessment.questionnaire_id,
         "status": "in_progress",
         "candidate_id": candidate_id,  # ⭐ 关联候选人
         "target_position": target_position,  # ⭐ 确保应聘岗位字段正确保存
@@ -471,6 +595,9 @@ async def update_assessment(session: Session, assessment_id: int, data: dict) ->
     if not assessment:
         return None
     
+    if "routing_config" in data:
+        data["routing_config"] = await normalize_routing_config(session, data.get("routing_config"), strict=True)
+
     # 更新字段
     for key, value in data.items():
         if value is not None and hasattr(assessment, key):
@@ -1228,4 +1355,3 @@ async def export_submissions_to_excel(
     output.seek(0)
     
     return output.getvalue()
-

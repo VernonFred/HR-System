@@ -63,6 +63,13 @@ class Assessment(SQLModel, table=True):
     
     # ⭐ 新增：页面文案配置
     page_texts: dict = Field(default={}, sa_column=Column(JSON))  # 页面文案配置
+
+    # ⭐ 部门路由配置（可选）
+    # enabled: 是否启用部门路由
+    # department_field: custom_data 中用于路由的字段名，默认 department
+    # fallback_to_default: 未命中或目标问卷不可用时是否回退默认问卷
+    # mappings: [{department_value, questionnaire_id}]
+    routing_config: dict = Field(default={}, sa_column=Column(JSON))
     
     # ⭐ 分发机制扩展
     link_type: str = Field(default="temporary", max_length=20)  # temporary/permanent
@@ -120,4 +127,3 @@ class Submission(SQLModel, table=True):
     
     # 关联到候选人表（通过手机号+姓名双重校验自动关联）
     candidate_id: Optional[int] = Field(default=None, foreign_key="candidates.id")
-

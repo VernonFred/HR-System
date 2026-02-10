@@ -149,7 +149,25 @@ export interface Assessment {
   valid_until: string;
   description?: string;
   qr_code_url?: string;
+  form_fields?: FormField[];
+  page_texts?: PageTexts;
+  link_type?: string;
+  allow_repeat?: boolean;
+  repeat_check_by?: string;
+  repeat_interval_hours?: number;
+  max_submissions?: number;
+  routing_config?: DepartmentRoutingConfig;
   created_at: string;
+}
+
+export interface DepartmentRoutingConfig {
+  enabled: boolean;
+  department_field: string;
+  fallback_to_default: boolean;
+  mappings: Array<{
+    department_value: string;
+    questionnaire_id: number;
+  }>;
 }
 
 export interface AssessmentCreate {
@@ -165,6 +183,7 @@ export interface AssessmentCreate {
   repeat_check_by?: string;
   repeat_interval_hours?: number;
   max_submissions?: number;
+  routing_config?: DepartmentRoutingConfig;
 }
 
 // 表单字段配置
@@ -253,6 +272,7 @@ export interface AssessmentUpdate {
   repeat_check_by?: string;
   repeat_interval_hours?: number;
   max_submissions?: number;
+  routing_config?: DepartmentRoutingConfig;
 }
 
 export const updateAssessment = (id: number, data: AssessmentUpdate) => {
@@ -302,6 +322,7 @@ export interface Submission {
   started_at: string;
   submitted_at?: string;
   result_details?: any; // 测评维度详细数据 (MBTI/DISC/EPQ等)
+  custom_data?: Record<string, any>;  // 自定义字段（用于部门等信息展示）
 }
 
 export const fetchSubmissions = (params?: {
@@ -859,4 +880,3 @@ export const importQuestionnaire = async (
   
   return response.json();
 };
-

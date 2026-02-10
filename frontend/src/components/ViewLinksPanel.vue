@@ -26,6 +26,7 @@ const props = defineProps<{
 const emit = defineEmits<{
   (e: 'close'): void
   (e: 'create-new'): void
+  (e: 'edit', assessment: Assessment): void
 }>()
 
 // ===== 状态 =====
@@ -52,6 +53,7 @@ interface DistributionInfo {
   validUntil: string
   isActive: boolean
   isExpired: boolean
+  assessment: Assessment
 }
 
 // ===== 计算属性 =====
@@ -107,6 +109,7 @@ const loadDistributions = async () => {
         validUntil: linkType === 'permanent' ? '长期有效' : validUntil.toLocaleDateString('zh-CN'),
         isActive,
         isExpired,
+        assessment: a,
       }
     }))
     
@@ -143,6 +146,10 @@ const copyLink = async (link: string) => {
     }
     document.body.removeChild(textArea)
   }
+}
+
+const editDistribution = (dist: DistributionInfo) => {
+  emit('edit', dist.assessment)
 }
 
 const downloadQRCode = (dataUrl: string, name: string) => {
@@ -328,6 +335,10 @@ onMounted(() => {
 
               <!-- 操作按钮 -->
               <div class="dist-actions">
+                <button class="dist-action-btn edit" @click="editDistribution(dist)" title="编辑配置">
+                  <i class="ri-settings-3-line"></i>
+                  编辑
+                </button>
                 <button class="dist-action-btn delete" @click="openDeleteModal(dist)" title="删除链接">
                   <i class="ri-delete-bin-line"></i>
                   删除
@@ -848,6 +859,7 @@ onMounted(() => {
 .dist-actions {
   display: flex;
   justify-content: flex-end;
+  gap: 8px;
   padding-top: 12px;
   border-top: 1px solid #e2e8f0;
   margin-top: 16px;
@@ -876,6 +888,17 @@ onMounted(() => {
   background: #ef4444;
   border-color: #ef4444;
   color: white;
+}
+
+.dist-action-btn.edit {
+  background: #f5f3ff;
+  border-color: #ddd6fe;
+  color: #6d28d9;
+}
+
+.dist-action-btn.edit:hover {
+  background: #ede9fe;
+  border-color: #c4b5fd;
 }
 
 /* 删除确认弹窗 */
@@ -1107,4 +1130,3 @@ onMounted(() => {
   }
 }
 </style>
-

@@ -31,6 +31,11 @@ const isProfessionalAssessment = computed(() => {
 })
 
 const resultDetails = computed(() => props.submission?.result_details || {})
+const submissionDepartment = computed(() => {
+  const value = props.submission?.custom_data?.department
+  if (value === undefined || value === null) return ''
+  return String(value).trim()
+})
 
 // ===== 方法 =====
 const close = () => emit('close')
@@ -130,6 +135,10 @@ const getDimensionValue = (dim: any): number => {
             <div class="info-row">
               <i class="ri-phone-line"></i>
               <span>{{ submission?.candidate_phone || '-' }}</span>
+            </div>
+            <div v-if="submissionDepartment" class="info-row">
+              <i class="ri-building-line"></i>
+              <span>{{ submissionDepartment }}</span>
             </div>
           </div>
           <div v-if="submission?.total_score !== null && submission?.total_score !== undefined" class="score-badge">
@@ -1098,4 +1107,3 @@ const getDimensionValue = (dim: any): number => {
   }
 }
 </style>
-

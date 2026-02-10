@@ -277,7 +277,6 @@ onMounted(() => {
           <i class="ri-file-list-3-fill"></i>
         </div>
         <h1 class="brand-name">TalentLens</h1>
-        <p class="brand-tagline">人才初步画像智能工具</p>
       </div>
 
       <!-- 加载中 -->
@@ -466,14 +465,8 @@ onMounted(() => {
   font-size: 2rem;
   font-weight: 700;
   color: white;
-  margin: 0 0 0.5rem;
-  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
-}
-
-.brand-tagline {
-  color: rgba(255, 255, 255, 0.9);
   margin: 0;
-  font-size: 1rem;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
 }
 
 /* 卡片通用样式 */
@@ -848,4 +841,3 @@ select.form-input option {
   }
 }
 </style>
-

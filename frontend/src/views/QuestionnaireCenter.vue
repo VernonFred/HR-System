@@ -163,15 +163,18 @@ const handleEditorSave = () => {
 // ===== 分发弹窗 =====
 const showDistributeModal = ref(false)
 const distributeQuestionnaire = ref<Questionnaire | null>(null)
+const distributeAssessment = ref<Assessment | null>(null)
 
-const openDistributeModal = (q: Questionnaire) => {
+const openDistributeModal = (q: Questionnaire, assessment: Assessment | null = null) => {
   distributeQuestionnaire.value = q
+  distributeAssessment.value = assessment
   showDistributeModal.value = true
 }
 
 const closeDistributeModal = () => {
   showDistributeModal.value = false
   distributeQuestionnaire.value = null
+  distributeAssessment.value = null
 }
 
 const handleDistributeSuccess = () => {
@@ -198,6 +201,16 @@ const handleCreateNewLink = () => {
     closeViewLinksPanel()
     openDistributeModal(viewLinksQuestionnaire.value)
   }
+}
+
+const handleEditDistribution = (assessment: Assessment) => {
+  const questionnaire = questionnaires.value.find((q) => q.id === assessment.questionnaire_id)
+  if (!questionnaire) {
+    showMessage('未找到该链接对应的问卷', 'error')
+    return
+  }
+  closeViewLinksPanel()
+  openDistributeModal(questionnaire, assessment)
 }
 
 // ===== 切换问卷状态 =====
@@ -471,6 +484,7 @@ onMounted(() => {
     <DistributeModal
       v-if="showDistributeModal"
       :questionnaire="distributeQuestionnaire"
+      :assessment="distributeAssessment"
       @close="closeDistributeModal"
       @success="handleDistributeSuccess"
     />
@@ -481,6 +495,7 @@ onMounted(() => {
       :questionnaire="viewLinksQuestionnaire"
       @close="closeViewLinksPanel"
       @create-new="handleCreateNewLink"
+      @edit="handleEditDistribution"
     />
 
     <!-- 删除确认弹窗 -->
@@ -1168,4 +1183,3 @@ onMounted(() => {
   }
 }
 </style>
-

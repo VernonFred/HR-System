@@ -125,6 +125,7 @@ class AssessmentCreate(AssessmentBase):
     repeat_check_by: str = "phone"  # 重复判断依据
     repeat_interval_hours: int = 0  # 重复提交间隔（小时）
     max_submissions: int = 0  # 最大提交次数（0=不限）
+    routing_config: Optional[Dict[str, Any]] = {}  # ⭐ 部门路由配置
 
 
 class AssessmentUpdate(BaseModel):
@@ -141,6 +142,7 @@ class AssessmentUpdate(BaseModel):
     repeat_check_by: Optional[str] = None
     repeat_interval_hours: Optional[int] = None
     max_submissions: Optional[int] = None
+    routing_config: Optional[Dict[str, Any]] = None  # ⭐ 部门路由配置
 
 
 class AssessmentResponse(AssessmentBase):
@@ -158,6 +160,7 @@ class AssessmentResponse(AssessmentBase):
     max_submissions: int = 0
     view_count: int = 0
     start_count: int = 0
+    routing_config: Optional[Dict[str, Any]] = None
     created_at: datetime
 
     class Config:
@@ -218,6 +221,7 @@ class SubmissionResponse(BaseModel):
     max_score: Optional[int] = None
     score_percentage: Optional[float] = None
     result_details: Optional[Union[Dict[str, Any], List[Any]]] = None  # 允许为 None，支持 Dict 或 List
+    custom_data: Optional[Dict[str, Any]] = None  # ⭐ 仅用于详情展示部门等自定义信息
 
     class Config:
         from_attributes = True
@@ -279,4 +283,3 @@ class QuestionnaireImportResponse(BaseModel):
     message: str
     metadata: Dict[str, Any] = {}  # 问卷元数据（名称、描述等）
     questions: List[Dict[str, Any]] = []  # 解析出的题目列表
-

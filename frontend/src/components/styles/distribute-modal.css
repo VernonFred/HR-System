@@ -980,6 +980,119 @@
   max-height: 500px;
 }
 
+.fields-left-column {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  min-height: 0;
+}
+
+.routing-config-card {
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  background: #fff;
+  padding: 0.875rem;
+}
+
+.routing-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.625rem;
+}
+
+.routing-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #374151;
+}
+
+.routing-title i {
+  color: #7c3aed;
+}
+
+.routing-tip {
+  margin: 0 0 0.625rem;
+  font-size: 0.75rem;
+  color: #6b7280;
+}
+
+.routing-missing {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  font-size: 0.75rem;
+  color: #6b7280;
+}
+
+.btn-add-department {
+  border: 1px solid #c4b5fd;
+  color: #6d28d9;
+  background: #f5f3ff;
+  border-radius: 8px;
+  padding: 0.25rem 0.5rem;
+  font-size: 0.75rem;
+  cursor: pointer;
+}
+
+.routing-mappings {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.mapping-head,
+.mapping-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr 32px;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.mapping-head {
+  font-size: 0.75rem;
+  color: #6b7280;
+}
+
+.mapping-head span:last-child {
+  grid-column: 2 / span 1;
+}
+
+.mapping-select {
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  padding: 0.45rem 0.6rem;
+  font-size: 0.8125rem;
+  min-width: 0;
+}
+
+.btn-remove-mapping {
+  border: none;
+  background: #f3f4f6;
+  border-radius: 8px;
+  height: 32px;
+  color: #ef4444;
+  cursor: pointer;
+}
+
+.btn-add-mapping {
+  border: 1px dashed #c4b5fd;
+  background: #faf5ff;
+  color: #6d28d9;
+  border-radius: 8px;
+  padding: 0.45rem 0.6rem;
+  font-size: 0.8125rem;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  align-self: flex-start;
+}
+
 /* 右侧预览面板 */
 .preview-panel {
   display: flex;

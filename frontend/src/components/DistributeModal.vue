@@ -13,8 +13,12 @@ import { ref, computed, onMounted, watch } from 'vue'
 import QRCode from 'qrcode'
 import {
   createAssessment,
+  updateAssessment,
+  fetchQuestionnaires,
   type Questionnaire,
+  type Assessment,
   type AssessmentCreate,
+  type DepartmentRoutingConfig,
   type FormField,
   type PageTexts,
 } from '../api/assessments'
@@ -23,6 +27,7 @@ import FieldConfigPanel from './FieldConfigPanel.vue'
 // ===== Props =====
 const props = defineProps<{
   questionnaire: Questionnaire | null
+  assessment?: Assessment | null
 }>()
 
 // ===== Emits =====
@@ -38,6 +43,7 @@ const generatedCode = ref('')
 const generatedLink = ref('')
 const qrcodeDataURL = ref('')
 const showLinkCopied = ref(false)
+const allQuestionnaires = ref<Questionnaire[]>([])
 
 // ===== 表单数据 =====
 const form = ref({
@@ -74,11 +80,39 @@ const formFields = ref<FormField[]>([
   { id: 'target_position', name: 'target_position', label: '应聘岗位', type: 'text', placeholder: '请输入应聘岗位', required: false, enabled: true, builtin: true },
 ])
 
+const routingConfig = ref<DepartmentRoutingConfig>({
+  enabled: false,
+  department_field: 'department',
+  fallback_to_default: true,
+  mappings: [],
+})
+
 // 页面文案编辑类型
 const pageEditType = ref<'entry' | 'success'>('entry')
+const isEditMode = computed(() => !!props.assessment?.id)
 
 // ===== 计算属性 =====
 const enabledFields = computed(() => formFields.value.filter(f => f.enabled))
+const departmentField = computed(() => {
+  return formFields.value.find((f) => {
+    const fieldName = (f.name || f.id || '').toString().trim()
+    return fieldName === 'department' && f.type === 'select' && f.enabled !== false
+  })
+})
+const departmentOptions = computed(() => {
+  const options = departmentField.value?.options || []
+  return options
+    .map((opt) => {
+      if (typeof opt === 'string') return opt.trim()
+      const value = (opt?.value ?? opt?.label ?? '').toString().trim()
+      return value
+    })
+    .filter(Boolean)
+})
+const availableTargetQuestionnaires = computed(() => {
+  const currentId = props.questionnaire?.id
+  return allQuestionnaires.value.filter((q) => q.id !== currentId)
+})
 
 // ⭐ V50: 使用本地时间格式，避免 UTC 时区问题
 const formatLocalDateTime = (date: Date): string => {
@@ -91,7 +125,22 @@ const formatLocalDateTime = (date: Date): string => {
   return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}`
 }
 
-const validFrom = computed(() => formatLocalDateTime(new Date()))
+const toDateTimeLocalInput = (dateStr: string): string => {
+  const date = new Date(dateStr)
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  const hours = String(date.getHours()).padStart(2, '0')
+  const minutes = String(date.getMinutes()).padStart(2, '0')
+  return `${year}-${month}-${day}T${hours}:${minutes}`
+}
+
+const validFrom = computed(() => {
+  if (isEditMode.value && props.assessment?.valid_from) {
+    return props.assessment.valid_from
+  }
+  return formatLocalDateTime(new Date())
+})
 
 const validUntil = computed(() => {
   if (form.value.validityType === 'permanent') {
@@ -142,6 +191,82 @@ const prevStep = () => {
   }
 }
 
+const loadAllQuestionnaires = async () => {
+  try {
+    const [professionalRes, scoredRes, surveyRes] = await Promise.all([
+      fetchQuestionnaires({ category: 'professional', limit: 200 }),
+      fetchQuestionnaires({ category: 'scored', limit: 200 }),
+      fetchQuestionnaires({ category: 'survey', limit: 200 }),
+    ])
+    const merged = [
+      ...(professionalRes.items || []),
+      ...(scoredRes.items || []),
+      ...(surveyRes.items || []),
+    ]
+    const mapById = new Map<number, Questionnaire>()
+    merged.forEach((q) => mapById.set(q.id, q))
+    allQuestionnaires.value = Array.from(mapById.values())
+  } catch (error) {
+    console.error('加载目标问卷列表失败:', error)
+    allQuestionnaires.value = []
+  }
+}
+
+const addDepartmentField = () => {
+  if (departmentField.value) return
+  formFields.value.push({
+    id: 'department',
+    name: 'department',
+    label: '部门',
+    type: 'select',
+    placeholder: '请选择部门',
+    required: true,
+    enabled: true,
+    builtin: false,
+    options: ['技术部', '销售部', '人力资源部'],
+  })
+}
+
+const addRoutingMapping = () => {
+  routingConfig.value.mappings.push({
+    department_value: '',
+    questionnaire_id: 0,
+  })
+}
+
+const removeRoutingMapping = (index: number) => {
+  routingConfig.value.mappings.splice(index, 1)
+}
+
+const buildRoutingConfigPayload = (): DepartmentRoutingConfig => {
+  if (!routingConfig.value.enabled) {
+    return {
+      enabled: false,
+      department_field: 'department',
+      fallback_to_default: true,
+      mappings: [],
+    }
+  }
+
+  const deduped = new Map<string, number>()
+  routingConfig.value.mappings.forEach((item) => {
+    const departmentValue = String(item.department_value || '').trim()
+    const questionnaireId = Number(item.questionnaire_id || 0)
+    if (!departmentValue || !questionnaireId) return
+    deduped.set(departmentValue, questionnaireId)
+  })
+
+  return {
+    enabled: true,
+    department_field: 'department',
+    fallback_to_default: true,
+    mappings: Array.from(deduped.entries()).map(([department_value, questionnaire_id]) => ({
+      department_value,
+      questionnaire_id,
+    })),
+  }
+}
+
 const handleDistribute = async () => {
   if (!props.questionnaire) return
   
@@ -160,9 +285,12 @@ const handleDistribute = async () => {
       repeat_check_by: form.value.repeatCheckBy,
       repeat_interval_hours: form.value.repeatIntervalHours,
       max_submissions: form.value.maxSubmissions,
+      routing_config: buildRoutingConfigPayload(),
     }
-    
-    const result = await createAssessment(data)
+
+    const result = isEditMode.value && props.assessment?.id
+      ? await updateAssessment(props.assessment.id, data)
+      : await createAssessment(data)
     generatedCode.value = result.code
     
     // 生成链接
@@ -182,8 +310,8 @@ const handleDistribute = async () => {
     
     currentStep.value = 5
   } catch (error) {
-    console.error('分发失败:', error)
-    alert('分发失败，请重试')
+    console.error('保存分发配置失败:', error)
+    alert(isEditMode.value ? '保存配置失败，请重试' : '分发失败，请重试')
   } finally {
     loading.value = false
   }
@@ -260,6 +388,7 @@ const saveConfig = () => {
       },
       formFields: formFields.value,
       pageTexts: pageTexts.value,
+      routingConfig: routingConfig.value,
     }
     localStorage.setItem(STORAGE_KEY, JSON.stringify(config))
   } catch (e) {
@@ -290,25 +419,70 @@ const loadConfig = () => {
       if (isPlainObject(config.pageTexts)) {
         pageTexts.value = { ...pageTexts.value, ...config.pageTexts }
       }
+      if (isPlainObject(config.routingConfig)) {
+        routingConfig.value = {
+          enabled: !!config.routingConfig.enabled,
+          department_field: config.routingConfig.department_field || 'department',
+          fallback_to_default: config.routingConfig.fallback_to_default !== false,
+          mappings: Array.isArray(config.routingConfig.mappings) ? config.routingConfig.mappings : [],
+        }
+      }
     }
   } catch (e) {
     console.warn('加载分发配置失败:', e)
   }
 }
 
+const applyAssessmentToForm = () => {
+  if (!props.assessment) return
+  const current = props.assessment
+  form.value.name = current.name || ''
+  form.value.description = current.description || ''
+  form.value.validityType = current.link_type === 'permanent' ? 'permanent' : 'temporary'
+  if (form.value.validityType === 'temporary' && current.valid_until) {
+    form.value.expiryDays = -1
+    form.value.customExpiryDate = toDateTimeLocalInput(current.valid_until)
+  }
+  form.value.allowRepeat = !!current.allow_repeat
+  form.value.repeatCheckBy = (current.repeat_check_by as 'phone' | 'phone_name') || 'phone'
+  form.value.repeatIntervalHours = current.repeat_interval_hours ?? 24
+  form.value.maxSubmissions = current.max_submissions ?? 0
+
+  if (Array.isArray(current.form_fields)) {
+    formFields.value = current.form_fields as FormField[]
+  }
+  if (current.page_texts && isPlainObject(current.page_texts)) {
+    pageTexts.value = { ...pageTexts.value, ...current.page_texts }
+  }
+  if (current.routing_config && isPlainObject(current.routing_config)) {
+    routingConfig.value = {
+      enabled: !!current.routing_config.enabled,
+      department_field: current.routing_config.department_field || 'department',
+      fallback_to_default: current.routing_config.fallback_to_default !== false,
+      mappings: Array.isArray(current.routing_config.mappings) ? current.routing_config.mappings : [],
+    }
+  }
+}
+
 // 监听配置变化，自动保存
-watch([form, formFields, pageTexts], () => {
+watch([form, formFields, pageTexts, routingConfig], () => {
   saveConfig()
 }, { deep: true })
 
 // ===== 生命周期 =====
 onMounted(() => {
-  // V45: 先加载上次保存的配置
-  loadConfig()
-  
-  // 然后设置默认名称
-  if (props.questionnaire) {
-    form.value.name = `${props.questionnaire.name} - ${new Date().toLocaleDateString()}`
+  loadAllQuestionnaires()
+
+  if (isEditMode.value) {
+    applyAssessmentToForm()
+  } else {
+    // V45: 先加载上次保存的配置
+    loadConfig()
+    
+    // 然后设置默认名称
+    if (props.questionnaire) {
+      form.value.name = `${props.questionnaire.name} - ${new Date().toLocaleDateString()}`
+    }
   }
 })
 </script>
@@ -355,7 +529,7 @@ onMounted(() => {
         <div class="success-icon-wrapper">
           <i class="ri-checkbox-circle-fill"></i>
         </div>
-        <h3>分发成功</h3>
+        <h3>{{ isEditMode ? '保存成功' : '分发成功' }}</h3>
       </div>
 
       <!-- 内容区域 -->
@@ -498,8 +672,68 @@ onMounted(() => {
 
         <!-- 步骤2：字段配置（左右分栏布局） -->
         <div v-if="currentStep === 2" class="step-content step-fields-config">
-          <!-- 左侧：字段列表（使用公共组件） -->
-          <FieldConfigPanel v-model="formFields" />
+          <div class="fields-left-column">
+            <!-- 左侧：字段列表（使用公共组件） -->
+            <FieldConfigPanel v-model="formFields" />
+
+            <div class="routing-config-card">
+              <div class="routing-header">
+                <div class="routing-title">
+                  <i class="ri-route-line"></i>
+                  <span>部门路由分发</span>
+                </div>
+                <label class="toggle-switch">
+                  <input type="checkbox" v-model="routingConfig.enabled" />
+                  <span class="toggle-slider"></span>
+                </label>
+              </div>
+
+              <div class="routing-content">
+                <div v-if="!departmentField" class="routing-missing">
+                  <i class="ri-information-line"></i>
+                  <span>未检测到部门下拉字段（name = department）</span>
+                  <button type="button" class="btn-add-department" @click="addDepartmentField">一键添加部门字段</button>
+                </div>
+
+                <template v-else>
+                  <p class="routing-tip">员工在入口页选择部门后，将自动进入映射的目标问卷。未配置部门会回退当前问卷。</p>
+                  <div v-if="routingConfig.enabled" class="routing-mappings">
+                    <div class="mapping-head">
+                      <span>部门</span>
+                      <span>目标问卷</span>
+                    </div>
+                    <div
+                      v-for="(mapping, index) in routingConfig.mappings"
+                      :key="index"
+                      class="mapping-row"
+                    >
+                      <select v-model="mapping.department_value" class="mapping-select">
+                        <option value="">请选择部门</option>
+                        <option v-for="opt in departmentOptions" :key="opt" :value="opt">{{ opt }}</option>
+                      </select>
+                      <select v-model.number="mapping.questionnaire_id" class="mapping-select">
+                        <option :value="0">请选择问卷</option>
+                        <option
+                          v-for="q in availableTargetQuestionnaires"
+                          :key="q.id"
+                          :value="q.id"
+                        >
+                          {{ q.name }}（{{ q.type }}）
+                        </option>
+                      </select>
+                      <button type="button" class="btn-remove-mapping" @click="removeRoutingMapping(index)">
+                        <i class="ri-delete-bin-line"></i>
+                      </button>
+                    </div>
+                    <button type="button" class="btn-add-mapping" @click="addRoutingMapping">
+                      <i class="ri-add-line"></i>
+                      添加映射
+                    </button>
+                  </div>
+                </template>
+              </div>
+            </div>
+          </div>
 
           <!-- 右侧：实时预览 -->
           <div class="preview-panel">
@@ -953,7 +1187,7 @@ onMounted(() => {
           :disabled="loading"
         >
           <i v-if="loading" class="ri-loader-4-line animate-spin"></i>
-          {{ loading ? '生成中...' : '确认分发' }}
+          {{ loading ? (isEditMode ? '保存中...' : '生成中...') : (isEditMode ? '确认保存' : '确认分发') }}
         </button>
         
         <button 

@@ -55,6 +55,7 @@ const submissions = ref<Submission[]>([])
 // ===== 分发弹窗 =====
 const showDistributeModal = ref(false)
 const selectedQuestionnaireForDistribute = ref<Questionnaire | null>(null)
+const selectedAssessmentForDistribute = ref<Assessment | null>(null)
 
 // ===== 查看链接面板 =====
 const showViewLinksPanel = ref(false)
@@ -255,6 +256,7 @@ const loadData = async () => {
 // 打开分发弹窗
 const handleDistribute = (q: Questionnaire) => {
   selectedQuestionnaireForDistribute.value = q
+  selectedAssessmentForDistribute.value = null
   showDistributeModal.value = true
 }
 
@@ -267,6 +269,7 @@ const handleViewLinks = (q: Questionnaire) => {
 // 分发成功回调
 const handleDistributeSuccess = () => {
   showDistributeModal.value = false
+  selectedAssessmentForDistribute.value = null
   loadData()
 }
 
@@ -276,6 +279,18 @@ const handleCreateNewLink = () => {
   if (viewLinksQuestionnaire.value) {
     handleDistribute(viewLinksQuestionnaire.value)
   }
+}
+
+const handleEditDistribution = (assessment: Assessment) => {
+  const questionnaire = questionnaires.value.find((q) => q.id === assessment.questionnaire_id)
+  if (!questionnaire) {
+    alert('未找到该链接对应的问卷')
+    return
+  }
+  showViewLinksPanel.value = false
+  selectedQuestionnaireForDistribute.value = questionnaire
+  selectedAssessmentForDistribute.value = assessment
+  showDistributeModal.value = true
 }
 
 // 处理来自 SubmissionRecordsTab 组件的删除事件
@@ -684,7 +699,8 @@ onMounted(() => {
     <DistributeModal
       v-if="showDistributeModal"
       :questionnaire="selectedQuestionnaireForDistribute"
-      @close="showDistributeModal = false"
+      :assessment="selectedAssessmentForDistribute"
+      @close="showDistributeModal = false; selectedAssessmentForDistribute = null"
       @success="handleDistributeSuccess"
     />
 
@@ -694,6 +710,7 @@ onMounted(() => {
       :questionnaire="viewLinksQuestionnaire"
       @close="showViewLinksPanel = false"
       @create-new="handleCreateNewLink"
+      @edit="handleEditDistribution"
     />
 
     <!-- 提交详情弹窗已移至 SubmissionRecordsTab 组件内部 -->

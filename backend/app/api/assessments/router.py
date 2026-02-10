@@ -143,7 +143,10 @@ async def create_assessment(
     if not questionnaire:
         raise HTTPException(status_code=404, detail="问卷不存在")
     
-    assessment = await service.create_assessment(session, data.model_dump())
+    try:
+        assessment = await service.create_assessment(session, data.model_dump())
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
     return assessment
 
 
@@ -166,7 +169,10 @@ async def update_assessment(
     session: Session = Depends(get_session)
 ):
     """更新测评配置."""
-    assessment = await service.update_assessment(session, assessment_id, data.model_dump(exclude_unset=True))
+    try:
+        assessment = await service.update_assessment(session, assessment_id, data.model_dump(exclude_unset=True))
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
     if not assessment:
         raise HTTPException(status_code=404, detail="测评不存在")
     return assessment
@@ -252,6 +258,7 @@ async def get_submissions(
             max_score=sub.max_score,
             score_percentage=sub.score_percentage,
             result_details=sub.result_details,
+            custom_data=sub.custom_data,
         )
         result_items.append(item)
     
@@ -303,6 +310,7 @@ async def get_submission_detail(
         "submitted_at": submission.submitted_at,
         "answers": submission.answers or answers,  # ⭐ 优先使用 submission.answers
         "result_details": submission.result_details,
+        "custom_data": submission.custom_data,
     }
 
 
@@ -466,10 +474,6 @@ async def start_assessment(
     if not assessment:
         raise HTTPException(status_code=404, detail="测评不存在或已失效")
     
-    questionnaire = await service.get_questionnaire(session, assessment.questionnaire_id)
-    if not questionnaire:
-        raise HTTPException(status_code=404, detail="问卷不存在")
-    
     # ⭐ 检查是否可以提交
     check_result = await service.check_can_submit(
         session, assessment.id, 
@@ -481,10 +485,25 @@ async def start_assessment(
     
     # ⭐ 增加开始测评统计
     await service.increment_start_count(session, assessment.id)
+
+    payload = data.model_dump(exclude={"assessment_code"})
+
+    # ⭐ 根据部门路由解析本次应使用的问卷
+    try:
+        target_questionnaire_id = await service.resolve_questionnaire_id(session, assessment, payload)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+    questionnaire = await service.get_questionnaire(session, target_questionnaire_id)
+    if not questionnaire:
+        raise HTTPException(status_code=404, detail="问卷不存在")
     
     # 创建提交记录
     submission = await service.create_submission(
-        session, assessment.id, data.model_dump(exclude={"assessment_code"})
+        session,
+        assessment.id,
+        payload,
+        questionnaire_id_override=target_questionnaire_id
     )
     
     # 返回题目
@@ -510,4 +529,3 @@ async def submit_assessment(
         submission_code=submission.code,
         submitted_at=submission.submitted_at or submission.started_at,
     )
-
