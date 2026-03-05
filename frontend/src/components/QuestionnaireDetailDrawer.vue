@@ -955,10 +955,93 @@ const closeExportModal = () => {
   showExportModal.value = false
 }
 
+const getQuestionTypeText = (type: string) => {
+  const map: Record<string, string> = {
+    single: '单选',
+    radio: '单选',
+    multiple: '多选',
+    checkbox: '多选',
+    text: '文本',
+    textarea: '文本',
+    scale: '量表',
+    rating: '评分',
+    yesno: '是非',
+    choice: '选择',
+  }
+  return map[type] || type
+}
+
+const buildQuestionStatsRows = () => {
+  const rows: Array<Record<string, string | number>> = []
+  if (!questionStats.value?.questions?.length) return rows
+
+  questionStats.value.questions.forEach((q) => {
+    const questionLabel = `Q${q.index}`
+    const questionType = getQuestionTypeText(q.type)
+
+    if (q.options?.length) {
+      q.options.forEach((opt) => {
+        rows.push({
+          '题号': questionLabel,
+          '题目': q.text || '',
+          '题型': questionType,
+          '选项/答案': opt.text || '',
+          '人数': opt.count ?? 0,
+          '占比': `${opt.percentage ?? 0}%`,
+        })
+      })
+      return
+    }
+
+    // 文本题：优先导出标签聚合，再导出长答案聚合
+    const tags = q.text_summary?.tags || []
+    const longAnswers = q.text_summary?.long_answers || []
+    if (tags.length || longAnswers.length) {
+      tags.forEach((item) => {
+        rows.push({
+          '题号': questionLabel,
+          '题目': q.text || '',
+          '题型': questionType,
+          '选项/答案': `[标签] ${item.text || ''}`,
+          '人数': item.count ?? 0,
+          '占比': '',
+        })
+      })
+      longAnswers.forEach((item) => {
+        rows.push({
+          '题号': questionLabel,
+          '题目': q.text || '',
+          '题型': questionType,
+          '选项/答案': `[文本] ${item.text || ''}`,
+          '人数': item.count ?? 0,
+          '占比': '',
+        })
+      })
+      return
+    }
+
+    rows.push({
+      '题号': questionLabel,
+      '题目': q.text || '',
+      '题型': questionType,
+      '选项/答案': '(无选项统计)',
+      '人数': q.total_answers ?? 0,
+      '占比': '',
+    })
+  })
+
+  return rows
+}
+
 const executeExport = async () => {
   exportLoading.value = true
   
   try {
+    // 确保导出时拿到最新题目统计
+    if (!questionStats.value && props.questionnaire?.id) {
+      await loadQuestionStats()
+    }
+
     const data = props.submissions.map(r => ({
       '姓名': r.candidate_name || '',
       '联系方式': r.candidate_phone || '',
@@ -970,15 +1053,28 @@ const executeExport = async () => {
     }))
     
     const headers = Object.keys(data[0] || {})
+    const questionStatsRows = buildQuestionStatsRows()
+    const questionStatsHeaders = Object.keys(questionStatsRows[0] || {})
     const dateStr = new Date().toISOString().slice(0, 10)
     const fileName = `${props.questionnaire?.name || '问卷'}_提交记录_${dateStr}`
     
     if (exportFormat.value === 'csv') {
       // CSV导出
-      const csvContent = [
+      const lines = [
         headers.join(','),
         ...data.map(row => headers.map(h => `"${(row as any)[h] || ''}"`).join(','))
-      ].join('\n')
+      ]
+      
+      if (questionStatsRows.length > 0) {
+        lines.push('')
+        lines.push('题目统计数据')
+        lines.push(questionStatsHeaders.join(','))
+        lines.push(
+          ...questionStatsRows.map(row => questionStatsHeaders.map(h => `"${(row as any)[h] || ''}"`).join(','))
+        )
+      }
+
+      const csvContent = lines.join('\n')
       
       const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' })
       const link = document.createElement('a')
@@ -991,10 +1087,23 @@ const executeExport = async () => {
         <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel">
         <head><meta charset="UTF-8"></head>
         <body>
+          <h3>提交明细</h3>
           <table border="1">
             <tr>${headers.map(h => `<th style="background:#f0f0f0;font-weight:bold;">${h}</th>`).join('')}</tr>
             ${data.map(row => `<tr>${headers.map(h => `<td>${(row as any)[h] || ''}</td>`).join('')}</tr>`).join('')}
           </table>
+          ${
+            questionStatsRows.length > 0
+              ? `
+          <br/>
+          <h3>题目统计数据</h3>
+          <table border="1">
+            <tr>${questionStatsHeaders.map(h => `<th style="background:#f0f0f0;font-weight:bold;">${h}</th>`).join('')}</tr>
+            ${questionStatsRows.map(row => `<tr>${questionStatsHeaders.map(h => `<td>${(row as any)[h] || ''}</td>`).join('')}</tr>`).join('')}
+          </table>
+          `
+              : ''
+          }
         </body>
         </html>
       `
@@ -1210,6 +1319,7 @@ const executeExport = async () => {
                       :disabled="getGroupPage(group) <= 1"
                       @click="changeGroupPage(group, getGroupPage(group) - 1)"
                     >
+                      <i class="ri-arrow-left-s-line"></i>
                       上一页
                     </button>
                     <span class="page-info">
@@ -1221,6 +1331,7 @@ const executeExport = async () => {
                       @click="changeGroupPage(group, getGroupPage(group) + 1)"
                     >
                       下一页
+                      <i class="ri-arrow-right-s-line"></i>
                     </button>
                 </div>
               </div>

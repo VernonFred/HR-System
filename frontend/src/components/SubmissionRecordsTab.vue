@@ -938,21 +938,23 @@ const executeExport = async () => {
             </div>
             <div v-if="group.submissions.length > groupPageSize" class="group-pagination">
               <button
-                class="page-btn"
+                class="page-btn page-btn-text"
                 :disabled="getGroupPage(getGroupKey(group)) <= 1"
                 @click.stop="changeGroupPage(group, getGroupPage(getGroupKey(group)) - 1)"
               >
+                <i class="ri-arrow-left-s-line"></i>
                 上一页
               </button>
               <span class="page-info">
                 {{ getGroupPage(getGroupKey(group)) }} / {{ getGroupTotalPages(group) }}
               </span>
               <button
-                class="page-btn"
+                class="page-btn page-btn-text"
                 :disabled="getGroupPage(getGroupKey(group)) >= getGroupTotalPages(group)"
                 @click.stop="changeGroupPage(group, getGroupPage(getGroupKey(group)) + 1)"
               >
                 下一页
+                <i class="ri-arrow-right-s-line"></i>
               </button>
             </div>
           </div>
@@ -1778,11 +1780,12 @@ const executeExport = async () => {
   align-items: center;
   justify-content: center;
   gap: 12px;
-  padding: 16px;
+  padding: 12px 16px;
   margin-top: 16px;
-  background: rgba(124, 58, 237, 0.05);
-  border-radius: 12px;
-  border: 1px solid rgba(124, 58, 237, 0.1);
+  background: linear-gradient(135deg, #faf7ff 0%, #f5f3ff 100%);
+  border-radius: 14px;
+  border: 1px solid #e9ddff;
+  box-shadow: 0 6px 18px rgba(124, 58, 237, 0.06);
 }
 
 .page-btn {
@@ -1791,8 +1794,8 @@ const executeExport = async () => {
   justify-content: center;
   width: 36px;
   height: 36px;
-  border: 1px solid rgba(124, 58, 237, 0.2);
-  border-radius: 8px;
+  border: 1px solid #ddd6fe;
+  border-radius: 10px;
   background: white;
   color: #7c3aed;
   cursor: pointer;
@@ -1800,31 +1803,52 @@ const executeExport = async () => {
 }
 
 .page-btn:hover:not(:disabled) {
-  background: #7c3aed;
-  color: white;
+  background: #f5f3ff;
+  color: #6d28d9;
   border-color: #7c3aed;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 14px rgba(124, 58, 237, 0.14);
 }
 
 .page-btn:disabled {
-  opacity: 0.4;
+  opacity: 0.35;
   cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.page-btn.page-btn-text {
+  width: auto;
+  min-width: 88px;
+  height: 34px;
+  padding: 0 12px;
+  gap: 4px;
+  font-size: 12px;
+  font-weight: 600;
 }
 
 .page-info {
-  font-size: 14px;
-  font-weight: 500;
-  color: #6b7280;
-  min-width: 140px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #5b21b6;
+  min-width: 150px;
   text-align: center;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: rgba(124, 58, 237, 0.1);
 }
 
 /* 分组内分页控件 */
 .group-pagination {
   display: flex;
   align-items: center;
-  justify-content: flex-end;
+  justify-content: center;
   gap: 10px;
-  padding: 8px 0 4px;
+  padding: 10px 12px;
+  margin-top: 8px;
+  border: 1px solid #ece7ff;
+  border-radius: 12px;
+  background: #faf9ff;
 }
 
 .cell-code {
@@ -2640,4 +2664,3 @@ const executeExport = async () => {
   }
 }
 </style>
-
