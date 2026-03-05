@@ -9,6 +9,7 @@
  * 4. 删除记录
  */
 import { ref, computed, defineAsyncComponent, watch } from 'vue'
+import * as XLSX from 'xlsx'
 import type { Submission, Questionnaire } from '../api/assessments'
 
 // 异步加载提交详情弹窗
@@ -549,22 +550,20 @@ const executeExport = async () => {
       link.download = `提交记录_${dateStr}.csv`
       link.click()
     } else {
-      // Excel导出 (使用HTML表格格式，可被Excel打开)
-      let htmlContent = `
-        <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel">
-        <head><meta charset="UTF-8"></head>
-        <body>
-          <table border="1">
-            <tr>${headers.map(h => `<th style="background:#f0f0f0;font-weight:bold;">${h}</th>`).join('')}</tr>
-            ${data.map(row => `<tr>${headers.map(h => `<td>${(row as any)[h] || ''}</td>`).join('')}</tr>`).join('')}
-          </table>
-        </body>
-        </html>
-      `
-      const blob = new Blob([htmlContent], { type: 'application/vnd.ms-excel;charset=utf-8;' })
+      // 真正的 .xlsx 导出，避免部分客户端把内容当源码展示
+      const workbook = XLSX.utils.book_new()
+      const sheet = XLSX.utils.json_to_sheet(data)
+      XLSX.utils.book_append_sheet(workbook, sheet, '提交记录')
+      const excelBuffer = XLSX.write(workbook, {
+        bookType: 'xlsx',
+        type: 'array'
+      })
+      const blob = new Blob([excelBuffer], {
+        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+      })
       const link = document.createElement('a')
       link.href = URL.createObjectURL(blob)
-      link.download = `提交记录_${dateStr}.xls`
+      link.download = `提交记录_${dateStr}.xlsx`
       link.click()
     }
     

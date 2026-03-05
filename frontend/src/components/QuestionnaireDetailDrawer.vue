@@ -9,6 +9,7 @@
 import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue'
 import type { EChartsOption } from 'echarts/core'
 import EChartContainer from './EChartContainer.vue'
+import * as XLSX from 'xlsx'
 import type { Questionnaire, Submission, QuestionStat, TextSummary, TextAnswerGroup } from '../api/assessments'
 import { fetchQuestionnaireQuestionStats, type QuestionnaireQuestionStats } from '../api/assessments'
 
@@ -1082,35 +1083,26 @@ const executeExport = async () => {
       link.download = `${fileName}.csv`
       link.click()
     } else {
-      // Excel导出
-      let htmlContent = `
-        <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel">
-        <head><meta charset="UTF-8"></head>
-        <body>
-          <h3>提交明细</h3>
-          <table border="1">
-            <tr>${headers.map(h => `<th style="background:#f0f0f0;font-weight:bold;">${h}</th>`).join('')}</tr>
-            ${data.map(row => `<tr>${headers.map(h => `<td>${(row as any)[h] || ''}</td>`).join('')}</tr>`).join('')}
-          </table>
-          ${
-            questionStatsRows.length > 0
-              ? `
-          <br/>
-          <h3>题目统计数据</h3>
-          <table border="1">
-            <tr>${questionStatsHeaders.map(h => `<th style="background:#f0f0f0;font-weight:bold;">${h}</th>`).join('')}</tr>
-            ${questionStatsRows.map(row => `<tr>${questionStatsHeaders.map(h => `<td>${(row as any)[h] || ''}</td>`).join('')}</tr>`).join('')}
-          </table>
-          `
-              : ''
-          }
-        </body>
-        </html>
-      `
-      const blob = new Blob([htmlContent], { type: 'application/vnd.ms-excel;charset=utf-8;' })
+      // 真正的 .xlsx 导出，避免移动端/WPS将内容识别为源码
+      const workbook = XLSX.utils.book_new()
+      const detailSheet = XLSX.utils.json_to_sheet(data)
+      XLSX.utils.book_append_sheet(workbook, detailSheet, '提交明细')
+
+      if (questionStatsRows.length > 0) {
+        const statsSheet = XLSX.utils.json_to_sheet(questionStatsRows)
+        XLSX.utils.book_append_sheet(workbook, statsSheet, '题目统计')
+      }
+
+      const excelBuffer = XLSX.write(workbook, {
+        bookType: 'xlsx',
+        type: 'array'
+      })
+      const blob = new Blob([excelBuffer], {
+        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+      })
       const link = document.createElement('a')
       link.href = URL.createObjectURL(blob)
-      link.download = `${fileName}.xls`
+      link.download = `${fileName}.xlsx`
       link.click()
     }
     
