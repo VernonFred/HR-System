@@ -7,7 +7,7 @@
  * 2. 问卷统计 Tab - 显示统计数据（参与人数、平均分、等级分布、题目分析）
  */
 import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue'
-import type { EChartsOption } from 'echarts/core'
+import type { EChartsOption, SetOptionOpts } from 'echarts/core'
 import EChartContainer from './EChartContainer.vue'
 import * as XLSX from 'xlsx'
 import type { Questionnaire, Submission, QuestionStat, TextSummary, TextAnswerGroup } from '../api/assessments'
@@ -349,14 +349,29 @@ const isSingleChoiceQuestion = (type: string): boolean => {
   return ['single', 'radio', 'yesno', 'choice'].includes(type)
 }
 
+const isMultipleChoiceQuestion = (type: string): boolean => {
+  return ['multiple', 'checkbox'].includes(type)
+}
+
+const isScaleQuestion = (type: string): boolean => {
+  return ['scale', 'rating'].includes(type)
+}
+
 const normalizePercentage = (percentage?: number): number => {
   const value = Number(percentage || 0)
   if (Number.isNaN(value)) return 0
   return Math.min(100, Math.max(0, Math.round(value * 10) / 10))
 }
 
+const truncateChartLabel = (value: string, max = 10) => {
+  const text = String(value || '')
+  return text.length > max ? `${text.slice(0, max)}...` : text
+}
+
 const getQuestionChartHeight = (question: QuestionStat): number => {
   if (isSingleChoiceQuestion(question.type)) return 210
+  if (isScaleQuestion(question.type)) return 230
+  if (isMultipleChoiceQuestion(question.type) && question.options.length <= 8) return 230
   const extra = Math.max(0, (question.options?.length || 0) - 6) * 14
   return Math.min(300, 220 + extra)
 }
@@ -393,19 +408,19 @@ const getQuestionPieOption = (question: QuestionStat): EChartsOption => {
   const options = question.options || []
   return {
     tooltip: { trigger: 'item', formatter: '{b}: {c}人 ({d}%)' },
-    legend: {
-      type: 'scroll',
-      left: 'center',
-      bottom: 0,
-      textStyle: { color: '#64748b', fontSize: 12 },
-    },
+    legend: { show: false },
     series: [
       {
         type: 'pie',
-        radius: ['40%', '70%'],
+        radius: ['48%', '72%'],
+        center: ['50%', '50%'],
         avoidLabelOverlap: true,
         label: { show: false },
         labelLine: { show: false },
+        emphasis: {
+          label: { show: false },
+          scaleSize: 6,
+        },
         data: options.map(opt => ({
           name: opt.text,
           value: opt.count,
@@ -413,6 +428,116 @@ const getQuestionPieOption = (question: QuestionStat): EChartsOption => {
       },
     ],
   }
+}
+
+const getQuestionRadarOption = (question: QuestionStat): EChartsOption => {
+  const options = question.options || []
+  const maxCount = Math.max(1, ...options.map(opt => opt.count))
+  return {
+    tooltip: { trigger: 'item' },
+    radar: {
+      radius: '68%',
+      center: ['50%', '52%'],
+      splitNumber: 4,
+      axisName: {
+        color: '#64748b',
+        fontSize: 11,
+        formatter: (value: string) => truncateChartLabel(value, 8),
+      },
+      splitLine: { lineStyle: { color: '#e2e8f0' } },
+      splitArea: { areaStyle: { color: ['#ffffff', '#f8fafc'] } },
+      axisLine: { lineStyle: { color: '#e2e8f0' } },
+      indicator: options.map(opt => ({
+        name: opt.text,
+        max: maxCount,
+      })),
+    },
+    series: [
+      {
+        type: 'radar',
+        data: [{
+          value: options.map(opt => opt.count),
+          name: '选择人数',
+          areaStyle: { color: 'rgba(124, 58, 237, 0.18)' },
+          lineStyle: { color: '#7c3aed', width: 2 },
+          itemStyle: { color: '#7c3aed' },
+        }],
+      },
+    ],
+  }
+}
+
+const getQuestionColumnOption = (question: QuestionStat): EChartsOption => {
+  const options = question.options || []
+  return {
+    tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
+    grid: { left: '8%', right: '5%', top: '10%', bottom: '20%', containLabel: true },
+    xAxis: {
+      type: 'category',
+      data: options.map(opt => opt.text),
+      axisLabel: {
+        color: '#64748b',
+        interval: 0,
+        rotate: options.length > 4 ? 24 : 0,
+        formatter: (value: string) => truncateChartLabel(value, 6),
+      },
+      axisLine: { lineStyle: { color: '#e2e8f0' } },
+    },
+    yAxis: {
+      type: 'value',
+      minInterval: 1,
+      axisLabel: { color: '#94a3b8' },
+      splitLine: { lineStyle: { color: '#eef2f7' } },
+    },
+    series: [
+      {
+        type: 'bar',
+        data: options.map(opt => opt.count),
+        barMaxWidth: 34,
+        itemStyle: {
+          color: '#38bdf8',
+          borderRadius: [8, 8, 0, 0],
+        },
+        label: { show: true, position: 'top', color: '#0284c7', formatter: '{c}' },
+      },
+    ],
+  }
+}
+
+const getQuestionVisualMode = (question: QuestionStat): 'pie' | 'bar' | 'radar' | 'column' => {
+  if (isSingleChoiceQuestion(question.type)) {
+    return getQuestionChartMode(question)
+  }
+  if (isScaleQuestion(question.type)) {
+    return 'column'
+  }
+  if (isMultipleChoiceQuestion(question.type) && question.options.length >= 3 && question.options.length <= 8) {
+    return 'radar'
+  }
+  return 'bar'
+}
+
+const getQuestionVisualLabel = (question: QuestionStat): string => {
+  const mode = getQuestionVisualMode(question)
+  const labelMap = {
+    pie: '环形占比',
+    bar: '横向排行',
+    radar: '雷达对比',
+    column: '柱状分布',
+  }
+  return labelMap[mode]
+}
+
+const getQuestionVisualOption = (question: QuestionStat): EChartsOption => {
+  const mode = getQuestionVisualMode(question)
+  if (mode === 'pie') return getQuestionPieOption(question)
+  if (mode === 'radar') return getQuestionRadarOption(question)
+  if (mode === 'column') return getQuestionColumnOption(question)
+  return getQuestionChartOption(question)
+}
+
+const questionChartSetOptionOpts: SetOptionOpts = {
+  notMerge: true,
 }
 
 const questionChartModeMap = ref<Record<string, 'pie' | 'bar'>>({})
@@ -1614,11 +1739,13 @@ const executeExport = async () => {
                     <!-- 选择题/量表题选项分布 -->
                     <template v-if="!isTextQuestion(q.type)">
                       <div class="question-chart-panel">
+                        <div class="chart-mode-label">{{ getQuestionVisualLabel(q) }}</div>
                         <div v-if="q.options.length > 0" class="option-chart">
                           <div class="option-chart-body">
                             <EChartContainer
-                              :option="isSingleChoiceQuestion(q.type) && getQuestionChartMode(q) === 'pie' ? getQuestionPieOption(q) : getQuestionChartOption(q)"
+                              :option="getQuestionVisualOption(q)"
                               theme="light"
+                              :set-option-opts="questionChartSetOptionOpts"
                               :style="{ height: `${getQuestionChartHeight(q)}px` }"
                             />
                           </div>

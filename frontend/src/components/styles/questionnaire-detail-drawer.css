@@ -1418,10 +1418,25 @@
 }
 
 .question-chart-panel {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 12px;
+}
+
+.chart-mode-label {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  z-index: 1;
+  padding: 4px 9px;
+  border-radius: 999px;
+  background: #eef2ff;
+  color: #4f46e5;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
 }
 
 .question-detail-panel,
