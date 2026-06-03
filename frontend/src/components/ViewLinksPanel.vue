@@ -822,6 +822,7 @@ onMounted(() => {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 18px;
   padding: 16px 24px;
   border-top: 1px solid #e2e8f0;
   background: #f8fafc;
@@ -829,34 +830,49 @@ onMounted(() => {
 
 .footer-tip {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 8px;
+  flex: 1;
+  min-width: 0;
   font-size: 13px;
+  line-height: 1.5;
   color: #64748b;
 }
 
 .footer-tip i {
+  flex-shrink: 0;
+  margin-top: 2px;
   color: #f59e0b;
+}
+
+.footer-tip span {
+  display: block;
 }
 
 .footer-actions {
   display: flex;
-  gap: 12px;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
 }
 
 .btn-primary {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 8px;
-  padding: 12px 24px;
+  min-width: 128px;
+  padding: 10px 16px;
   background: linear-gradient(135deg, #6366f1, #8b5cf6);
   color: white;
   border: none;
-  border-radius: 12px;
-  font-size: 14px;
+  border-radius: 10px;
+  font-size: 13px;
+  line-height: 1.2;
   font-weight: 500;
   cursor: pointer;
   transition: all 0.2s;
+  white-space: nowrap;
 }
 
 .btn-primary:hover:not(:disabled) {
@@ -872,16 +888,20 @@ onMounted(() => {
 .btn-secondary {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 8px;
-  padding: 12px 24px;
+  min-width: 84px;
+  padding: 10px 16px;
   background: white;
   color: #475569;
   border: 1px solid #e2e8f0;
-  border-radius: 12px;
-  font-size: 14px;
+  border-radius: 10px;
+  font-size: 13px;
+  line-height: 1.2;
   font-weight: 500;
   cursor: pointer;
   transition: all 0.2s;
+  white-space: nowrap;
 }
 
 .btn-secondary:hover {
