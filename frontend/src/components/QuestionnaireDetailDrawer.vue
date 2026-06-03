@@ -140,7 +140,7 @@ const statsError = ref<string | null>(null)
 const trendRange = ref<'week' | 'month'>('week')
 
 // ⭐ V43: 题目分析分页
-const questionPageSize = 4
+const questionPageSize = 10
 const questionCurrentPage = ref(1)
 
 // 文本题分页与聚合展示
@@ -349,10 +349,16 @@ const isSingleChoiceQuestion = (type: string): boolean => {
   return ['single', 'radio', 'yesno', 'choice'].includes(type)
 }
 
+const normalizePercentage = (percentage?: number): number => {
+  const value = Number(percentage || 0)
+  if (Number.isNaN(value)) return 0
+  return Math.min(100, Math.max(0, Math.round(value * 10) / 10))
+}
+
 const getQuestionChartHeight = (question: QuestionStat): number => {
-  if (isSingleChoiceQuestion(question.type)) return 220
-  const extra = Math.max(0, (question.options?.length || 0) - 6) * 18
-  return Math.min(360, 240 + extra)
+  if (isSingleChoiceQuestion(question.type)) return 210
+  const extra = Math.max(0, (question.options?.length || 0) - 6) * 14
+  return Math.min(300, 220 + extra)
 }
 
 const getQuestionChartOption = (question: QuestionStat): EChartsOption => {
@@ -415,11 +421,10 @@ const getQuestionChartMode = (question: QuestionStat): 'pie' | 'bar' => {
   return questionChartModeMap.value[question.id] || 'pie'
 }
 
-const toggleQuestionChartMode = (question: QuestionStat) => {
-  const current = getQuestionChartMode(question)
+const setQuestionChartMode = (question: QuestionStat, mode: 'pie' | 'bar') => {
   questionChartModeMap.value = {
     ...questionChartModeMap.value,
-    [question.id]: current === 'pie' ? 'bar' : 'pie'
+    [question.id]: mode
   }
 }
 
@@ -1562,7 +1567,7 @@ const executeExport = async () => {
               </div>
             </div>
 
-            <!-- V43: 题目分析（带分页，每页4条） -->
+            <!-- V43: 题目分析（带分页，每页10条） -->
             <div v-if="questionStats?.questions && questionStats.questions.length > 0" class="question-analysis">
               <div class="question-analysis-header">
                 <h4><i class="ri-file-list-3-line"></i> 题目分析</h4>
@@ -1589,7 +1594,7 @@ const executeExport = async () => {
                           type="button"
                           class="toggle-btn"
                           :class="{ active: getQuestionChartMode(q) === 'pie' }"
-                          @click="toggleQuestionChartMode(q)"
+                          @click="setQuestionChartMode(q, 'pie')"
                         >
                           环形图
                         </button>
@@ -1597,7 +1602,7 @@ const executeExport = async () => {
                           type="button"
                           class="toggle-btn"
                           :class="{ active: getQuestionChartMode(q) === 'bar' }"
-                          @click="toggleQuestionChartMode(q)"
+                          @click="setQuestionChartMode(q, 'bar')"
                         >
                           条形图
                         </button>
@@ -1605,88 +1610,114 @@ const executeExport = async () => {
                     </div>
                   </div>
                   
-                  <!-- 选择题/量表题选项分布 -->
-                  <div v-if="!isTextQuestion(q.type)" class="option-distribution">
-                    <div v-if="q.options.length > 0" class="option-chart">
-                      <div v-if="isSingleChoiceQuestion(q.type) && getQuestionChartMode(q) === 'bar'" class="option-chart-body option-chart-bars">
-                        <div class="option-bar" v-for="opt in q.options" :key="opt.index ?? opt.text">
-                          <div class="option-info">
-                            <span class="option-text">{{ opt.text }}</span>
-                            <span class="option-stats">{{ opt.count }}人 ({{ opt.percentage }}%)</span>
+                  <div class="question-stat-body" :class="{ 'is-text': isTextQuestion(q.type) }">
+                    <!-- 选择题/量表题选项分布 -->
+                    <template v-if="!isTextQuestion(q.type)">
+                      <div class="question-chart-panel">
+                        <div v-if="q.options.length > 0" class="option-chart">
+                          <div class="option-chart-body">
+                            <EChartContainer
+                              :option="isSingleChoiceQuestion(q.type) && getQuestionChartMode(q) === 'pie' ? getQuestionPieOption(q) : getQuestionChartOption(q)"
+                              theme="light"
+                              :style="{ height: `${getQuestionChartHeight(q)}px` }"
+                            />
                           </div>
-                          <div class="option-track">
-                            <div class="option-fill" :style="{ width: `${opt.percentage}%` }"></div>
+                        </div>
+                        <div v-else class="empty-option-chart">
+                          暂无统计数据
+                        </div>
+                      </div>
+
+                      <div class="question-detail-panel">
+                        <div class="detail-panel-title">
+                          <span>选项明细</span>
+                          <em>{{ q.total_answers }} 份回答</em>
+                        </div>
+                        <div class="option-detail-list">
+                          <div class="option-detail-row" v-for="opt in q.options" :key="opt.index ?? opt.text">
+                            <div class="option-detail-head">
+                              <span class="option-text">{{ opt.text }}</span>
+                              <span class="option-stats">{{ opt.count }}人 · {{ normalizePercentage(opt.percentage) }}%</span>
+                            </div>
+                            <div class="option-track">
+                              <div class="option-fill" :style="{ width: `${normalizePercentage(opt.percentage)}%` }"></div>
+                            </div>
                           </div>
                         </div>
                       </div>
-                      <div v-else class="option-chart-body">
-                        <EChartContainer
-                          :option="isSingleChoiceQuestion(q.type) ? getQuestionPieOption(q) : getQuestionChartOption(q)"
-                          theme="light"
-                          :style="{ height: `${getQuestionChartHeight(q)}px` }"
-                        />
-                      </div>
-                    </div>
-                    <div v-else class="empty-option-chart">
-                      暂无统计数据
-                    </div>
-                  </div>
-                  
-                  <!-- 文本题答案展示 -->
-                  <div v-else class="text-answers">
-                    <div class="text-answer-count">共收到 {{ q.total_answers }} 条回答</div>
-                    <div v-if="hasTextSummary(q)" class="text-answer-summary">
-                      <div
-                        v-if="getTextTags(q).length > 0 || getTextEmptyCount(q) > 0"
-                        class="text-answer-tags"
-                      >
-                        <span
-                          v-for="(tag, idx) in getTextTags(q)"
-                          :key="`tag-${q.id}-${idx}`"
-                          class="text-tag"
-                        >
-                          {{ tag.text }} <em>×{{ tag.count }}</em>
-                        </span>
-                        <span v-if="getTextEmptyCount(q) > 0" class="text-tag muted">
-                          无/没有意见 <em>×{{ getTextEmptyCount(q) }}</em>
-                        </span>
-                      </div>
-                      <div v-if="getTextLongAnswers(q).length > 0" class="text-answer-samples">
-                        <div
-                          v-for="(ans, idx) in getTextLongAnswerPage(q)"
-                          :key="`ans-${q.id}-${idx}`"
-                          class="text-answer-item"
-                        >
-                          "{{ ans.text }}"
-                          <span class="text-answer-count-badge">×{{ ans.count }}</span>
+                    </template>
+
+                    <!-- 文本题答案展示 -->
+                    <template v-else>
+                      <div class="text-insight-panel">
+                        <div class="text-answer-count">共收到 {{ q.total_answers }} 条回答</div>
+                        <div v-if="hasTextSummary(q)" class="text-answer-summary">
+                          <div
+                            v-if="getTextTags(q).length > 0 || getTextEmptyCount(q) > 0"
+                            class="text-answer-tags"
+                          >
+                            <span
+                              v-for="(tag, idx) in getTextTags(q)"
+                              :key="`tag-${q.id}-${idx}`"
+                              class="text-tag"
+                            >
+                              {{ tag.text }} <em>×{{ tag.count }}</em>
+                            </span>
+                            <span v-if="getTextEmptyCount(q) > 0" class="text-tag muted">
+                              无/没有意见 <em>×{{ getTextEmptyCount(q) }}</em>
+                            </span>
+                          </div>
                         </div>
-                        <div v-if="getTextTotalPages(q) > 1" class="text-answer-pagination">
-                          <button
-                            class="page-btn"
-                            :disabled="getTextPage(q) === 1"
-                            @click="setTextPage(q, getTextPage(q) - 1)"
-                          >
-                            <i class="ri-arrow-left-s-line"></i>
-                          </button>
-                          <span class="page-info">{{ getTextPage(q) }} / {{ getTextTotalPages(q) }}</span>
-                          <button
-                            class="page-btn"
-                            :disabled="getTextPage(q) === getTextTotalPages(q)"
-                            @click="setTextPage(q, getTextPage(q) + 1)"
-                          >
-                            <i class="ri-arrow-right-s-line"></i>
-                          </button>
+                        <div v-else class="empty-option-chart">
+                          暂无关键词汇总
                         </div>
                       </div>
-                    </div>
-                    <div v-else-if="q.options.length > 0" class="text-answer-samples">
-                      <div v-for="(ans, idx) in q.options.slice(0, 5)" :key="idx" class="text-answer-item">
-                        "{{ ans.text }}"
+
+                      <div class="text-answers-panel">
+                        <div class="detail-panel-title">
+                          <span>代表性回答</span>
+                          <em>{{ getTextTotalPages(q) > 1 ? `${getTextPage(q)} / ${getTextTotalPages(q)}` : '全部' }}</em>
+                        </div>
+                        <div v-if="hasTextSummary(q) && getTextLongAnswers(q).length > 0" class="text-answer-samples">
+                          <div
+                            v-for="(ans, idx) in getTextLongAnswerPage(q)"
+                            :key="`ans-${q.id}-${idx}`"
+                            class="text-answer-item"
+                          >
+                            "{{ ans.text }}"
+                            <span class="text-answer-count-badge">×{{ ans.count }}</span>
+                          </div>
+                          <div v-if="getTextTotalPages(q) > 1" class="text-answer-pagination">
+                            <button
+                              class="page-btn"
+                              :disabled="getTextPage(q) === 1"
+                              @click="setTextPage(q, getTextPage(q) - 1)"
+                            >
+                              <i class="ri-arrow-left-s-line"></i>
+                            </button>
+                            <span class="page-info">{{ getTextPage(q) }} / {{ getTextTotalPages(q) }}</span>
+                            <button
+                              class="page-btn"
+                              :disabled="getTextPage(q) === getTextTotalPages(q)"
+                              @click="setTextPage(q, getTextPage(q) + 1)"
+                            >
+                              <i class="ri-arrow-right-s-line"></i>
+                            </button>
+                          </div>
+                        </div>
+                        <div v-else-if="q.options.length > 0" class="text-answer-samples">
+                          <div v-for="(ans, idx) in q.options.slice(0, 5)" :key="idx" class="text-answer-item">
+                            "{{ ans.text }}"
+                          </div>
+                          <div v-if="q.options.length > 5" class="text-answer-more">
+                            还有 {{ q.options.length - 5 }} 条回答...
+                          </div>
+                        </div>
+                        <div v-else class="empty-option-chart">
+                          暂无文本回答
+                        </div>
                       </div>
-                      <div v-if="q.options.length > 5" class="text-answer-more">
-                        还有 {{ q.options.length - 5 }} 条回答...
-                      </div>
-                    </div>
+                    </template>
                   </div>
                 </div>
               </div>

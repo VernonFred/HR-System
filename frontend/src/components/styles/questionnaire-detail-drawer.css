@@ -1311,19 +1311,20 @@
 .question-list {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 16px;
 }
 
 .question-stat-card {
-  padding: 20px;
-  background: #f8fafc;
-  border-radius: 12px;
-  border: 1px solid #e2e8f0;
+  padding: 18px;
+  background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+  border-radius: 16px;
+  border: 1px solid #dbe4f0;
+  box-shadow: 0 10px 28px rgba(15, 23, 42, 0.04);
 }
 
 .question-header {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 12px;
   margin-bottom: 16px;
 }
@@ -1345,9 +1346,10 @@
 .question-text {
   flex: 1;
   font-size: 14px;
-  font-weight: 500;
+  font-weight: 600;
   color: #1e293b;
   line-height: 1.5;
+  padding-top: 4px;
 }
 
 .question-type-group {
@@ -1355,6 +1357,7 @@
   align-items: center;
   gap: 8px;
   flex-shrink: 0;
+  padding-top: 2px;
 }
 
 .question-type-badge {
@@ -1393,17 +1396,45 @@
 }
 
 /* 选项分布 */
-.option-distribution {
-  display: flex;
-  flex-direction: column;
+.question-stat-body {
+  display: grid;
+  grid-template-columns: minmax(280px, 0.95fr) minmax(320px, 1.05fr);
   gap: 18px;
+  align-items: stretch;
+}
+
+.question-stat-body.is-text {
+  grid-template-columns: minmax(260px, 0.85fr) minmax(360px, 1.15fr);
+}
+
+.question-chart-panel,
+.question-detail-panel,
+.text-insight-panel,
+.text-answers-panel {
+  min-width: 0;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.82);
+}
+
+.question-chart-panel {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px;
+}
+
+.question-detail-panel,
+.text-insight-panel,
+.text-answers-panel {
+  padding: 14px;
 }
 
 .option-chart {
   width: 100%;
-  background: #f8fafc;
+  min-height: 220px;
+  background: transparent;
   border-radius: 12px;
-  padding: 8px;
 }
 
 .question-type-toggle {
@@ -1430,7 +1461,7 @@
 }
 
 .option-chart-body {
-  padding: 8px;
+  padding: 0;
 }
 
 .option-chart-bars {
@@ -1449,33 +1480,62 @@
   text-align: center;
 }
 
-.option-bar {
+.detail-panel-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+  color: #334155;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.detail-panel-title em {
+  flex-shrink: 0;
+  font-style: normal;
+  color: #94a3b8;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.option-detail-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.option-detail-row {
   display: flex;
   flex-direction: column;
   gap: 6px;
 }
 
-.option-info {
+.option-detail-head {
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  align-items: flex-start;
+  gap: 12px;
 }
 
 .option-text {
   font-size: 13px;
   color: #475569;
+  line-height: 1.45;
+  word-break: break-word;
 }
 
 .option-stats {
+  flex-shrink: 0;
   font-size: 12px;
   color: #7c3aed;
-  font-weight: 500;
+  font-weight: 700;
 }
 
 .option-track {
-  height: 8px;
+  height: 7px;
   background: #e2e8f0;
-  border-radius: 4px;
+  border-radius: 999px;
   overflow: hidden;
 }
 
@@ -1487,12 +1547,6 @@
 }
 
 /* 文本题答案 */
-.text-answers {
-  padding: 12px;
-  background: white;
-  border-radius: 8px;
-}
-
 .text-answer-count {
   font-size: 13px;
   color: #64748b;
@@ -1503,6 +1557,9 @@
   display: flex;
   flex-direction: column;
   gap: 8px;
+  max-height: 320px;
+  overflow-y: auto;
+  padding-right: 2px;
 }
 
 .text-answer-summary {
@@ -1546,8 +1603,9 @@
 
 .text-answer-item {
   padding: 10px 14px;
-  background: #f1f5f9;
-  border-radius: 8px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
   font-size: 13px;
   color: #475569;
   font-style: italic;
@@ -1620,6 +1678,29 @@
   
   .group-stats {
     display: none;
+  }
+
+  .question-stat-body,
+  .question-stat-body.is-text {
+    grid-template-columns: 1fr;
+  }
+
+  .question-header {
+    flex-wrap: wrap;
+  }
+
+  .question-type-group {
+    width: 100%;
+    justify-content: flex-start;
+    padding-left: 44px;
+  }
+
+  .question-chart-panel {
+    min-height: 220px;
+  }
+
+  .text-answer-samples {
+    max-height: none;
   }
 }
 
