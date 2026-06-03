@@ -95,6 +95,8 @@ const canSave = computed(() => {
   return newQuestion.value.text.trim() !== ''
 })
 
+const isBackdropPointerDown = ref(false)
+
 // 是否为专业测评模式
 const isProfessionalMode = computed(() => !!props.assessmentType)
 
@@ -106,6 +108,27 @@ const currentDimensions = computed(() => {
 
 // ===== 方法 =====
 const close = () => emit('close')
+
+const isBackdropEvent = (event: Event) => event.target === event.currentTarget
+
+const handleOverlayPressStart = (event: MouseEvent | TouchEvent) => {
+  isBackdropPointerDown.value = isBackdropEvent(event)
+}
+
+const resetBackdropPointerDown = () => {
+  isBackdropPointerDown.value = false
+}
+
+const handleOverlayClick = (event: MouseEvent) => {
+  if (!isBackdropEvent(event)) return
+
+  const shouldClose = isBackdropPointerDown.value
+  isBackdropPointerDown.value = false
+
+  if (shouldClose) {
+    close()
+  }
+}
 
 const generateId = () => {
   return `q_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
@@ -229,8 +252,18 @@ watch(() => newQuestion.value.type, (newType, oldType) => {
 </script>
 
 <template>
-  <div class="modal-overlay" @click="close">
-    <div class="modal-dialog" @click.stop>
+  <div
+    class="modal-overlay"
+    @mousedown.stop="handleOverlayPressStart"
+    @touchstart.stop="handleOverlayPressStart"
+    @click.stop="handleOverlayClick"
+  >
+    <div
+      class="modal-dialog"
+      @mousedown.stop="resetBackdropPointerDown"
+      @touchstart.stop="resetBackdropPointerDown"
+      @click.stop
+    >
       <div class="modal-header">
         <h3>
           <i :class="isEdit ? 'ri-edit-line' : 'ri-add-circle-line'"></i>
@@ -1210,4 +1243,3 @@ watch(() => newQuestion.value.type, (newType, oldType) => {
   cursor: not-allowed;
 }
 </style>
-
