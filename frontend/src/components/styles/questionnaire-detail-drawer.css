@@ -1746,12 +1746,14 @@
 
 .stats-export-stage {
   position: fixed;
-  left: -12000px;
+  left: 0;
   top: 0;
   width: 1120px;
+  transform: translate3d(-12000px, 0, 0);
+  visibility: hidden;
   pointer-events: none;
-  z-index: -1;
-  opacity: 1;
+  z-index: 0;
+  contain: layout paint style;
 }
 
 .stats-export-report {

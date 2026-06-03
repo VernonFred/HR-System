@@ -554,6 +554,11 @@ const getQuestionVisualOption = (question: QuestionStat): EChartsOption => {
   return getQuestionChartOption(question)
 }
 
+const getQuestionExportVisualOption = (question: QuestionStat): EChartsOption => ({
+  ...getQuestionVisualOption(question),
+  animation: false,
+})
+
 const questionChartSetOptionOpts: SetOptionOpts = {
   notMerge: true,
 }
@@ -1482,34 +1487,49 @@ const renderElementSliceToPng = async (
 ) => {
   const domtoimage = (await import('dom-to-image-more')).default
   const wrapper = document.createElement('div')
-  const parent = element.parentNode
-  const nextSibling = element.nextSibling
-  const originalStyle = {
-    position: element.style.position,
-    top: element.style.top,
-    left: element.style.left,
-    width: element.style.width,
-    margin: element.style.margin,
-    boxShadow: element.style.boxShadow,
-  }
+  const clone = element.cloneNode(true) as HTMLElement
+  const sourceCanvases = Array.from(element.querySelectorAll('canvas'))
+  const clonedCanvases = Array.from(clone.querySelectorAll('canvas'))
+
+  // cloneNode 不会复制 canvas 位图；导出切片用静态图片替换，避免移动原始 DOM 造成页面抖动。
+  sourceCanvases.forEach((sourceCanvas, index) => {
+    const clonedCanvas = clonedCanvases[index]
+    if (!clonedCanvas) return
+
+    try {
+      const image = document.createElement('img')
+      image.src = sourceCanvas.toDataURL('image/png')
+      image.width = sourceCanvas.width
+      image.height = sourceCanvas.height
+      image.style.width = sourceCanvas.style.width || `${sourceCanvas.clientWidth}px`
+      image.style.height = sourceCanvas.style.height || `${sourceCanvas.clientHeight}px`
+      image.style.maxWidth = '100%'
+      image.style.display = 'block'
+      clonedCanvas.replaceWith(image)
+    } catch (error) {
+      console.warn('复制统计图表画布失败，保留克隆画布:', error)
+    }
+  })
 
   wrapper.style.position = 'fixed'
-  wrapper.style.left = '-12000px'
+  wrapper.style.left = '0'
   wrapper.style.top = '0'
+  wrapper.style.transform = 'translate3d(-12000px, 0, 0)'
   wrapper.style.width = `${width}px`
   wrapper.style.height = `${sliceHeight}px`
   wrapper.style.overflow = 'hidden'
   wrapper.style.background = '#f8fafc'
   wrapper.style.pointerEvents = 'none'
+  wrapper.style.contain = 'layout paint style'
 
-  element.style.position = 'relative'
-  element.style.top = `-${offsetY}px`
-  element.style.left = '0'
-  element.style.width = `${width}px`
-  element.style.margin = '0'
-  element.style.boxShadow = 'none'
+  clone.style.position = 'relative'
+  clone.style.top = `-${offsetY}px`
+  clone.style.left = '0'
+  clone.style.width = `${width}px`
+  clone.style.margin = '0'
+  clone.style.boxShadow = 'none'
 
-  wrapper.appendChild(element)
+  wrapper.appendChild(clone)
   document.body.appendChild(wrapper)
 
   try {
@@ -1520,15 +1540,6 @@ const renderElementSliceToPng = async (
       bgcolor: '#f8fafc',
     })
   } finally {
-    if (parent) {
-      parent.insertBefore(element, nextSibling)
-    }
-    element.style.position = originalStyle.position
-    element.style.top = originalStyle.top
-    element.style.left = originalStyle.left
-    element.style.width = originalStyle.width
-    element.style.margin = originalStyle.margin
-    element.style.boxShadow = originalStyle.boxShadow
     wrapper.remove()
   }
 }
@@ -2391,7 +2402,7 @@ const executeStatsExport = async () => {
                   <div class="chart-mode-label">{{ getQuestionVisualLabel(q) }}</div>
                   <EChartContainer
                     v-if="q.options.length > 0"
-                    :option="getQuestionVisualOption(q)"
+                    :option="getQuestionExportVisualOption(q)"
                     theme="light"
                     :set-option-opts="questionChartSetOptionOpts"
                     :style="{ height: `${getQuestionChartHeight(q)}px` }"
