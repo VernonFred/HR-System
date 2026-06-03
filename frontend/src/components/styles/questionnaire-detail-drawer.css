@@ -1452,6 +1452,44 @@
   border-radius: 12px;
 }
 
+.chart-legend-list {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px 14px;
+  margin-top: 2px;
+  padding: 0 8px 4px;
+}
+
+.chart-legend-item {
+  display: inline-flex;
+  align-items: center;
+  min-width: 0;
+  gap: 6px;
+  font-size: 12px;
+  color: #64748b;
+}
+
+.chart-legend-dot {
+  width: 12px;
+  height: 8px;
+  flex-shrink: 0;
+  border-radius: 999px;
+}
+
+.chart-legend-text {
+  max-width: 120px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.chart-legend-value {
+  flex-shrink: 0;
+  color: #334155;
+  font-weight: 700;
+}
+
 .question-type-toggle {
   display: inline-flex;
   align-items: center;

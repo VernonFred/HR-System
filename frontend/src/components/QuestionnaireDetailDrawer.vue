@@ -368,6 +368,12 @@ const truncateChartLabel = (value: string, max = 10) => {
   return text.length > max ? `${text.slice(0, max)}...` : text
 }
 
+const QUESTION_CHART_COLORS = ['#38a3d8', '#60d5d8', '#ffdc5a', '#ff9b78', '#8b5cf6', '#22c55e', '#f97316', '#64748b']
+
+const getQuestionOptionColor = (index: number): string => {
+  return QUESTION_CHART_COLORS[index % QUESTION_CHART_COLORS.length]
+}
+
 const getQuestionChartHeight = (question: QuestionStat): number => {
   if (isSingleChoiceQuestion(question.type)) return 210
   if (isScaleQuestion(question.type)) return 230
@@ -395,9 +401,11 @@ const getQuestionChartOption = (question: QuestionStat): EChartsOption => {
     series: [
       {
         type: 'bar',
-        data: options.map(opt => opt.count),
+        data: options.map((opt, index) => ({
+          value: opt.count,
+          itemStyle: { color: getQuestionOptionColor(index) },
+        })),
         barWidth: 14,
-        itemStyle: { color: '#7c3aed' },
         label: { show: true, position: 'right', color: '#7c3aed', formatter: '{c}人' },
       },
     ],
@@ -421,9 +429,10 @@ const getQuestionPieOption = (question: QuestionStat): EChartsOption => {
           label: { show: false },
           scaleSize: 6,
         },
-        data: options.map(opt => ({
+        data: options.map((opt, index) => ({
           name: opt.text,
           value: opt.count,
+          itemStyle: { color: getQuestionOptionColor(index) },
         })),
       },
     ],
@@ -492,12 +501,11 @@ const getQuestionColumnOption = (question: QuestionStat): EChartsOption => {
     series: [
       {
         type: 'bar',
-        data: options.map(opt => opt.count),
+        data: options.map((opt, index) => ({
+          value: opt.count,
+          itemStyle: { color: getQuestionOptionColor(index) },
+        })),
         barMaxWidth: 34,
-        itemStyle: {
-          color: '#38bdf8',
-          borderRadius: [8, 8, 0, 0],
-        },
         label: { show: true, position: 'top', color: '#0284c7', formatter: '{c}' },
       },
     ],
@@ -1748,6 +1756,17 @@ const executeExport = async () => {
                               :set-option-opts="questionChartSetOptionOpts"
                               :style="{ height: `${getQuestionChartHeight(q)}px` }"
                             />
+                          </div>
+                          <div v-if="getQuestionVisualMode(q) === 'pie'" class="chart-legend-list">
+                            <div
+                              v-for="(opt, optIndex) in q.options"
+                              :key="`legend-${q.id}-${opt.index ?? opt.text}`"
+                              class="chart-legend-item"
+                            >
+                              <span class="chart-legend-dot" :style="{ background: getQuestionOptionColor(optIndex) }"></span>
+                              <span class="chart-legend-text">{{ opt.text }}</span>
+                              <span class="chart-legend-value">{{ opt.count }}人</span>
+                            </div>
                           </div>
                         </div>
                         <div v-else class="empty-option-chart">
