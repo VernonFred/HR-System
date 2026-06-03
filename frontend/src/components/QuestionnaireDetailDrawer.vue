@@ -6,7 +6,7 @@
  * 1. 提交记录 Tab - 显示该问卷的所有提交记录（支持折叠/展开）
  * 2. 问卷统计 Tab - 显示统计数据（参与人数、平均分、等级分布、题目分析）
  */
-import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue'
+import { ref, computed, watch, onMounted, onBeforeUnmount, nextTick } from 'vue'
 import type { EChartsOption, SetOptionOpts } from 'echarts/core'
 import EChartContainer from './EChartContainer.vue'
 import * as XLSX from 'xlsx'
@@ -86,6 +86,16 @@ const showExportModal = ref(false)
 const exportFormat = ref<'csv' | 'excel'>('csv')
 const exportLoading = ref(false)
 const showExportSuccessToast = ref(false)
+
+// 问卷统计导出
+const showStatsExportModal = ref(false)
+const statsExportFormat = ref<'pdf' | 'png' | 'excel'>('pdf')
+const statsExportLoading = ref(false)
+const renderStatsExportReport = ref(false)
+const statsExportReportRef = ref<HTMLElement | null>(null)
+const showStatsExportToast = ref(false)
+const statsExportToastMessage = ref('')
+const statsExportToastType = ref<'success' | 'error'>('success')
 
 // ⭐ V44: 批量删除功能
 const selectedSubmissions = ref<Set<number>>(new Set())
@@ -684,6 +694,17 @@ const trendSeries = computed(() => {
   return apiSeries
 })
 
+const trendRangeLabel = computed(() => trendRange.value === 'month' ? '近一个月' : '本周')
+
+const maxTrendCount = computed(() => {
+  return Math.max(1, ...trendSeries.value.map(day => day.count))
+})
+
+const getTrendBarHeight = (count: number) => {
+  if (count <= 0) return '6%'
+  return `${Math.max(8, Math.round((count / maxTrendCount.value) * 100))}%`
+}
+
 // ⭐ V43: 趋势图SVG路径计算
 const trendPoints = computed(() => {
   if (trendSeries.value.length === 0) return []
@@ -1255,6 +1276,343 @@ const executeExport = async () => {
     exportLoading.value = false
   }
 }
+
+const showStatsExportMessage = (message: string, type: 'success' | 'error' = 'success') => {
+  statsExportToastMessage.value = message
+  statsExportToastType.value = type
+  showStatsExportToast.value = true
+  setTimeout(() => {
+    showStatsExportToast.value = false
+  }, 3000)
+}
+
+const hasStatsExportData = () => {
+  return Boolean(
+    questionStats.value &&
+    (questionStats.value.total_submissions > 0 || questionStats.value.questions.length > 0)
+  )
+}
+
+const closeStatsExportModal = () => {
+  if (statsExportLoading.value) return
+  showStatsExportModal.value = false
+}
+
+const openStatsExportModal = async () => {
+  if (!questionStats.value && props.questionnaire?.id) {
+    await loadQuestionStats()
+  }
+
+  if (!hasStatsExportData()) {
+    showStatsExportMessage('暂无可导出的统计数据', 'error')
+    return
+  }
+
+  showStatsExportModal.value = true
+}
+
+const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms))
+
+const getExportDateText = () => {
+  return new Date().toLocaleString('zh-CN', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit'
+  })
+}
+
+const getExportDateKey = () => {
+  const date = new Date()
+  return `${date.getFullYear()}${pad2(date.getMonth() + 1)}${pad2(date.getDate())}`
+}
+
+const sanitizeFileName = (name: string) => {
+  return name.replace(/[\\/:*?"<>|]/g, '_').replace(/\s+/g, '_').slice(0, 80)
+}
+
+const getStatsExportBaseName = () => {
+  return sanitizeFileName(`${props.questionnaire?.name || '问卷'}_统计报告_${getExportDateKey()}`)
+}
+
+const downloadHref = (href: string, fileName: string) => {
+  const link = document.createElement('a')
+  link.href = href
+  link.download = fileName
+  document.body.appendChild(link)
+  link.click()
+  link.remove()
+}
+
+const downloadBlob = (blob: Blob, fileName: string) => {
+  const url = URL.createObjectURL(blob)
+  downloadHref(url, fileName)
+  setTimeout(() => URL.revokeObjectURL(url), 1000)
+}
+
+const getStatsOverviewRows = () => {
+  return [
+    { '指标': '问卷名称', '数值': props.questionnaire?.name || questionStats.value?.questionnaire_name || '' },
+    { '指标': '导出时间', '数值': getExportDateText() },
+    { '指标': '参与人数', '数值': actualSubmissionCount.value },
+    { '指标': '完成率', '数值': `${actualSubmissionCount.value > 0 ? (questionStats.value?.completion_rate ?? 100) : 0}%` },
+    { '指标': '题目数', '数值': questionStats.value?.questions.length || 0 },
+    { '指标': '平均分', '数值': (questionStats.value?.average_score ?? averageScore.value) || '' },
+    { '指标': '平均用时', '数值': questionStats.value?.average_duration_minutes ? `${questionStats.value.average_duration_minutes}分钟` : '' },
+    { '指标': '趋势范围', '数值': trendRangeLabel.value },
+  ]
+}
+
+const getStatsTrendRows = () => {
+  return trendSeries.value.map(day => ({
+    '日期': day.date,
+    '显示日期': formatTrendDate(day.date),
+    '提交数': day.count
+  }))
+}
+
+const getStatsGradeRows = () => {
+  return [
+    { grade: 'A', label: '优秀' },
+    { grade: 'B', label: '良好' },
+    { grade: 'C', label: '及格' },
+    { grade: 'D', label: '待提升' }
+  ].map(item => {
+    const count = gradeDistribution.value[item.grade as keyof typeof gradeDistribution] || 0
+    const percentage = completedSubmissions.value.length > 0
+      ? Math.round(count / completedSubmissions.value.length * 100)
+      : 0
+    return {
+      '等级': item.grade,
+      '说明': item.label,
+      '人数': count,
+      '占比': `${percentage}%`
+    }
+  })
+}
+
+const getStatsTextRows = () => {
+  const rows: Array<Record<string, string | number>> = []
+  questionStats.value?.questions
+    .filter(q => isTextQuestion(q.type))
+    .forEach(q => {
+      getTextTags(q).forEach(item => {
+        rows.push({
+          '题号': `Q${q.index}`,
+          '题目': q.text || '',
+          '类型': '关键词标签',
+          '内容': item.text || '',
+          '次数': item.count || 0
+        })
+      })
+      if (getTextEmptyCount(q) > 0) {
+        rows.push({
+          '题号': `Q${q.index}`,
+          '题目': q.text || '',
+          '类型': '无/没有意见',
+          '内容': '无/没有意见',
+          '次数': getTextEmptyCount(q)
+        })
+      }
+      getTextLongAnswers(q).forEach(item => {
+        rows.push({
+          '题号': `Q${q.index}`,
+          '题目': q.text || '',
+          '类型': '代表性回答',
+          '内容': item.text || '',
+          '次数': item.count || 0
+        })
+      })
+    })
+  return rows
+}
+
+const exportStatsAsExcel = () => {
+  const workbook = XLSX.utils.book_new()
+  XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(getStatsOverviewRows()), '统计概览')
+  XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(getStatsTrendRows()), '提交趋势')
+
+  if (isScored.value) {
+    XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(getStatsGradeRows()), '得分分布')
+  }
+
+  const questionRows = buildQuestionStatsRows()
+  if (questionRows.length > 0) {
+    XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(questionRows), '题目统计')
+  }
+
+  const textRows = getStatsTextRows()
+  if (textRows.length > 0) {
+    XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(textRows), '文本题汇总')
+  }
+
+  const excelBuffer = XLSX.write(workbook, {
+    bookType: 'xlsx',
+    type: 'array'
+  })
+  downloadBlob(
+    new Blob([excelBuffer], {
+      type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    }),
+    `${getStatsExportBaseName()}.xlsx`
+  )
+}
+
+const prepareStatsExportReport = async () => {
+  renderStatsExportReport.value = true
+  await nextTick()
+  const questionCount = questionStats.value?.questions.length || 0
+  await delay(Math.min(1800, 700 + questionCount * 45))
+  const element = statsExportReportRef.value
+  if (!element) throw new Error('找不到统计报告导出节点')
+  return element
+}
+
+const cleanupStatsExportReport = async () => {
+  renderStatsExportReport.value = false
+  await nextTick()
+}
+
+const renderElementSliceToPng = async (
+  element: HTMLElement,
+  offsetY: number,
+  sliceHeight: number,
+  width: number
+) => {
+  const domtoimage = (await import('dom-to-image-more')).default
+  const wrapper = document.createElement('div')
+  const parent = element.parentNode
+  const nextSibling = element.nextSibling
+  const originalStyle = {
+    position: element.style.position,
+    top: element.style.top,
+    left: element.style.left,
+    width: element.style.width,
+    margin: element.style.margin,
+    boxShadow: element.style.boxShadow,
+  }
+
+  wrapper.style.position = 'fixed'
+  wrapper.style.left = '-12000px'
+  wrapper.style.top = '0'
+  wrapper.style.width = `${width}px`
+  wrapper.style.height = `${sliceHeight}px`
+  wrapper.style.overflow = 'hidden'
+  wrapper.style.background = '#f8fafc'
+  wrapper.style.pointerEvents = 'none'
+
+  element.style.position = 'relative'
+  element.style.top = `-${offsetY}px`
+  element.style.left = '0'
+  element.style.width = `${width}px`
+  element.style.margin = '0'
+  element.style.boxShadow = 'none'
+
+  wrapper.appendChild(element)
+  document.body.appendChild(wrapper)
+
+  try {
+    return await domtoimage.toPng(wrapper, {
+      width,
+      height: sliceHeight,
+      quality: 1,
+      bgcolor: '#f8fafc',
+    })
+  } finally {
+    if (parent) {
+      parent.insertBefore(element, nextSibling)
+    }
+    element.style.position = originalStyle.position
+    element.style.top = originalStyle.top
+    element.style.left = originalStyle.left
+    element.style.width = originalStyle.width
+    element.style.margin = originalStyle.margin
+    element.style.boxShadow = originalStyle.boxShadow
+    wrapper.remove()
+  }
+}
+
+const exportStatsAsPng = async () => {
+  const element = await prepareStatsExportReport()
+  const width = Math.ceil(element.scrollWidth || element.offsetWidth)
+  const totalHeight = Math.ceil(element.scrollHeight || element.offsetHeight)
+  const safeSliceHeight = 5200
+  const totalPages = Math.max(1, Math.ceil(totalHeight / safeSliceHeight))
+  const baseName = getStatsExportBaseName()
+
+  for (let pageIndex = 0; pageIndex < totalPages; pageIndex++) {
+    const offsetY = pageIndex * safeSliceHeight
+    const sliceHeight = Math.min(safeSliceHeight, totalHeight - offsetY)
+    const dataUrl = await renderElementSliceToPng(element, offsetY, sliceHeight, width)
+    const suffix = totalPages > 1 ? `-${pad2(pageIndex + 1)}` : ''
+    downloadHref(dataUrl, `${baseName}${suffix}.png`)
+    await delay(160)
+  }
+}
+
+const exportStatsAsPdf = async () => {
+  const { jsPDF } = await import('jspdf')
+  const element = await prepareStatsExportReport()
+  const width = Math.ceil(element.scrollWidth || element.offsetWidth)
+  const totalHeight = Math.ceil(element.scrollHeight || element.offsetHeight)
+
+  const pdf = new jsPDF({
+    orientation: 'portrait',
+    unit: 'mm',
+    format: 'a4'
+  })
+  const margin = 10
+  const pageWidth = 210
+  const pageHeight = 297
+  const contentWidth = pageWidth - margin * 2
+  const contentHeight = pageHeight - margin * 2
+  const sliceHeightPx = Math.max(900, Math.floor(width * contentHeight / contentWidth))
+  const totalPages = Math.max(1, Math.ceil(totalHeight / sliceHeightPx))
+
+  for (let pageIndex = 0; pageIndex < totalPages; pageIndex++) {
+    const offsetY = pageIndex * sliceHeightPx
+    const sliceHeight = Math.min(sliceHeightPx, totalHeight - offsetY)
+    const dataUrl = await renderElementSliceToPng(element, offsetY, sliceHeight, width)
+    if (pageIndex > 0) pdf.addPage()
+    const imageHeight = (sliceHeight * contentWidth) / width
+    pdf.addImage(dataUrl, 'PNG', margin, margin, contentWidth, imageHeight)
+  }
+
+  pdf.save(`${getStatsExportBaseName()}.pdf`)
+}
+
+const executeStatsExport = async () => {
+  statsExportLoading.value = true
+
+  try {
+    if (!questionStats.value && props.questionnaire?.id) {
+      await loadQuestionStats()
+    }
+
+    if (!hasStatsExportData()) {
+      showStatsExportMessage('暂无可导出的统计数据', 'error')
+      return
+    }
+
+    if (statsExportFormat.value === 'excel') {
+      exportStatsAsExcel()
+    } else if (statsExportFormat.value === 'png') {
+      await exportStatsAsPng()
+    } else {
+      await exportStatsAsPdf()
+    }
+
+    showStatsExportModal.value = false
+    showStatsExportMessage('统计报告导出成功，文件已下载')
+  } catch (error) {
+    console.error('统计报告导出失败:', error)
+    showStatsExportMessage('统计报告导出失败，请重试', 'error')
+  } finally {
+    await cleanupStatsExportReport()
+    statsExportLoading.value = false
+  }
+}
 </script>
 
 <template>
@@ -1508,6 +1866,21 @@ const executeExport = async () => {
 
           <!-- 统计内容 -->
           <template v-else>
+            <div class="statistics-toolbar">
+              <div class="statistics-toolbar-text">
+                <h3>问卷统计</h3>
+                <p>导出完整可视化统计报告，包含全部题目分析</p>
+              </div>
+              <button
+                class="btn-stats-export"
+                :disabled="statsLoading || statsExportLoading"
+                @click="openStatsExportModal"
+              >
+                <i :class="statsExportLoading ? 'ri-loader-4-line spinning' : 'ri-download-cloud-2-line'"></i>
+                {{ statsExportLoading ? '导出中...' : '导出统计' }}
+              </button>
+            </div>
+
             <!-- V45: 核心指标卡片 - 修复无数据时显示问题 -->
             <div class="stats-overview">
               <div class="stat-card">
@@ -1892,6 +2265,269 @@ const executeExport = async () => {
     </div>
   </div>
 
+  <!-- 问卷统计导出专用报告：使用完整数据，不受页面分页影响 -->
+  <div v-if="renderStatsExportReport" class="stats-export-stage" aria-hidden="true">
+    <article ref="statsExportReportRef" class="stats-export-report">
+      <section class="stats-export-hero">
+        <div>
+          <span class="stats-export-kicker">TalentLens 问卷统计报告</span>
+          <h1>{{ questionnaire?.name || questionStats?.questionnaire_name || '问卷统计' }}</h1>
+          <p>导出时间：{{ getExportDateText() }} · 趋势范围：{{ trendRangeLabel }}</p>
+        </div>
+        <div class="stats-export-logo">
+          <i class="ri-bar-chart-grouped-line"></i>
+        </div>
+      </section>
+
+      <section class="stats-export-section">
+        <div class="stats-export-section-title">
+          <h2>核心概览</h2>
+          <span>{{ actualSubmissionCount }} 份提交</span>
+        </div>
+        <div class="stats-export-overview">
+          <div class="stats-export-metric">
+            <span>参与人数</span>
+            <strong>{{ actualSubmissionCount }}</strong>
+          </div>
+          <div class="stats-export-metric">
+            <span>完成率</span>
+            <strong>{{ actualSubmissionCount > 0 ? (questionStats?.completion_rate ?? 100) : 0 }}%</strong>
+          </div>
+          <div class="stats-export-metric">
+            <span>{{ isScored ? '优良率' : '题目数' }}</span>
+            <strong>{{ isScored ? `${highScoreRate}%` : (questionStats?.questions?.length || 0) }}</strong>
+          </div>
+          <div class="stats-export-metric">
+            <span>平均用时</span>
+            <strong>{{ questionStats?.average_duration_minutes ? `${questionStats.average_duration_minutes}分钟` : '-' }}</strong>
+          </div>
+        </div>
+      </section>
+
+      <section v-if="isScored && completedSubmissions.length > 0" class="stats-export-section">
+        <div class="stats-export-section-title">
+          <h2>得分分布</h2>
+          <span>按等级汇总</span>
+        </div>
+        <div class="stats-export-grade-list">
+          <div
+            v-for="gradeInfo in [
+              { grade: 'A', label: '优秀', color: '#10b981' },
+              { grade: 'B', label: '良好', color: '#3b82f6' },
+              { grade: 'C', label: '及格', color: '#f59e0b' },
+              { grade: 'D', label: '待提升', color: '#ef4444' }
+            ]"
+            :key="`export-grade-${gradeInfo.grade}`"
+            class="stats-export-grade-row"
+          >
+            <div class="stats-export-grade-label" :style="{ color: gradeInfo.color }">
+              <strong>{{ gradeInfo.grade }}</strong>
+              <span>{{ gradeInfo.label }}</span>
+            </div>
+            <div class="stats-export-grade-track">
+              <div
+                class="stats-export-grade-fill"
+                :style="{
+                  width: completedSubmissions.length > 0
+                    ? `${gradeDistribution[gradeInfo.grade as keyof typeof gradeDistribution] / completedSubmissions.length * 100}%`
+                    : '0%',
+                  background: gradeInfo.color
+                }"
+              ></div>
+            </div>
+            <div class="stats-export-grade-count">
+              {{ gradeDistribution[gradeInfo.grade as keyof typeof gradeDistribution] }}人
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section v-if="trendSeries.length > 0" class="stats-export-section">
+        <div class="stats-export-section-title">
+          <h2>提交趋势</h2>
+          <span>{{ trendRangeLabel }}</span>
+        </div>
+        <div class="stats-export-trend">
+          <div
+            v-for="day in trendSeries"
+            :key="`export-trend-${day.date}`"
+            class="stats-export-trend-item"
+          >
+            <div class="stats-export-trend-bar-wrap">
+              <div
+                class="stats-export-trend-bar"
+                :style="{ height: getTrendBarHeight(day.count) }"
+              ></div>
+            </div>
+            <strong>{{ day.count }}</strong>
+            <span>{{ formatTrendDate(day.date) }}</span>
+          </div>
+        </div>
+      </section>
+
+      <section v-if="questionStats?.questions && questionStats.questions.length > 0" class="stats-export-section">
+        <div class="stats-export-section-title">
+          <h2>题目分析</h2>
+          <span>共 {{ questionStats.questions.length }} 题，已导出全部题目</span>
+        </div>
+
+        <div class="stats-export-question-list">
+          <div
+            v-for="q in questionStats.questions"
+            :key="`export-question-${q.id}`"
+            class="stats-export-question-card"
+          >
+            <div class="stats-export-question-head">
+              <span class="question-index">Q{{ q.index }}</span>
+              <div>
+                <h3>{{ q.text }}</h3>
+                <p>{{ getQuestionTypeLabel(q.type) }} · {{ q.total_answers }} 份回答</p>
+              </div>
+            </div>
+
+            <div class="stats-export-question-body" :class="{ 'is-text': isTextQuestion(q.type) }">
+              <template v-if="!isTextQuestion(q.type)">
+                <div class="stats-export-chart-box">
+                  <div class="chart-mode-label">{{ getQuestionVisualLabel(q) }}</div>
+                  <EChartContainer
+                    v-if="q.options.length > 0"
+                    :option="getQuestionVisualOption(q)"
+                    theme="light"
+                    :set-option-opts="questionChartSetOptionOpts"
+                    :style="{ height: `${getQuestionChartHeight(q)}px` }"
+                  />
+                  <div v-if="getQuestionVisualMode(q) === 'pie'" class="chart-legend-list">
+                    <div
+                      v-for="(opt, optIndex) in q.options"
+                      :key="`export-legend-${q.id}-${opt.index ?? opt.text}`"
+                      class="chart-legend-item"
+                    >
+                      <span class="chart-legend-dot" :style="{ background: getQuestionOptionColor(optIndex) }"></span>
+                      <span class="chart-legend-text">{{ opt.text }}</span>
+                      <span class="chart-legend-value">{{ opt.count }}人</span>
+                    </div>
+                  </div>
+                  <div v-if="q.options.length === 0" class="empty-option-chart">暂无统计数据</div>
+                </div>
+
+                <div class="stats-export-detail-box">
+                  <div class="detail-panel-title">
+                    <span>选项明细</span>
+                    <em>{{ q.total_answers }} 份回答</em>
+                  </div>
+                  <div class="option-detail-list">
+                    <div class="option-detail-row" v-for="opt in q.options" :key="`export-opt-${q.id}-${opt.index ?? opt.text}`">
+                      <div class="option-detail-head">
+                        <span class="option-text">{{ opt.text }}</span>
+                        <span class="option-stats">{{ opt.count }}人 · {{ normalizePercentage(opt.percentage) }}%</span>
+                      </div>
+                      <div class="option-track">
+                        <div class="option-fill" :style="{ width: `${normalizePercentage(opt.percentage)}%` }"></div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </template>
+
+              <template v-else>
+                <div class="stats-export-detail-box">
+                  <div class="detail-panel-title">
+                    <span>关键词汇总</span>
+                    <em>{{ q.total_answers }} 条回答</em>
+                  </div>
+                  <div v-if="getTextTags(q).length > 0 || getTextEmptyCount(q) > 0" class="text-answer-tags">
+                    <span
+                      v-for="(tag, idx) in getTextTags(q)"
+                      :key="`export-tag-${q.id}-${idx}`"
+                      class="text-tag"
+                    >
+                      {{ tag.text }} <em>×{{ tag.count }}</em>
+                    </span>
+                    <span v-if="getTextEmptyCount(q) > 0" class="text-tag muted">
+                      无/没有意见 <em>×{{ getTextEmptyCount(q) }}</em>
+                    </span>
+                  </div>
+                  <div v-else class="empty-option-chart">暂无关键词汇总</div>
+                </div>
+
+                <div class="stats-export-detail-box">
+                  <div class="detail-panel-title">
+                    <span>代表性回答</span>
+                    <em>全部聚合回答</em>
+                  </div>
+                  <div v-if="getTextLongAnswers(q).length > 0" class="stats-export-text-list">
+                    <div
+                      v-for="(ans, idx) in getTextLongAnswers(q)"
+                      :key="`export-answer-${q.id}-${idx}`"
+                      class="text-answer-item"
+                    >
+                      "{{ ans.text }}"
+                      <span class="text-answer-count-badge">×{{ ans.count }}</span>
+                    </div>
+                  </div>
+                  <div v-else class="empty-option-chart">暂无文本回答</div>
+                </div>
+              </template>
+            </div>
+          </div>
+        </div>
+      </section>
+    </article>
+  </div>
+
+  <!-- 问卷统计导出弹窗 -->
+  <Teleport to="body">
+    <Transition name="modal">
+      <div v-if="showStatsExportModal" class="modal-overlay" @click="closeStatsExportModal">
+        <div class="modal-dialog export-modal stats-export-modal" @click.stop>
+          <div class="modal-header">
+            <h3><i class="ri-download-cloud-2-line"></i> 导出统计报告</h3>
+            <button class="btn-close-modal" :disabled="statsExportLoading" @click="closeStatsExportModal">
+              <i class="ri-close-line"></i>
+            </button>
+          </div>
+          <div class="modal-body export-body">
+            <p class="export-info">
+              <i class="ri-bar-chart-grouped-line"></i>
+              将导出 <strong>{{ questionStats?.questions?.length || 0 }}</strong> 道题目的完整统计报告
+            </p>
+            <div class="export-format-group">
+              <label class="format-label">选择导出格式：</label>
+              <div class="format-options stats-format-options">
+                <label class="format-option recommended" :class="{ active: statsExportFormat === 'pdf' }">
+                  <input type="radio" v-model="statsExportFormat" value="pdf" />
+                  <i class="ri-file-pdf-line"></i>
+                  <span>PDF 报告</span>
+                  <small>推荐，自动分页</small>
+                </label>
+                <label class="format-option" :class="{ active: statsExportFormat === 'png' }">
+                  <input type="radio" v-model="statsExportFormat" value="png" />
+                  <i class="ri-image-2-line"></i>
+                  <span>PNG 图片</span>
+                  <small>长内容自动拆图</small>
+                </label>
+                <label class="format-option" :class="{ active: statsExportFormat === 'excel' }">
+                  <input type="radio" v-model="statsExportFormat" value="excel" />
+                  <i class="ri-file-excel-2-line"></i>
+                  <span>Excel 表格</span>
+                  <small>用于二次分析</small>
+                </label>
+              </div>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button class="btn-cancel" :disabled="statsExportLoading" @click="closeStatsExportModal">取消</button>
+            <button class="btn-primary" @click="executeStatsExport" :disabled="statsExportLoading">
+              <i v-if="statsExportLoading" class="ri-loader-4-line spinning"></i>
+              <i v-else class="ri-download-line"></i>
+              {{ statsExportLoading ? '导出中...' : '确认导出' }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </Transition>
+  </Teleport>
+
   <!-- V42: 导出弹窗 -->
   <Teleport to="body">
     <Transition name="modal">
@@ -1945,6 +2581,15 @@ const executeExport = async () => {
       <div v-if="showExportSuccessToast" class="toast-success">
         <i class="ri-checkbox-circle-fill"></i>
         <span>{{ submissions.length > 0 ? '导出成功！文件已下载' : '暂无数据可导出' }}</span>
+      </div>
+    </Transition>
+  </Teleport>
+
+  <Teleport to="body">
+    <Transition name="toast">
+      <div v-if="showStatsExportToast" class="toast-success" :class="statsExportToastType">
+        <i :class="statsExportToastType === 'success' ? 'ri-checkbox-circle-fill' : 'ri-error-warning-fill'"></i>
+        <span>{{ statsExportToastMessage }}</span>
       </div>
     </Transition>
   </Teleport>
