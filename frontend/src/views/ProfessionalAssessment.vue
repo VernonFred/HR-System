@@ -56,6 +56,7 @@ const submissions = ref<Submission[]>([])
 const showDistributeModal = ref(false)
 const selectedQuestionnaireForDistribute = ref<Questionnaire | null>(null)
 const selectedAssessmentForDistribute = ref<Assessment | null>(null)
+const distributeMode = ref<'create' | 'edit' | 'clone'>('create')
 
 // ===== 查看链接面板 =====
 const showViewLinksPanel = ref(false)
@@ -257,6 +258,7 @@ const loadData = async () => {
 const handleDistribute = (q: Questionnaire) => {
   selectedQuestionnaireForDistribute.value = q
   selectedAssessmentForDistribute.value = null
+  distributeMode.value = 'create'
   showDistributeModal.value = true
 }
 
@@ -270,6 +272,7 @@ const handleViewLinks = (q: Questionnaire) => {
 const handleDistributeSuccess = () => {
   showDistributeModal.value = false
   selectedAssessmentForDistribute.value = null
+  distributeMode.value = 'create'
   loadData()
 }
 
@@ -290,6 +293,20 @@ const handleEditDistribution = (assessment: Assessment) => {
   showViewLinksPanel.value = false
   selectedQuestionnaireForDistribute.value = questionnaire
   selectedAssessmentForDistribute.value = assessment
+  distributeMode.value = 'edit'
+  showDistributeModal.value = true
+}
+
+const handleCloneDistribution = (assessment: Assessment) => {
+  const questionnaire = questionnaires.value.find((q) => q.id === assessment.questionnaire_id)
+  if (!questionnaire) {
+    alert('未找到该链接对应的问卷')
+    return
+  }
+  showViewLinksPanel.value = false
+  selectedQuestionnaireForDistribute.value = questionnaire
+  selectedAssessmentForDistribute.value = assessment
+  distributeMode.value = 'clone'
   showDistributeModal.value = true
 }
 
@@ -700,7 +717,8 @@ onMounted(() => {
       v-if="showDistributeModal"
       :questionnaire="selectedQuestionnaireForDistribute"
       :assessment="selectedAssessmentForDistribute"
-      @close="showDistributeModal = false; selectedAssessmentForDistribute = null"
+      :mode="distributeMode"
+      @close="showDistributeModal = false; selectedAssessmentForDistribute = null; distributeMode = 'create'"
       @success="handleDistributeSuccess"
     />
 
@@ -711,6 +729,7 @@ onMounted(() => {
       @close="showViewLinksPanel = false"
       @create-new="handleCreateNewLink"
       @edit="handleEditDistribution"
+      @clone="handleCloneDistribution"
     />
 
     <!-- 提交详情弹窗已移至 SubmissionRecordsTab 组件内部 -->

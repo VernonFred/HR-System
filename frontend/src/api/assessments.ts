@@ -500,19 +500,27 @@ export const fetchQuestionnaireQuestionStats = (questionnaireId: number, range: 
 export interface PublicAssessmentInfo {
   name: string;
   type: string;
+  category?: string;
+  custom_type?: string;
+  purpose?: string;
   questions_count: number;
   estimated_minutes: number;
   valid: boolean;
   expired: boolean;
   description?: string;
   form_fields?: any[];
-  page_texts?: {
+  page_texts?: PageTexts & {
     intro_text?: string;
     guide_text?: string;
     privacy_text?: string;
+    welcome_text?: string;
+    show_basic_info_title?: boolean;
     success_title?: string;
     success_message?: string;
     success_tips?: string;
+    result_text?: string;
+    contact_text?: string;
+    show_next_steps?: boolean;
   };
   questions?: any[];  // ⭐ 问卷题目数据（用于 fallback）
   // ⭐ 重复提交配置
@@ -520,6 +528,18 @@ export interface PublicAssessmentInfo {
   repeat_check_by?: string;
   repeat_interval_hours?: number;
   max_submissions?: number;
+}
+
+export interface PublicSubmissionStart {
+  submission_code: string;
+  questions: any[];
+  questionnaire_name?: string;
+  questionnaire_type?: string;
+  category?: string;
+  custom_type?: string;
+  purpose?: string;
+  questions_count?: number;
+  estimated_minutes?: number;
 }
 
 // ⭐ 重复提交检测结果
@@ -568,6 +588,9 @@ export const fetchPublicAssessment = (code: string) => {
   const fallbackData: PublicAssessmentInfo = assessment && questionnaire ? {
     name: questionnaire.name,
     type: questionnaire.type,
+    category: questionnaire.category,
+    custom_type: questionnaire.custom_type,
+    purpose: questionnaire.purpose,
     questions_count: questionnaire.questions_count,
     estimated_minutes: questionnaire.estimated_minutes,
     valid: now >= validFrom && now <= validUntil,
@@ -582,16 +605,16 @@ export const fetchPublicAssessment = (code: string) => {
       privacy_text: '我们将严格保护您的隐私',
       success_title: '提交成功',
       success_message: '感谢您的参与！',
-      success_tips: '我们会尽快处理您的测评结果'
+      success_tips: '我们会尽快处理您的提交结果'
     }
   } : {
-    name: '未找到测评',
+    name: '未找到链接',
     type: 'UNKNOWN',
     questions_count: 0,
     estimated_minutes: 0,
     valid: false,
     expired: false,
-    description: '测评不存在'
+    description: '链接不存在'
   } as PublicAssessmentInfo;
   
   return apiRequest<PublicAssessmentInfo>({
@@ -638,7 +661,7 @@ export const startAssessment = (code: string, data: SubmissionStart, questionnai
   
   // ⚠️ 重要：开始测评操作不使用fallback，确保失败时能正确抛出错误
   // 如果使用fallback，会创建一个假的submission_code，后续提交会失败
-  return apiRequestWithBody<{ submission_code: string; questions: any[] }>({
+  return apiRequestWithBody<PublicSubmissionStart>({
     path: `/api/public/assessment/${code}/start`,
     method: "POST",
     body: { ...data, assessment_code: code },

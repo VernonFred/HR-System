@@ -156,18 +156,28 @@ const closeEditorModal = () => {
 }
 
 const handleEditorSave = () => {
+  const wasEditing = !!editingQuestionnaire.value
   closeEditorModal()
   loadData()
+  if (wasEditing) {
+    showMessage('问卷内容已更新，现有链接会自动使用最新内容，无需重新分发', 'success')
+  }
 }
 
 // ===== 分发弹窗 =====
 const showDistributeModal = ref(false)
 const distributeQuestionnaire = ref<Questionnaire | null>(null)
 const distributeAssessment = ref<Assessment | null>(null)
+const distributeMode = ref<'create' | 'edit' | 'clone'>('create')
 
-const openDistributeModal = (q: Questionnaire, assessment: Assessment | null = null) => {
+const openDistributeModal = (
+  q: Questionnaire,
+  assessment: Assessment | null = null,
+  mode: 'create' | 'edit' | 'clone' = assessment ? 'edit' : 'create'
+) => {
   distributeQuestionnaire.value = q
   distributeAssessment.value = assessment
+  distributeMode.value = mode
   showDistributeModal.value = true
 }
 
@@ -175,6 +185,7 @@ const closeDistributeModal = () => {
   showDistributeModal.value = false
   distributeQuestionnaire.value = null
   distributeAssessment.value = null
+  distributeMode.value = 'create'
 }
 
 const handleDistributeSuccess = () => {
@@ -210,7 +221,17 @@ const handleEditDistribution = (assessment: Assessment) => {
     return
   }
   closeViewLinksPanel()
-  openDistributeModal(questionnaire, assessment)
+  openDistributeModal(questionnaire, assessment, 'edit')
+}
+
+const handleCloneDistribution = (assessment: Assessment) => {
+  const questionnaire = questionnaires.value.find((q) => q.id === assessment.questionnaire_id)
+  if (!questionnaire) {
+    showMessage('未找到该链接对应的问卷', 'error')
+    return
+  }
+  closeViewLinksPanel()
+  openDistributeModal(questionnaire, assessment, 'clone')
 }
 
 // ===== 切换问卷状态 =====
@@ -485,6 +506,7 @@ onMounted(() => {
       v-if="showDistributeModal"
       :questionnaire="distributeQuestionnaire"
       :assessment="distributeAssessment"
+      :mode="distributeMode"
       @close="closeDistributeModal"
       @success="handleDistributeSuccess"
     />
@@ -496,6 +518,7 @@ onMounted(() => {
       @close="closeViewLinksPanel"
       @create-new="handleCreateNewLink"
       @edit="handleEditDistribution"
+      @clone="handleCloneDistribution"
     />
 
     <!-- 删除确认弹窗 -->

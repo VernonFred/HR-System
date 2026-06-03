@@ -1,7 +1,11 @@
 <script setup lang="ts">
 import { onMounted, ref, computed } from "vue";
 import { useRoute } from "vue-router";
-import { apiRequest } from "../api/client";
+import { fetchPublicAssessment, type PageTexts } from "../api/assessments";
+import {
+  getQuestionnaireCopy,
+  type QuestionnaireCopySource,
+} from "../utils/questionnaireCopy";
 
 const route = useRoute();
 const code = computed(() => route.params.code as string);
@@ -9,37 +13,90 @@ const submissionCode = computed(() => route.params.submissionCode as string);
 
 // 动画状态
 const showSuccess = ref(false);
+const questionnaireSource = ref<QuestionnaireCopySource | null>(null);
 
 // 可配置的文本（从后端获取或使用默认值）
-const pageTexts = ref({
-  successTitle: "测评提交成功！",
-  successMessage: "感谢您完成本次测评，我们已收到您的答卷。",
-  resultText: "我们将在 1-3 个工作日内完成评估分析。",
-  contactText: "届时会通过您留下的联系方式通知您，请保持电话畅通。",
-  showNextSteps: true,
-});
+type SuccessPageTexts = Required<Pick<PageTexts,
+  'successTitle' | 'successMessage' | 'resultText' | 'contactText' | 'showNextSteps'
+>>;
+
+const buildDefaultSuccessTexts = (source?: QuestionnaireCopySource | null): SuccessPageTexts => {
+  const defaults = getQuestionnaireCopy(source).pageTexts;
+  return {
+    successTitle: defaults.successTitle,
+    successMessage: defaults.successMessage,
+    resultText: defaults.resultText,
+    contactText: defaults.contactText,
+    showNextSteps: defaults.showNextSteps,
+  };
+};
+
+const pageTexts = ref<SuccessPageTexts>(buildDefaultSuccessTexts());
+
+const getPageTextValue = (raw: any, camelKey: string): string | undefined => {
+  if (!raw) return undefined;
+  const snakeKey = camelKey.replace(/([A-Z])/g, '_$1').toLowerCase();
+  return raw[camelKey] ?? raw[snakeKey];
+};
+
+const getPageFlagValue = (raw: any, camelKey: string): boolean | undefined => {
+  if (!raw) return undefined;
+  const snakeKey = camelKey.replace(/([A-Z])/g, '_$1').toLowerCase();
+  const value = raw[camelKey] ?? raw[snakeKey];
+  if (typeof value === 'boolean') return value;
+  if (typeof value === 'string') {
+    const normalized = value.trim().toLowerCase();
+    if (['false', '0', 'no', '否'].includes(normalized)) return false;
+    if (['true', '1', 'yes', '是'].includes(normalized)) return true;
+  }
+  return undefined;
+};
+
+const loadStoredQuestionnaireSource = (): QuestionnaireCopySource | null => {
+  try {
+    const stored = sessionStorage.getItem(`assessment_${submissionCode.value}`);
+    if (!stored) return null;
+    const data = JSON.parse(stored);
+    return {
+      type: data.type,
+      category: data.category,
+      custom_type: data.custom_type,
+      purpose: data.purpose,
+    };
+  } catch (error) {
+    console.warn("读取答题元信息失败:", error);
+    return null;
+  }
+};
 
 // 加载页面配置
 const loadPageTexts = async () => {
+  const storedSource = loadStoredQuestionnaireSource();
+  if (storedSource) {
+    questionnaireSource.value = storedSource;
+    pageTexts.value = buildDefaultSuccessTexts(storedSource);
+  }
+
   try {
-    const res = await apiRequest<{ page_texts?: any }>({
-      path: `/api/public/assessment/${code.value}`,
-      fallback: {},
-      auth: false,
-    });
+    const res = await fetchPublicAssessment(code.value);
+    const source = storedSource || res;
+    questionnaireSource.value = source;
+    const defaults = buildDefaultSuccessTexts(source);
+
     if (res.page_texts) {
-      // 兼容新旧字段名
       pageTexts.value = {
-        successTitle: res.page_texts.successTitle || res.page_texts.success_title || pageTexts.value.successTitle,
-        successMessage: res.page_texts.successMessage || res.page_texts.success_message || pageTexts.value.successMessage,
-        resultText: res.page_texts.resultText || pageTexts.value.resultText,
-        contactText: res.page_texts.contactText || pageTexts.value.contactText,
-        showNextSteps: res.page_texts.showNextSteps !== false, // 默认显示，除非明确设为false
+        successTitle: getPageTextValue(res.page_texts, 'successTitle') || defaults.successTitle,
+        successMessage: getPageTextValue(res.page_texts, 'successMessage') || defaults.successMessage,
+        resultText: getPageTextValue(res.page_texts, 'resultText') || defaults.resultText,
+        contactText: getPageTextValue(res.page_texts, 'contactText') || defaults.contactText,
+        showNextSteps: getPageFlagValue(res.page_texts, 'showNextSteps') ?? defaults.showNextSteps,
       };
+    } else {
+      pageTexts.value = defaults;
     }
   } catch (e) {
-    // 使用默认值
     console.log("使用默认页面文本");
+    pageTexts.value = buildDefaultSuccessTexts(questionnaireSource.value);
   }
 };
 
@@ -337,4 +394,3 @@ onMounted(() => {
   }
 }
 </style>
-

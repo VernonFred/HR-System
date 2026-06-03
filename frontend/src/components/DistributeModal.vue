@@ -23,11 +23,13 @@ import {
   type PageTexts,
 } from '../api/assessments'
 import FieldConfigPanel from './FieldConfigPanel.vue'
+import { getQuestionnaireCopy } from '../utils/questionnaireCopy'
 
 // ===== Props =====
 const props = defineProps<{
   questionnaire: Questionnaire | null
   assessment?: Assessment | null
+  mode?: 'create' | 'edit' | 'clone'
 }>()
 
 // ===== Emits =====
@@ -58,19 +60,12 @@ const form = ref({
   description: '',
 })
 
-// 页面文案
-const pageTexts = ref<PageTexts>({
-  welcomeText: '欢迎参加本次测评',
-  introText: '本测评旨在了解您的职业特质，帮助我们更好地为您匹配适合的岗位。',
-  guideText: '请在安静的环境下完成，按照第一反应作答，没有对错之分。',
-  privacyText: '您的信息将被严格保密，仅用于招聘评估目的。',
-  showBasicInfoTitle: true,
-  successTitle: '测评完成！',
-  successMessage: '感谢您认真完成本次测评，您的回答对我们非常重要。',
-  resultText: '我们将在 1-3 个工作日内完成评估分析。',
-  contactText: '届时会通过您留下的联系方式通知您，请保持电话畅通。',
-  showNextSteps: true,  // 默认显示"接下来"区域
+const buildDefaultPageTexts = (): PageTexts => ({
+  ...getQuestionnaireCopy(props.questionnaire).pageTexts,
 })
+
+// 页面文案
+const pageTexts = ref<PageTexts>(buildDefaultPageTexts())
 
 // 表单字段 - V45: 保留姓名、手机号、性别、应聘岗位，移除邮箱
 const formFields = ref<FormField[]>([
@@ -89,7 +84,19 @@ const routingConfig = ref<DepartmentRoutingConfig>({
 
 // 页面文案编辑类型
 const pageEditType = ref<'entry' | 'success'>('entry')
-const isEditMode = computed(() => !!props.assessment?.id)
+const isCloneMode = computed(() => props.mode === 'clone' && !!props.assessment?.id)
+const isEditMode = computed(() => props.mode !== 'clone' && !!props.assessment?.id)
+const copy = computed(() => getQuestionnaireCopy(props.questionnaire))
+const modeTitle = computed(() => {
+  if (isEditMode.value) return '编辑链接配置'
+  if (isCloneMode.value) return '复制配置新建链接'
+  return `创建${copy.value.linkLabel}`
+})
+const modeTip = computed(() => {
+  if (isEditMode.value) return '当前为编辑模式，保存后访问码和链接地址保持不变。'
+  if (isCloneMode.value) return '当前为复制模式，已带入原链接配置；保存后会生成新的访问码和链接。'
+  return '同一问卷可以创建多个链接，用于长期、短期或不同人群的独立配置。'
+})
 
 // ===== 计算属性 =====
 const enabledFields = computed(() => formFields.value.filter(f => f.enabled))
@@ -311,7 +318,7 @@ const handleDistribute = async () => {
     currentStep.value = 5
   } catch (error) {
     console.error('保存分发配置失败:', error)
-    alert(isEditMode.value ? '保存配置失败，请重试' : '分发失败，请重试')
+    alert(isEditMode.value ? '保存配置失败，请重试' : '生成链接失败，请重试')
   } finally {
     loading.value = false
   }
@@ -348,7 +355,7 @@ const downloadQRCode = () => {
   if (!qrcodeDataURL.value) return
   
   const link = document.createElement('a')
-  link.download = `${props.questionnaire?.name || '测评'}_二维码.png`
+  link.download = `${props.questionnaire?.name || copy.value.qrFileFallback}_二维码.png`
   link.href = qrcodeDataURL.value
   link.click()
 }
@@ -368,7 +375,7 @@ const getFieldIcon = (field: FormField) => {
 
 
 // ===== 配置持久化 =====
-const STORAGE_KEY = 'distribute_config'
+const storageKey = computed(() => `distribute_config_${copy.value.mode}`)
 
 const isPlainObject = (value: unknown): value is Record<string, any> => {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
@@ -390,7 +397,7 @@ const saveConfig = () => {
       pageTexts: pageTexts.value,
       routingConfig: routingConfig.value,
     }
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(config))
+    localStorage.setItem(storageKey.value, JSON.stringify(config))
   } catch (e) {
     console.warn('保存分发配置失败:', e)
   }
@@ -399,7 +406,7 @@ const saveConfig = () => {
 // 从 localStorage 加载配置
 const loadConfig = () => {
   try {
-    const saved = localStorage.getItem(STORAGE_KEY)
+    const saved = localStorage.getItem(storageKey.value)
     if (saved) {
       const config = JSON.parse(saved)
       // 恢复表单配置
@@ -473,9 +480,10 @@ watch([form, formFields, pageTexts, routingConfig], () => {
 onMounted(() => {
   loadAllQuestionnaires()
 
-  if (isEditMode.value) {
+  if (isEditMode.value || isCloneMode.value) {
     applyAssessmentToForm()
   } else {
+    pageTexts.value = buildDefaultPageTexts()
     // V45: 先加载上次保存的配置
     loadConfig()
     
@@ -495,6 +503,7 @@ onMounted(() => {
         <div class="distribute-questionnaire-info">
           <span class="questionnaire-type-tag">{{ questionnaire?.type }}</span>
           <span class="questionnaire-name">{{ questionnaire?.name }}</span>
+          <span class="mode-chip">{{ modeTitle }}</span>
         </div>
         <button class="btn-close-float" @click="close">
           <i class="ri-close-line"></i>
@@ -529,20 +538,25 @@ onMounted(() => {
         <div class="success-icon-wrapper">
           <i class="ri-checkbox-circle-fill"></i>
         </div>
-        <h3>{{ isEditMode ? '保存成功' : '分发成功' }}</h3>
+        <h3>{{ isEditMode ? '保存成功，原链接不变' : '新链接生成成功' }}</h3>
       </div>
 
       <!-- 内容区域 -->
       <div class="modal-body">
         <!-- 步骤1：基本设置 -->
         <div v-if="currentStep === 1" class="step-content">
+          <div class="mode-notice">
+            <i :class="isEditMode ? 'ri-link-m' : (isCloneMode ? 'ri-file-copy-line' : 'ri-links-line')"></i>
+            <span>{{ modeTip }}</span>
+          </div>
+
           <div class="form-group">
-            <label>测评名称 <span class="required">*</span></label>
+            <label>{{ copy.titleLabel }} <span class="required">*</span></label>
             <input 
               type="text" 
               v-model="form.name" 
               class="form-input" 
-              placeholder="例如：2024春季校招EPQ测评"
+              :placeholder="copy.namePlaceholder"
             />
           </div>
 
@@ -660,12 +674,12 @@ onMounted(() => {
           </div>
 
           <div class="form-group">
-            <label>测评说明（选填）</label>
+            <label>{{ copy.descriptionLabel }}（选填）</label>
             <textarea 
               v-model="form.description" 
               class="form-textarea" 
               rows="3"
-              placeholder="请输入测评说明..."
+              :placeholder="copy.descriptionPlaceholder"
             ></textarea>
           </div>
         </div>
@@ -747,7 +761,7 @@ onMounted(() => {
                   <div class="preview-logo">
                     <i class="ri-file-list-3-fill"></i>
                 </div>
-                  <h5>{{ form.name || '测评名称' }}</h5>
+                  <h5>{{ form.name || copy.nameFallback }}</h5>
             </div>
             
             <div class="preview-form">
@@ -773,7 +787,7 @@ onMounted(() => {
                   
                   <div class="preview-submit">
               <button class="preview-btn" disabled>
-                      <span>开始测评</span>
+                      <span>{{ copy.startAction }}</span>
                       <i class="ri-arrow-right-line"></i>
               </button>
                   </div>
@@ -814,16 +828,16 @@ onMounted(() => {
                   <input 
                     type="text"
                     v-model="pageTexts.welcomeText"
-                    placeholder="欢迎参加本次测评"
+                    :placeholder="copy.pageTexts.welcomeText"
                     maxlength="30"
                   />
                 <span class="char-count">{{ pageTexts.welcomeText?.length || 0 }}/30</span>
               </div>
               <div class="form-item">
-                <label><i class="ri-file-info-line"></i> 测评说明</label>
+                <label><i class="ri-file-info-line"></i> {{ copy.descriptionLabel }}</label>
                   <textarea 
                     v-model="pageTexts.introText"
-                    placeholder="本测评旨在了解您的职业特质，帮助我们更好地为您匹配适合的岗位。"
+                    :placeholder="copy.pageTexts.introText"
                     rows="2"
                     maxlength="100"
                   ></textarea>
@@ -869,7 +883,7 @@ onMounted(() => {
                   <input 
                     type="text"
                     v-model="pageTexts.successTitle"
-                    placeholder="测评完成！"
+                    :placeholder="copy.pageTexts.successTitle"
                     maxlength="20"
                   />
                 <span class="char-count">{{ pageTexts.successTitle?.length || 0 }}/20</span>
@@ -878,7 +892,7 @@ onMounted(() => {
                 <label><i class="ri-heart-line"></i> 感谢语</label>
                   <textarea 
                     v-model="pageTexts.successMessage"
-                    placeholder="感谢您认真完成本次测评，您的回答对我们非常重要。"
+                    :placeholder="copy.pageTexts.successMessage"
                     rows="2"
                     maxlength="60"
                   ></textarea>
@@ -902,7 +916,7 @@ onMounted(() => {
                     <label><i class="ri-calendar-check-line"></i> 结果说明</label>
                     <textarea 
                       v-model="pageTexts.resultText"
-                      placeholder="我们将在 1-3 个工作日内完成评估分析。"
+                      :placeholder="copy.pageTexts.resultText"
                       rows="2"
                       maxlength="60"
                     ></textarea>
@@ -912,7 +926,7 @@ onMounted(() => {
                     <label><i class="ri-phone-line"></i> 联系提示</label>
                     <textarea 
                       v-model="pageTexts.contactText"
-                      placeholder="届时会通过您留下的联系方式通知您，请保持电话畅通。"
+                      :placeholder="copy.pageTexts.contactText"
                       rows="2"
                       maxlength="60"
                     ></textarea>
@@ -953,7 +967,7 @@ onMounted(() => {
                       <div class="entry-main-card">
                         <div class="assessment-info">
                           <div class="info-icon"><i class="ri-file-text-fill"></i></div>
-                          <h3>{{ form.name || '测评名称' }}</h3>
+                          <h3>{{ form.name || copy.nameFallback }}</h3>
                           <div class="info-meta">
                             <span><i class="ri-file-list-line"></i> {{ questionnaire?.questions_count || 0 }} 题</span>
                             <span><i class="ri-time-line"></i> 约 {{ questionnaire?.estimated_minutes || 15 }} 分钟</span>
@@ -997,7 +1011,7 @@ onMounted(() => {
                         
                         <button class="start-btn">
                           <i class="ri-play-circle-fill"></i>
-                          开始测评
+                          {{ copy.startAction }}
                         </button>
                       </div>
                     </div>
@@ -1017,8 +1031,8 @@ onMounted(() => {
                         <div class="success-circle">
                           <i class="ri-checkbox-circle-fill"></i>
                         </div>
-                        <h2>{{ pageTexts.successTitle || '测评完成！' }}</h2>
-                        <p class="success-msg">{{ pageTexts.successMessage || '感谢您完成本次测评' }}</p>
+                        <h2>{{ pageTexts.successTitle || copy.pageTexts.successTitle }}</h2>
+                        <p class="success-msg">{{ pageTexts.successMessage || copy.pageTexts.successMessage }}</p>
                       </div>
                       
                       <!-- 提交信息卡片 -->
@@ -1064,7 +1078,7 @@ onMounted(() => {
           <h4 class="confirm-title">请确认以下信息</h4>
           
           <div class="confirm-item">
-            <div class="confirm-label">测评名称</div>
+            <div class="confirm-label">{{ copy.titleLabel }}</div>
             <div class="confirm-value">{{ form.name }}</div>
           </div>
 
@@ -1104,7 +1118,7 @@ onMounted(() => {
         <!-- 步骤5：分发结果 -->
         <div v-if="currentStep === 5" class="step-content step-result">
           <div class="result-section">
-            <h4><i class="ri-link"></i> 测评链接</h4>
+            <h4><i class="ri-link"></i> {{ copy.linkLabel }}</h4>
             <div class="link-box">
               <input type="text" :value="generatedLink" readonly />
               <button class="btn-copy" @click="copyLink">
@@ -1117,8 +1131,8 @@ onMounted(() => {
           <div class="result-section">
             <h4><i class="ri-qr-code-line"></i> 二维码</h4>
             <div v-if="qrcodeDataURL" class="qr-container">
-              <img :src="qrcodeDataURL" alt="测评二维码" />
-              <p>扫码开始测评</p>
+              <img :src="qrcodeDataURL" :alt="copy.qrAlt" />
+              <p>{{ copy.qrHint }}</p>
               <button class="btn-download" @click="downloadQRCode">
                 <i class="ri-download-line"></i>
                 下载二维码
@@ -1187,7 +1201,7 @@ onMounted(() => {
           :disabled="loading"
         >
           <i v-if="loading" class="ri-loader-4-line animate-spin"></i>
-          {{ loading ? (isEditMode ? '保存中...' : '生成中...') : (isEditMode ? '确认保存' : '确认分发') }}
+          {{ loading ? (isEditMode ? '保存中...' : '生成中...') : (isEditMode ? '确认保存' : (isCloneMode ? '确认生成新链接' : '确认分发')) }}
         </button>
         
         <button 

@@ -63,6 +63,16 @@
   color: #1f2937;
 }
 
+.mode-chip {
+  padding: 0.35rem 0.65rem;
+  border: 1px solid #c7d2fe;
+  border-radius: 999px;
+  background: #eef2ff;
+  color: #4338ca;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
 .btn-close-float {
   width: 36px;
   height: 36px;
@@ -202,6 +212,27 @@
 /* 步骤内容 */
 .step-content {
   padding: 1.5rem;
+}
+
+.mode-notice {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.625rem;
+  padding: 0.875rem 1rem;
+  margin-bottom: 1.25rem;
+  border: 1px solid #bfdbfe;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #eff6ff 0%, #f8fafc 100%);
+  color: #1e3a8a;
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+.mode-notice i {
+  flex-shrink: 0;
+  margin-top: 0.125rem;
+  color: #2563eb;
+  font-size: 1rem;
 }
 
 /* 表单样式 */

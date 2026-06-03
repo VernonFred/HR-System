@@ -16,6 +16,7 @@ import {
   type Questionnaire,
   type Assessment,
 } from '../api/assessments'
+import { getQuestionnaireCopy } from '../utils/questionnaireCopy'
 
 // ===== Props =====
 const props = defineProps<{
@@ -27,6 +28,7 @@ const emit = defineEmits<{
   (e: 'close'): void
   (e: 'create-new'): void
   (e: 'edit', assessment: Assessment): void
+  (e: 'clone', assessment: Assessment): void
 }>()
 
 // ===== 状态 =====
@@ -51,6 +53,8 @@ interface DistributionInfo {
   linkType: 'permanent' | 'temporary'
   validFrom: string
   validUntil: string
+  createdAt: string
+  createdAtTime: number
   isActive: boolean
   isExpired: boolean
   assessment: Assessment
@@ -59,12 +63,27 @@ interface DistributionInfo {
 // ===== 计算属性 =====
 const activeCount = computed(() => distributions.value.filter(d => d.isActive).length)
 const expiredCount = computed(() => distributions.value.filter(d => d.isExpired).length)
+const copy = computed(() => getQuestionnaireCopy(props.questionnaire))
 
 // ===== 方法 =====
 const close = () => emit('close')
 
 const createNew = () => {
   emit('create-new')
+}
+
+const formatDateTime = (value?: string) => {
+  if (!value) return '未知'
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return '未知'
+  return date.toLocaleString('zh-CN', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  })
 }
 
 const loadDistributions = async () => {
@@ -107,14 +126,16 @@ const loadDistributions = async () => {
         linkType,
         validFrom: validFrom.toLocaleDateString('zh-CN'),
         validUntil: linkType === 'permanent' ? '长期有效' : validUntil.toLocaleDateString('zh-CN'),
+        createdAt: formatDateTime(a.created_at),
+        createdAtTime: a.created_at ? new Date(a.created_at).getTime() : 0,
         isActive,
         isExpired,
         assessment: a,
       }
     }))
     
-    // 按创建时间倒序排列
-    distributions.value.sort((a, b) => b.id - a.id)
+    // 按生成时间倒序排列，便于识别最新链接
+    distributions.value.sort((a, b) => b.createdAtTime - a.createdAtTime || b.id - a.id)
     
   } catch (error) {
     console.error('加载分发记录失败:', error)
@@ -152,9 +173,13 @@ const editDistribution = (dist: DistributionInfo) => {
   emit('edit', dist.assessment)
 }
 
+const cloneDistribution = (dist: DistributionInfo) => {
+  emit('clone', dist.assessment)
+}
+
 const downloadQRCode = (dataUrl: string, name: string) => {
   const link = document.createElement('a')
-  link.download = `${name}_二维码.png`
+  link.download = `${name}_${copy.value.qrAlt}.png`
   link.href = dataUrl
   link.click()
 }
@@ -246,7 +271,7 @@ onMounted(() => {
         <div v-else-if="distributions.length === 0" class="empty-state">
           <i class="ri-information-line"></i>
           <p>该问卷尚未生成任何链接</p>
-          <span>请点击"分发"按钮创建新的测评链接</span>
+          <span>请点击"分发"按钮创建新的{{ copy.linkLabel }}</span>
         </div>
 
         <!-- 分发列表 -->
@@ -299,8 +324,14 @@ onMounted(() => {
               </div>
 
               <div class="dist-meta">
-                <i class="ri-calendar-line"></i>
-                <span>{{ dist.validFrom }} ~ {{ dist.validUntil }}</span>
+                <div class="meta-item">
+                  <i class="ri-calendar-line"></i>
+                  <span>有效期：{{ dist.validFrom }} ~ {{ dist.validUntil }}</span>
+                </div>
+                <div class="meta-item">
+                  <i class="ri-time-line"></i>
+                  <span>生成时间：{{ dist.createdAt }}</span>
+                </div>
               </div>
 
               <div class="dist-body">
@@ -339,6 +370,10 @@ onMounted(() => {
                   <i class="ri-settings-3-line"></i>
                   编辑
                 </button>
+                <button class="dist-action-btn clone" @click="cloneDistribution(dist)" title="复制配置新建链接">
+                  <i class="ri-file-copy-line"></i>
+                  复制配置新建
+                </button>
                 <button class="dist-action-btn delete" @click="openDeleteModal(dist)" title="删除链接">
                   <i class="ri-delete-bin-line"></i>
                   删除
@@ -353,7 +388,7 @@ onMounted(() => {
       <div class="modal-footer">
         <div class="footer-tip">
           <i class="ri-lightbulb-line"></i>
-          <span>每次分发都会生成新链接，旧链接在有效期内仍可使用</span>
+          <span>链接读取当前问卷内容；修改问卷后原链接自动使用新内容。长期/短期共存时可复制配置新建链接。</span>
         </div>
         <div class="footer-actions">
           <button class="btn-secondary" @click="close">关闭</button>
@@ -664,11 +699,18 @@ onMounted(() => {
 
 .dist-meta {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 6px;
+  gap: 8px 16px;
   font-size: 13px;
   color: #64748b;
   margin-bottom: 16px;
+}
+
+.meta-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
 }
 
 .dist-body {
@@ -899,6 +941,17 @@ onMounted(() => {
 .dist-action-btn.edit:hover {
   background: #ede9fe;
   border-color: #c4b5fd;
+}
+
+.dist-action-btn.clone {
+  background: #ecfeff;
+  border-color: #a5f3fc;
+  color: #0e7490;
+}
+
+.dist-action-btn.clone:hover {
+  background: #cffafe;
+  border-color: #67e8f9;
 }
 
 /* 删除确认弹窗 */

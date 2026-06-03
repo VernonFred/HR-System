@@ -12,8 +12,11 @@ const submissionCode = computed(() => route.params.submissionCode as string);
 
 // 测评信息
 const assessmentInfo = ref({
-  name: "产品经理能力测评",
+  name: "问卷答题",
   questionnaire_type: "CUSTOM",
+  category: "",
+  custom_type: "",
+  purpose: "",
   total_questions: 0,
   estimated_minutes: 15,
 });
@@ -109,8 +112,11 @@ const loadQuestions = async () => {
       
       // 更新测评信息
       assessmentInfo.value = {
-        name: data.name || "测评",
+        name: data.name || "问卷答题",
         questionnaire_type: data.type || "CUSTOM",
+        category: data.category || "",
+        custom_type: data.custom_type || "",
+        purpose: data.purpose || "",
         total_questions: data.total_questions || data.questions?.length || 0,
         estimated_minutes: data.estimated_minutes || 15,
       };

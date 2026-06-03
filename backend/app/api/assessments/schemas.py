@@ -246,6 +246,9 @@ class PublicAssessmentInfo(BaseModel):
     """公开的测评信息."""
     name: str
     type: str  # EPQ/DISC/MBTI
+    category: Optional[str] = None  # professional/scored/survey
+    custom_type: Optional[str] = None  # scored/non_scored
+    purpose: Optional[str] = None  # assessment/survey
     questions_count: int
     estimated_minutes: int
     valid: bool  # 是否在有效期内
@@ -265,6 +268,13 @@ class PublicSubmissionStart(BaseModel):
     """候选人开始测评响应."""
     submission_code: str
     questions: List[Question]  # 所有题目
+    questionnaire_name: Optional[str] = None
+    questionnaire_type: Optional[str] = None
+    category: Optional[str] = None
+    custom_type: Optional[str] = None
+    purpose: Optional[str] = None
+    questions_count: Optional[int] = None
+    estimated_minutes: Optional[int] = None
 
 
 class PublicSubmissionSuccess(BaseModel):
@@ -272,7 +282,7 @@ class PublicSubmissionSuccess(BaseModel):
     success: bool
     submission_code: str
     submitted_at: datetime
-    message: str = "感谢您完成测评！"
+    message: str = "感谢您完成提交！"
 
 
 # ========== V43: 问卷导入 ==========

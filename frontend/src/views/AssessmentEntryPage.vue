@@ -10,6 +10,10 @@ import {
   type SubmitCheckResult,
 } from "../api/assessments";
 import CustomAlert from "../components/CustomAlert.vue";
+import {
+  formatQuestionnaireSystemMessage,
+  getQuestionnaireCopy,
+} from "../utils/questionnaireCopy";
 
 const route = useRoute();
 const router = useRouter();
@@ -22,6 +26,7 @@ const error = ref("");
 // 候选人信息表单 - 动态字段
 const form = ref<Record<string, any>>({});
 const formFields = ref<any[]>([]);
+const copy = computed(() => getQuestionnaireCopy(assessment.value));
 
 // ⭐ 重复提交检测
 const submitCheckResult = ref<SubmitCheckResult | null>(null);
@@ -84,13 +89,13 @@ const loadAssessment = async () => {
     }
 
     if (res.expired) {
-      error.value = "该测评已过期";
+      error.value = copy.value.expiredText;
     } else if (!res.valid) {
-      error.value = "该测评暂未开始";
+      error.value = copy.value.notStartedText;
     }
   } catch (err: any) {
-    console.error("加载测评失败:", err);
-    error.value = err.message || "测评不存在或已失效";
+    console.error(copy.value.loadErrorTitle, err);
+    error.value = err.message || copy.value.loadErrorFallback;
   } finally {
     loading.value = false;
   }
@@ -169,7 +174,11 @@ const handleStart = async () => {
       if (checkResult.previous_submissions?.length > 0) {
         showPreviousSubmissions.value = true;
       }
-      alert(checkResult.reason);
+      showAlert(
+        formatQuestionnaireSystemMessage(checkResult.reason, assessment.value),
+        'warning',
+        '提示',
+      );
       loading.value = false;
       return;
     }
@@ -224,11 +233,14 @@ const handleStart = async () => {
 
     // ⭐ 存储测评数据到 sessionStorage，供填写页面使用
     sessionStorage.setItem(`assessment_${res.submission_code}`, JSON.stringify({
-      name: assessment.value?.name,
-      type: assessment.value?.type,
+      name: res.questionnaire_name || assessment.value?.name,
+      type: res.questionnaire_type || assessment.value?.type,
+      category: res.category ?? assessment.value?.category,
+      custom_type: res.custom_type ?? assessment.value?.custom_type,
+      purpose: res.purpose ?? assessment.value?.purpose,
       questions: res.questions,
-      total_questions: res.questions?.length || 0,
-      estimated_minutes: assessment.value?.estimated_minutes,
+      total_questions: res.questions_count || res.questions?.length || assessment.value?.questions_count || 0,
+      estimated_minutes: res.estimated_minutes || assessment.value?.estimated_minutes,
     }));
     
     console.log('[AssessmentEntryPage] Saved to sessionStorage:', {
@@ -240,24 +252,28 @@ const handleStart = async () => {
     // 跳转到问卷填写页
     router.push(`/assessment/${code.value}/fill/${res.submission_code}`);
   } catch (err: any) {
-    console.error("开始测评失败:", err);
+    console.error(copy.value.startErrorTitle, err);
     
     // ⭐ 根据错误类型提供更友好的提示
-    let errorMessage = "开始测评失败，请重试";
+    let errorMessage = copy.value.startErrorFallback;
     
     if (err.message) {
       errorMessage = err.message;
     } else if (err.detail) {
       errorMessage = err.detail;
     } else if (err.response?.status === 403) {
-      errorMessage = err.response?.data?.detail || "该测评不允许重复提交或已达到提交次数上限";
+      errorMessage = err.response?.data?.detail || "该链接不允许重复提交或已达到提交次数上限";
     } else if (err.response?.status === 422) {
       errorMessage = "提交的信息格式不正确，请检查后重试";
     } else if (err.response?.status === 404) {
-      errorMessage = "测评链接已失效或不存在";
+      errorMessage = copy.value.linkMissingText;
     }
     
-    showAlert(errorMessage, 'error', '开始测评失败');
+    showAlert(
+      formatQuestionnaireSystemMessage(errorMessage, assessment.value),
+      'error',
+      copy.value.startErrorTitle,
+    );
   } finally {
     loading.value = false;
   }
@@ -289,7 +305,7 @@ onMounted(() => {
       <div v-else-if="error" class="error-box">
         <i class="ri-error-warning-line"></i>
         <h2>{{ error }}</h2>
-        <p>请联系管理员获取有效的测评链接</p>
+        <p>{{ copy.contactAdminText }}</p>
       </div>
 
       <!-- 测评信息 -->
@@ -399,12 +415,12 @@ onMounted(() => {
           >
             <i v-if="loading" class="ri-loader-4-line animate-spin"></i>
             <i v-else class="ri-play-circle-fill"></i>
-            {{ loading ? "正在启动..." : "开始测评" }}
+            {{ loading ? "正在启动..." : copy.startAction }}
           </button>
 
           <div class="tips">
             <i class="ri-information-line"></i>
-            <span>请在安静的环境下完成测评，确保网络连接稳定</span>
+            <span>{{ copy.entryTip }}</span>
           </div>
         </div>
       </div>

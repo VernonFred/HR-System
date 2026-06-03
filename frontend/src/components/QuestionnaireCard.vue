@@ -5,11 +5,15 @@
  * 用于问卷库页面展示单个问卷卡片
  */
 import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { getQuestionnaireCopy } from '../utils/questionnaireCopy'
 
 interface Questionnaire {
   id: number
   name: string
   type: string
+  category?: string
+  custom_type?: string
+  purpose?: string
   description?: string
   creator?: string
   questions_count: number
@@ -39,6 +43,10 @@ const showMenu = ref(false)
 
 // 计算属性
 const isActive = computed(() => props.questionnaire.status === 'active')
+const copy = computed(() => getQuestionnaireCopy({
+  ...props.questionnaire,
+  category: props.category === 'professional' ? 'professional' : props.questionnaire.category,
+}))
 const formattedDate = computed(() => {
   return new Date(props.questionnaire.created_at).toLocaleDateString()
 })
@@ -204,7 +212,7 @@ onUnmounted(() => {
         class="action-btn distribute-btn" 
         :class="{ disabled: !isActive }"
         @click.stop="handleDistribute"
-        :title="isActive ? '分发测评' : '请先启用问卷后再分发'"
+        :title="isActive ? copy.distributeTitle : '请先启用问卷后再分发'"
       >
         <i class="ri-share-forward-line"></i>
         分发
@@ -508,4 +516,3 @@ onUnmounted(() => {
   box-shadow: none;
 }
 </style>
-

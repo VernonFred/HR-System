@@ -393,7 +393,7 @@ async def get_public_assessment_info(
     
     assessment = await service.get_assessment_by_code(session, code)
     if not assessment:
-        raise HTTPException(status_code=404, detail="测评不存在或已失效")
+        raise HTTPException(status_code=404, detail="链接不存在或已失效")
     
     questionnaire = await service.get_questionnaire(session, assessment.questionnaire_id)
     if not questionnaire:
@@ -429,6 +429,9 @@ async def get_public_assessment_info(
     return schemas.PublicAssessmentInfo(
         name=assessment.name,  # 使用用户自定义的测评名称
         type=questionnaire.type,
+        category=questionnaire.category,
+        custom_type=questionnaire.custom_type,
+        purpose=questionnaire.purpose,
         questions_count=questionnaire.questions_count,
         estimated_minutes=questionnaire.estimated_minutes,
         valid=valid,
@@ -454,7 +457,7 @@ async def check_can_submit(
     """检查是否可以提交测评（候选人端）."""
     assessment = await service.get_assessment_by_code(session, code)
     if not assessment:
-        raise HTTPException(status_code=404, detail="测评不存在或已失效")
+        raise HTTPException(status_code=404, detail="链接不存在或已失效")
     
     phone = data.get("phone", "")
     name = data.get("name", "")
@@ -472,7 +475,7 @@ async def start_assessment(
     """开始测评（候选人端）."""
     assessment = await service.get_assessment_by_code(session, code)
     if not assessment:
-        raise HTTPException(status_code=404, detail="测评不存在或已失效")
+        raise HTTPException(status_code=404, detail="链接不存在或已失效")
     
     # ⭐ 检查是否可以提交
     check_result = await service.check_can_submit(
@@ -511,7 +514,14 @@ async def start_assessment(
     
     return schemas.PublicSubmissionStart(
         submission_code=submission.code,
-        questions=questions
+        questions=questions,
+        questionnaire_name=questionnaire.name,
+        questionnaire_type=questionnaire.type,
+        category=questionnaire.category,
+        custom_type=questionnaire.custom_type,
+        purpose=questionnaire.purpose,
+        questions_count=questionnaire.questions_count,
+        estimated_minutes=questionnaire.estimated_minutes,
     )
 
 
