@@ -2049,6 +2049,45 @@
   object-fit: contain;
 }
 
+.stats-export-chart-legend-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px 12px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid #eef2f7;
+}
+
+.stats-export-chart-legend-item {
+  display: grid;
+  grid-template-columns: 10px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+  color: #475569;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+.stats-export-chart-legend-item .chart-legend-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+}
+
+.stats-export-chart-legend-item .chart-legend-text {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.stats-export-chart-legend-item .chart-legend-value {
+  color: #6d28d9;
+  white-space: nowrap;
+}
+
 .stats-export-static-chart {
   display: flex;
   flex-direction: column;

@@ -1551,6 +1551,68 @@ const cleanupStatsExportReport = async () => {
   await nextTick()
 }
 
+type StatsExportSliceRange = {
+  offsetY: number
+  height: number
+}
+
+const getElementRelativeBounds = (root: HTMLElement, target: HTMLElement) => {
+  const rootRect = root.getBoundingClientRect()
+  const targetRect = target.getBoundingClientRect()
+  return {
+    top: Math.max(0, Math.floor(targetRect.top - rootRect.top)),
+    bottom: Math.max(0, Math.ceil(targetRect.bottom - rootRect.top))
+  }
+}
+
+const getStatsExportSliceRanges = (
+  element: HTMLElement,
+  totalHeight: number,
+  preferredSliceHeight: number
+): StatsExportSliceRange[] => {
+  const safeBreakpoints = new Set<number>([0, totalHeight])
+  const breakableSelectors = [
+    '.stats-export-hero',
+    '.stats-export-section',
+    '.stats-export-question-card'
+  ]
+
+  breakableSelectors.forEach(selector => {
+    element.querySelectorAll<HTMLElement>(selector).forEach(node => {
+      const bounds = getElementRelativeBounds(element, node)
+      if (bounds.top > 0 && bounds.top < totalHeight) safeBreakpoints.add(bounds.top)
+      if (bounds.bottom > 0 && bounds.bottom < totalHeight) safeBreakpoints.add(bounds.bottom)
+    })
+  })
+
+  const sortedBreakpoints = Array.from(safeBreakpoints).sort((a, b) => a - b)
+  const ranges: StatsExportSliceRange[] = []
+  const minUsefulSliceHeight = Math.min(720, Math.max(360, preferredSliceHeight * 0.35))
+  let offsetY = 0
+
+  while (offsetY < totalHeight) {
+    const targetEnd = Math.min(totalHeight, offsetY + preferredSliceHeight)
+    if (targetEnd >= totalHeight) {
+      ranges.push({ offsetY, height: totalHeight - offsetY })
+      break
+    }
+
+    const candidates = sortedBreakpoints.filter(point =>
+      point > offsetY + minUsefulSliceHeight && point <= targetEnd
+    )
+    let endY = candidates.length > 0 ? candidates[candidates.length - 1] : targetEnd
+
+    if (endY <= offsetY) {
+      endY = targetEnd
+    }
+
+    ranges.push({ offsetY, height: endY - offsetY })
+    offsetY = endY
+  }
+
+  return ranges.filter(range => range.height > 0)
+}
+
 const renderElementSliceToPng = async (
   element: HTMLElement,
   offsetY: number,
@@ -1620,13 +1682,13 @@ const exportStatsAsPng = async () => {
   const width = Math.ceil(element.scrollWidth || element.offsetWidth)
   const totalHeight = Math.ceil(element.scrollHeight || element.offsetHeight)
   const safeSliceHeight = 5200
-  const totalPages = Math.max(1, Math.ceil(totalHeight / safeSliceHeight))
+  const ranges = getStatsExportSliceRanges(element, totalHeight, safeSliceHeight)
+  const totalPages = ranges.length
   const baseName = getStatsExportBaseName()
 
   for (let pageIndex = 0; pageIndex < totalPages; pageIndex++) {
-    const offsetY = pageIndex * safeSliceHeight
-    const sliceHeight = Math.min(safeSliceHeight, totalHeight - offsetY)
-    const dataUrl = await renderElementSliceToPng(element, offsetY, sliceHeight, width)
+    const range = ranges[pageIndex]
+    const dataUrl = await renderElementSliceToPng(element, range.offsetY, range.height, width)
     const suffix = totalPages > 1 ? `-${pad2(pageIndex + 1)}` : ''
     downloadHref(dataUrl, `${baseName}${suffix}.png`)
     await delay(160)
@@ -1650,14 +1712,13 @@ const exportStatsAsPdf = async () => {
   const contentWidth = pageWidth - margin * 2
   const contentHeight = pageHeight - margin * 2
   const sliceHeightPx = Math.max(900, Math.floor(width * contentHeight / contentWidth))
-  const totalPages = Math.max(1, Math.ceil(totalHeight / sliceHeightPx))
+  const ranges = getStatsExportSliceRanges(element, totalHeight, sliceHeightPx)
 
-  for (let pageIndex = 0; pageIndex < totalPages; pageIndex++) {
-    const offsetY = pageIndex * sliceHeightPx
-    const sliceHeight = Math.min(sliceHeightPx, totalHeight - offsetY)
-    const dataUrl = await renderElementSliceToPng(element, offsetY, sliceHeight, width)
+  for (let pageIndex = 0; pageIndex < ranges.length; pageIndex++) {
+    const range = ranges[pageIndex]
+    const dataUrl = await renderElementSliceToPng(element, range.offsetY, range.height, width)
     if (pageIndex > 0) pdf.addPage()
-    const imageHeight = (sliceHeight * contentWidth) / width
+    const imageHeight = (range.height * contentWidth) / width
     pdf.addImage(dataUrl, 'PNG', margin, margin, contentWidth, imageHeight)
   }
 
@@ -2500,6 +2561,17 @@ const executeStatsExport = async () => {
                           }"
                         ></div>
                       </div>
+                    </div>
+                  </div>
+                  <div v-if="q.options.length > 0 && getQuestionVisualMode(q) === 'pie'" class="stats-export-chart-legend-list">
+                    <div
+                      v-for="(opt, optIndex) in q.options"
+                      :key="`export-legend-${q.id}-${opt.index ?? opt.text}`"
+                      class="stats-export-chart-legend-item"
+                    >
+                      <span class="chart-legend-dot" :style="{ background: getQuestionOptionColor(optIndex) }"></span>
+                      <span class="chart-legend-text">{{ opt.text }}</span>
+                      <span class="chart-legend-value">{{ opt.count }}人 · {{ normalizePercentage(opt.percentage) }}%</span>
                     </div>
                   </div>
                   <div v-if="q.options.length === 0" class="empty-option-chart">暂无统计数据</div>
