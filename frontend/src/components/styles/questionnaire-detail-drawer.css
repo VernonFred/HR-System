@@ -1746,13 +1746,12 @@
 
 .stats-export-stage {
   position: fixed;
-  left: 0;
+  left: -12000px;
   top: 0;
   width: 1120px;
-  transform: translate3d(-12000px, 0, 0);
-  visibility: hidden;
   pointer-events: none;
-  z-index: 0;
+  z-index: -1;
+  opacity: 1;
   contain: layout paint style;
 }
 
@@ -2026,6 +2025,71 @@
 
 .stats-export-chart-box {
   padding-top: 32px;
+}
+
+.stats-export-static-chart {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.stats-export-static-row {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  padding: 10px 0;
+  border-bottom: 1px solid #eef2f7;
+}
+
+.stats-export-static-row:last-child {
+  border-bottom: none;
+}
+
+.stats-export-static-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.stats-export-static-label {
+  display: inline-flex;
+  align-items: flex-start;
+  gap: 8px;
+  min-width: 0;
+  color: #475569;
+  font-size: 13px;
+  line-height: 1.45;
+  font-weight: 700;
+  word-break: break-word;
+}
+
+.stats-export-static-label i {
+  width: 12px;
+  height: 9px;
+  margin-top: 5px;
+  flex-shrink: 0;
+  border-radius: 999px;
+}
+
+.stats-export-static-head strong {
+  flex-shrink: 0;
+  color: #6d28d9;
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.stats-export-static-track {
+  height: 10px;
+  border-radius: 999px;
+  background: #e2e8f0;
+  overflow: hidden;
+}
+
+.stats-export-static-fill {
+  min-width: 4px;
+  height: 100%;
+  border-radius: 999px;
 }
 
 .stats-export-text-list {

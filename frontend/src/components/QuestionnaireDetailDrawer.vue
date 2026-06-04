@@ -554,11 +554,6 @@ const getQuestionVisualOption = (question: QuestionStat): EChartsOption => {
   return getQuestionChartOption(question)
 }
 
-const getQuestionExportVisualOption = (question: QuestionStat): EChartsOption => ({
-  ...getQuestionVisualOption(question),
-  animation: false,
-})
-
 const questionChartSetOptionOpts: SetOptionOpts = {
   notMerge: true,
 }
@@ -574,6 +569,21 @@ const setQuestionChartMode = (question: QuestionStat, mode: 'pie' | 'bar') => {
     ...questionChartModeMap.value,
     [question.id]: mode
   }
+}
+
+const getQuestionExportVisualLabel = (question: QuestionStat): string => {
+  if (isSingleChoiceQuestion(question.type)) return '占比分布'
+  if (isMultipleChoiceQuestion(question.type)) return '多选排行'
+  if (isScaleQuestion(question.type)) return '分值分布'
+  return '回答分布'
+}
+
+const getQuestionExportOptionWidth = (question: QuestionStat, option: QuestionOptionStat): number => {
+  const percentage = normalizePercentage(option.percentage)
+  if (percentage > 0) return percentage
+
+  const maxCount = Math.max(1, ...(question.options || []).map(opt => opt.count || 0))
+  return Math.min(100, Math.round(((option.count || 0) / maxCount) * 1000) / 10)
 }
 
 const pad2 = (value: number | string) => String(value).padStart(2, '0')
@@ -1512,9 +1522,8 @@ const renderElementSliceToPng = async (
   })
 
   wrapper.style.position = 'fixed'
-  wrapper.style.left = '0'
+  wrapper.style.left = '-12000px'
   wrapper.style.top = '0'
-  wrapper.style.transform = 'translate3d(-12000px, 0, 0)'
   wrapper.style.width = `${width}px`
   wrapper.style.height = `${sliceHeight}px`
   wrapper.style.overflow = 'hidden'
@@ -2399,23 +2408,29 @@ const executeStatsExport = async () => {
             <div class="stats-export-question-body" :class="{ 'is-text': isTextQuestion(q.type) }">
               <template v-if="!isTextQuestion(q.type)">
                 <div class="stats-export-chart-box">
-                  <div class="chart-mode-label">{{ getQuestionVisualLabel(q) }}</div>
-                  <EChartContainer
-                    v-if="q.options.length > 0"
-                    :option="getQuestionExportVisualOption(q)"
-                    theme="light"
-                    :set-option-opts="questionChartSetOptionOpts"
-                    :style="{ height: `${getQuestionChartHeight(q)}px` }"
-                  />
-                  <div v-if="getQuestionVisualMode(q) === 'pie'" class="chart-legend-list">
+                  <div class="chart-mode-label">{{ getQuestionExportVisualLabel(q) }}</div>
+                  <div v-if="q.options.length > 0" class="stats-export-static-chart">
                     <div
                       v-for="(opt, optIndex) in q.options"
-                      :key="`export-legend-${q.id}-${opt.index ?? opt.text}`"
-                      class="chart-legend-item"
+                      :key="`export-static-${q.id}-${opt.index ?? opt.text}`"
+                      class="stats-export-static-row"
                     >
-                      <span class="chart-legend-dot" :style="{ background: getQuestionOptionColor(optIndex) }"></span>
-                      <span class="chart-legend-text">{{ opt.text }}</span>
-                      <span class="chart-legend-value">{{ opt.count }}人</span>
+                      <div class="stats-export-static-head">
+                        <span class="stats-export-static-label">
+                          <i :style="{ background: getQuestionOptionColor(optIndex) }"></i>
+                          {{ opt.text }}
+                        </span>
+                        <strong>{{ opt.count }}人 · {{ normalizePercentage(opt.percentage) }}%</strong>
+                      </div>
+                      <div class="stats-export-static-track">
+                        <div
+                          class="stats-export-static-fill"
+                          :style="{
+                            width: `${getQuestionExportOptionWidth(q, opt)}%`,
+                            background: getQuestionOptionColor(optIndex)
+                          }"
+                        ></div>
+                      </div>
                     </div>
                   </div>
                   <div v-if="q.options.length === 0" class="empty-option-chart">暂无统计数据</div>
