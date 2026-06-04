@@ -7,7 +7,7 @@
  * 2. 问卷统计 Tab - 显示统计数据（参与人数、平均分、等级分布、题目分析）
  */
 import { ref, computed, watch, onMounted, onBeforeUnmount, nextTick } from 'vue'
-import type { EChartsOption, SetOptionOpts } from 'echarts/core'
+import { init, type ECharts, type EChartsOption, type SetOptionOpts } from 'echarts/core'
 import EChartContainer from './EChartContainer.vue'
 import * as XLSX from 'xlsx'
 import type { Questionnaire, Submission, QuestionStat, TextSummary, TextAnswerGroup } from '../api/assessments'
@@ -93,6 +93,7 @@ const statsExportFormat = ref<'pdf' | 'png' | 'excel'>('pdf')
 const statsExportLoading = ref(false)
 const renderStatsExportReport = ref(false)
 const statsExportReportRef = ref<HTMLElement | null>(null)
+const statsExportChartImages = ref<Record<string, string>>({})
 const showStatsExportToast = ref(false)
 const statsExportToastMessage = ref('')
 const statsExportToastType = ref<'success' | 'error'>('success')
@@ -571,19 +572,23 @@ const setQuestionChartMode = (question: QuestionStat, mode: 'pie' | 'bar') => {
   }
 }
 
-const getQuestionExportVisualLabel = (question: QuestionStat): string => {
-  if (isSingleChoiceQuestion(question.type)) return '占比分布'
-  if (isMultipleChoiceQuestion(question.type)) return '多选排行'
-  if (isScaleQuestion(question.type)) return '分值分布'
-  return '回答分布'
-}
-
 const getQuestionExportOptionWidth = (question: QuestionStat, option: QuestionOptionStat): number => {
   const percentage = normalizePercentage(option.percentage)
   if (percentage > 0) return percentage
 
   const maxCount = Math.max(1, ...(question.options || []).map(opt => opt.count || 0))
   return Math.min(100, Math.round(((option.count || 0) / maxCount) * 1000) / 10)
+}
+
+const getQuestionExportChartKey = (question: QuestionStat) => `${question.id || question.index}-${getQuestionVisualMode(question)}`
+
+const disposeChartSafely = (chart: ECharts | null) => {
+  if (!chart) return
+  try {
+    chart.dispose()
+  } catch (error) {
+    console.warn('销毁统计导出图表失败:', error)
+  }
 }
 
 const pad2 = (value: number | string) => String(value).padStart(2, '0')
@@ -1474,11 +1479,67 @@ const exportStatsAsExcel = () => {
   )
 }
 
+const renderQuestionChartImage = async (question: QuestionStat) => {
+  if (!question.options.length) return ''
+
+  const width = 460
+  const height = Math.max(220, getQuestionChartHeight(question))
+  const host = document.createElement('div')
+  host.style.position = 'fixed'
+  host.style.left = '-12000px'
+  host.style.top = '0'
+  host.style.width = `${width}px`
+  host.style.height = `${height}px`
+  host.style.pointerEvents = 'none'
+  host.style.contain = 'layout paint style'
+  host.style.background = '#ffffff'
+  document.body.appendChild(host)
+
+  let chart: ECharts | null = null
+  try {
+    chart = init(host, 'light', {
+      renderer: 'canvas',
+      width,
+      height,
+    })
+    chart.setOption({
+      ...getQuestionVisualOption(question),
+      animation: false,
+    } as EChartsOption, questionChartSetOptionOpts)
+    await delay(80)
+    return chart.getDataURL({
+      type: 'png',
+      pixelRatio: 2,
+      backgroundColor: '#ffffff',
+    })
+  } finally {
+    disposeChartSafely(chart)
+    host.remove()
+  }
+}
+
+const prepareStatsExportChartImages = async () => {
+  const questions = questionStats.value?.questions || []
+  const imageMap: Record<string, string> = {}
+
+  for (const question of questions) {
+    if (isTextQuestion(question.type) || question.options.length === 0) continue
+    const key = getQuestionExportChartKey(question)
+    try {
+      imageMap[key] = await renderQuestionChartImage(question)
+    } catch (error) {
+      console.warn(`生成题目 Q${question.index} 导出图表失败:`, error)
+    }
+  }
+
+  statsExportChartImages.value = imageMap
+}
+
 const prepareStatsExportReport = async () => {
+  await prepareStatsExportChartImages()
   renderStatsExportReport.value = true
   await nextTick()
-  const questionCount = questionStats.value?.questions.length || 0
-  await delay(Math.min(1800, 700 + questionCount * 45))
+  await delay(120)
   const element = statsExportReportRef.value
   if (!element) throw new Error('找不到统计报告导出节点')
   return element
@@ -1486,6 +1547,7 @@ const prepareStatsExportReport = async () => {
 
 const cleanupStatsExportReport = async () => {
   renderStatsExportReport.value = false
+  statsExportChartImages.value = {}
   await nextTick()
 }
 
@@ -1637,7 +1699,7 @@ const executeStatsExport = async () => {
 
 <template>
   <div class="drawer-overlay" @click="close">
-    <div class="drawer-panel" @click.stop>
+    <div class="drawer-panel" :class="{ 'is-exporting-stats': statsExportLoading }" @click.stop>
       <!-- 抽屉头部 -->
       <div class="drawer-header">
         <div class="drawer-title">
@@ -1896,8 +1958,8 @@ const executeStatsExport = async () => {
                 :disabled="statsLoading || statsExportLoading"
                 @click="openStatsExportModal"
               >
-                <i :class="statsExportLoading ? 'ri-loader-4-line spinning' : 'ri-download-cloud-2-line'"></i>
-                {{ statsExportLoading ? '导出中...' : '导出统计' }}
+                <i class="ri-download-cloud-2-line"></i>
+                导出统计
               </button>
             </div>
 
@@ -2408,8 +2470,15 @@ const executeStatsExport = async () => {
             <div class="stats-export-question-body" :class="{ 'is-text': isTextQuestion(q.type) }">
               <template v-if="!isTextQuestion(q.type)">
                 <div class="stats-export-chart-box">
-                  <div class="chart-mode-label">{{ getQuestionExportVisualLabel(q) }}</div>
-                  <div v-if="q.options.length > 0" class="stats-export-static-chart">
+                  <div class="chart-mode-label">{{ getQuestionVisualLabel(q) }}</div>
+                  <div v-if="q.options.length > 0 && statsExportChartImages[getQuestionExportChartKey(q)]" class="stats-export-chart-image-wrap">
+                    <img
+                      class="stats-export-chart-image"
+                      :src="statsExportChartImages[getQuestionExportChartKey(q)]"
+                      :alt="`Q${q.index} ${getQuestionVisualLabel(q)}`"
+                    />
+                  </div>
+                  <div v-else-if="q.options.length > 0" class="stats-export-static-chart">
                     <div
                       v-for="(opt, optIndex) in q.options"
                       :key="`export-static-${q.id}-${opt.index ?? opt.text}`"
@@ -2544,9 +2613,9 @@ const executeStatsExport = async () => {
           <div class="modal-footer">
             <button class="btn-cancel" :disabled="statsExportLoading" @click="closeStatsExportModal">取消</button>
             <button class="btn-primary" @click="executeStatsExport" :disabled="statsExportLoading">
-              <i v-if="statsExportLoading" class="ri-loader-4-line spinning"></i>
+              <i v-if="statsExportLoading" class="ri-time-line"></i>
               <i v-else class="ri-download-line"></i>
-              {{ statsExportLoading ? '导出中...' : '确认导出' }}
+              {{ statsExportLoading ? '正在生成...' : '确认导出' }}
             </button>
           </div>
         </div>

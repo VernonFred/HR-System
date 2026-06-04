@@ -22,6 +22,12 @@
   animation: slideIn 0.3s ease;
 }
 
+.drawer-panel.is-exporting-stats,
+.drawer-panel.is-exporting-stats * {
+  transition: none !important;
+  animation: none !important;
+}
+
 @keyframes slideIn {
   from { transform: translateX(100%); }
   to { transform: translateX(0); }
@@ -2027,6 +2033,22 @@
   padding-top: 32px;
 }
 
+.stats-export-chart-image-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 250px;
+  overflow: hidden;
+}
+
+.stats-export-chart-image {
+  display: block;
+  width: 100%;
+  max-width: 500px;
+  height: 250px;
+  object-fit: contain;
+}
+
 .stats-export-static-chart {
   display: flex;
   flex-direction: column;
@@ -2090,6 +2112,28 @@
   min-width: 4px;
   height: 100%;
   border-radius: 999px;
+}
+
+.stats-export-detail-box .detail-panel-title em,
+.stats-export-detail-box .option-stats {
+  flex: 0 0 150px;
+  min-width: 150px;
+  max-width: 150px;
+  text-align: right;
+  white-space: nowrap;
+  word-break: keep-all;
+  overflow-wrap: normal;
+}
+
+.stats-export-detail-box .option-detail-head {
+  align-items: center;
+  flex-wrap: nowrap;
+  gap: 16px;
+}
+
+.stats-export-detail-box .option-text {
+  min-width: 0;
+  flex: 1 1 auto;
 }
 
 .stats-export-text-list {
