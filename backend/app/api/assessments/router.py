@@ -532,7 +532,14 @@ async def submit_assessment(
     session: Session = Depends(get_session)
 ):
     """提交答案（候选人端）."""
-    submission = await service.submit_answers(session, submission_code, data.answers)
+    try:
+        submission = await service.submit_answers(session, submission_code, data.answers)
+    except ValueError as e:
+        detail = str(e)
+        status_code = 403 if any(
+            keyword in detail for keyword in ["重复提交", "最大提交次数", "距上次提交"]
+        ) else 400
+        raise HTTPException(status_code=status_code, detail=detail)
     
     return schemas.PublicSubmissionSuccess(
         success=True,
