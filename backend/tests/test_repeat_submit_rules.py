@@ -53,6 +53,7 @@ def _create_assessment(
     allow_repeat: bool = False,
     repeat_interval_hours: int = 24,
     max_submissions: int = 0,
+    anonymous_mode: bool = False,
 ) -> Assessment:
     now = datetime.now()
     assessment = Assessment(
@@ -69,6 +70,7 @@ def _create_assessment(
         repeat_interval_hours=repeat_interval_hours,
         max_submissions=max_submissions,
         routing_config={},
+        anonymous_mode=anonymous_mode,
     )
     session.add(assessment)
     session.commit()
@@ -135,3 +137,92 @@ def test_final_submit_rechecks_completed_repeat_rule():
 
         with pytest.raises(ValueError, match="不允许重复提交"):
             _run(service.submit_answers(session, second.code, {"q1": {"value": "否"}}))
+
+
+def test_anonymous_in_progress_submission_does_not_block_same_device():
+    with _build_session() as session:
+        questionnaire = _create_questionnaire(session)
+        assessment = _create_assessment(session, questionnaire.id, allow_repeat=False, anonymous_mode=True)
+
+        _run(
+            service.create_submission(
+                session,
+                assessment.id,
+                {
+                    "candidate_name": "",
+                    "candidate_phone": "",
+                    "anonymous_device_id": "device-a",
+                    "custom_data": {},
+                },
+                questionnaire_id_override=questionnaire.id,
+            )
+        )
+
+        result = _run(
+            service.check_can_submit(
+                session,
+                assessment.id,
+                "",
+                "",
+                anonymous_device_id="device-a",
+            )
+        )
+
+        assert result["can_submit"] is True
+        assert result["submission_number"] == 1
+        assert result["previous_submissions"] == []
+
+
+def test_anonymous_completed_submission_blocks_same_device_only():
+    with _build_session() as session:
+        questionnaire = _create_questionnaire(session)
+        assessment = _create_assessment(session, questionnaire.id, allow_repeat=False, anonymous_mode=True)
+
+        first = _run(
+            service.create_submission(
+                session,
+                assessment.id,
+                {
+                    "candidate_name": "",
+                    "candidate_phone": "",
+                    "anonymous_device_id": "device-a",
+                    "custom_data": {},
+                },
+                questionnaire_id_override=questionnaire.id,
+            )
+        )
+        _run(service.submit_answers(session, first.code, {"q1": {"value": "是"}}))
+
+        same_device = _run(
+            service.check_can_submit(
+                session,
+                assessment.id,
+                "",
+                "",
+                anonymous_device_id="device-a",
+            )
+        )
+        other_device = _run(
+            service.check_can_submit(
+                session,
+                assessment.id,
+                "",
+                "",
+                anonymous_device_id="device-b",
+            )
+        )
+
+        assert same_device["can_submit"] is False
+        assert "不允许重复提交" in same_device["reason"]
+        assert other_device["can_submit"] is True
+
+
+def test_anonymous_mode_requires_device_id():
+    with _build_session() as session:
+        questionnaire = _create_questionnaire(session)
+        assessment = _create_assessment(session, questionnaire.id, allow_repeat=False, anonymous_mode=True)
+
+        result = _run(service.check_can_submit(session, assessment.id, "", ""))
+
+        assert result["can_submit"] is False
+        assert "设备标识缺失" in result["reason"]

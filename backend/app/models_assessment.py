@@ -78,6 +78,7 @@ class Assessment(SQLModel, table=True):
     repeat_check_by: str = Field(default="phone", max_length=20)  # 重复判断依据
     repeat_interval_hours: int = Field(default=0)  # 重复提交间隔（小时）
     max_submissions: int = Field(default=0)  # 最大提交次数（0=不限）
+    anonymous_mode: bool = Field(default=False)  # 匿名收集：使用同设备标识防重复
     view_count: int = Field(default=0)  # 浏览量统计
     start_count: int = Field(default=0)  # 开始测评数统计
     
@@ -105,6 +106,7 @@ class Submission(SQLModel, table=True):
     candidate_email: Optional[str] = Field(default=None, max_length=255)
     gender: Optional[str] = Field(default=None, max_length=10)  # ⭐ 性别
     target_position: Optional[str] = Field(default=None, max_length=255)
+    anonymous_device_id: Optional[str] = Field(default=None, max_length=128)  # 匿名问卷同设备防重复标识
     
     # ⭐ 新增：自定义字段数据
     custom_data: dict = Field(default={}, sa_column=Column(JSON))  # 存储自定义字段数据

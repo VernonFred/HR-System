@@ -374,7 +374,8 @@
   color: #10b981;
 }
 
-/* 重复提交设置 */
+/* 匿名与重复提交设置 */
+.anonymous-settings,
 .repeat-settings {
   background: #f9fafb;
   border-radius: 12px;
@@ -382,6 +383,17 @@
   margin-bottom: 1.5rem;
 }
 
+.anonymous-settings {
+  background: linear-gradient(135deg, #f0f9ff 0%, #f8fafc 100%);
+  border: 1px solid #dbeafe;
+}
+
+.repeat-settings.is-disabled {
+  background: #f8fafc;
+  border: 1px dashed #cbd5e1;
+}
+
+.anonymous-settings > label,
 .repeat-settings > label {
   display: flex;
   align-items: center;
@@ -392,6 +404,7 @@
   margin-bottom: 1rem;
 }
 
+.anonymous-settings > label i,
 .repeat-settings > label i {
   color: #7c3aed;
 }
@@ -411,6 +424,18 @@
 .setting-label {
   font-size: 0.875rem;
   color: #4b5563;
+}
+
+.setting-text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.setting-desc {
+  font-size: 0.75rem;
+  line-height: 1.5;
+  color: #64748b;
 }
 
 .toggle-switch {
@@ -540,6 +565,35 @@
 .no-repeat-hint i {
   flex-shrink: 0;
   color: #f59e0b;
+}
+
+.anonymous-mode-hint {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  margin-top: 0.75rem;
+  background: rgba(59, 130, 246, 0.08);
+  border: 1px solid rgba(59, 130, 246, 0.18);
+  border-radius: 10px;
+  color: #1d4ed8;
+  font-size: 0.8125rem;
+  line-height: 1.6;
+}
+
+.anonymous-mode-hint i,
+.anonymous-repeat-hint i {
+  flex-shrink: 0;
+  margin-top: 0.125rem;
+}
+
+.anonymous-repeat-hint {
+  background: #eef2ff;
+  color: #4338ca;
+}
+
+.anonymous-repeat-hint i {
+  color: #6366f1;
 }
 
 /* ===== 步骤2：字段配置（左右分栏） ===== */

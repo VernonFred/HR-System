@@ -57,6 +57,7 @@ const form = ref({
   repeatCheckBy: 'phone' as 'phone' | 'phone_name',
   repeatIntervalHours: 24,
   maxSubmissions: 0,
+  anonymousMode: false,
   description: '',
 })
 
@@ -120,6 +121,37 @@ const availableTargetQuestionnaires = computed(() => {
   const currentId = props.questionnaire?.id
   return allQuestionnaires.value.filter((q) => q.id !== currentId)
 })
+
+const identityFieldNames = new Set(['name', 'candidate_name', 'phone', 'candidate_phone'])
+const defaultIdentityFields: FormField[] = [
+  { id: 'name', name: 'name', label: '姓名', type: 'text', placeholder: '请输入您的姓名', required: true, enabled: true, builtin: true },
+  { id: 'phone', name: 'phone', label: '手机号', type: 'tel', placeholder: '请输入手机号', required: true, enabled: true, builtin: true },
+]
+
+const getFieldKey = (field: FormField) => String(field.name || field.id || '').trim()
+
+const isIdentityField = (field: FormField) => identityFieldNames.has(getFieldKey(field))
+
+const applyAnonymousModeToFields = (enabled: boolean) => {
+  if (enabled) {
+    form.value.allowRepeat = false
+    formFields.value = formFields.value.map((field) => {
+      if (!isIdentityField(field)) return field
+      return { ...field, enabled: false, required: false }
+    })
+    return
+  }
+
+  defaultIdentityFields.slice().reverse().forEach((defaultField) => {
+    const existing = formFields.value.find((field) => getFieldKey(field) === defaultField.name)
+    if (existing) {
+      existing.enabled = true
+      existing.required = true
+    } else {
+      formFields.value.unshift({ ...defaultField })
+    }
+  })
+}
 
 // ⭐ V50: 使用本地时间格式，避免 UTC 时区问题
 const formatLocalDateTime = (date: Date): string => {
@@ -288,7 +320,8 @@ const handleDistribute = async () => {
       form_fields: formFields.value.filter(f => f.enabled),
       page_texts: pageTexts.value,
       link_type: form.value.validityType,
-      allow_repeat: form.value.allowRepeat,
+      allow_repeat: form.value.anonymousMode ? false : form.value.allowRepeat,
+      anonymous_mode: form.value.anonymousMode,
       repeat_check_by: form.value.repeatCheckBy,
       repeat_interval_hours: form.value.repeatIntervalHours,
       max_submissions: form.value.maxSubmissions,
@@ -392,6 +425,7 @@ const saveConfig = () => {
         repeatCheckBy: form.value.repeatCheckBy,
         repeatIntervalHours: form.value.repeatIntervalHours,
         maxSubmissions: form.value.maxSubmissions,
+        anonymousMode: form.value.anonymousMode,
       },
       formFields: formFields.value,
       pageTexts: pageTexts.value,
@@ -417,6 +451,7 @@ const loadConfig = () => {
         form.value.repeatCheckBy = config.form.repeatCheckBy || 'phone'
         form.value.repeatIntervalHours = config.form.repeatIntervalHours || 24
         form.value.maxSubmissions = config.form.maxSubmissions || 0
+        form.value.anonymousMode = !!config.form.anonymousMode
       }
       // 恢复字段配置
       if (config.formFields && Array.isArray(config.formFields)) {
@@ -451,6 +486,7 @@ const applyAssessmentToForm = () => {
     form.value.customExpiryDate = toDateTimeLocalInput(current.valid_until)
   }
   form.value.allowRepeat = !!current.allow_repeat
+  form.value.anonymousMode = !!current.anonymous_mode
   form.value.repeatCheckBy = (current.repeat_check_by as 'phone' | 'phone_name') || 'phone'
   form.value.repeatIntervalHours = current.repeat_interval_hours ?? 24
   form.value.maxSubmissions = current.max_submissions ?? 0
@@ -470,6 +506,18 @@ const applyAssessmentToForm = () => {
     }
   }
 }
+
+watch(() => form.value.anonymousMode, (enabled) => {
+  applyAnonymousModeToFields(enabled)
+})
+
+watch(formFields, () => {
+  if (!form.value.anonymousMode) return
+  const hasIdentityEnabled = formFields.value.some((field) => isIdentityField(field) && field.enabled)
+  if (hasIdentityEnabled) {
+    applyAnonymousModeToFields(true)
+  }
+}, { deep: true })
 
 // 监听配置变化，自动保存
 watch([form, formFields, pageTexts, routingConfig], () => {
@@ -613,64 +661,88 @@ onMounted(() => {
             <span>长期有效的二维码不会过期，适合放在公司前台供面试者随时扫码填写</span>
           </div>
 
-          <div class="form-group repeat-settings">
-            <label><i class="ri-repeat-2-line"></i> 重复提交设置</label>
+          <div class="form-group anonymous-settings">
+            <label><i class="ri-shield-user-line"></i> 匿名设置</label>
             <div class="setting-row">
-              <span class="setting-label">允许同一人重复提交</span>
+              <div class="setting-text">
+                <span class="setting-label">匿名收集（同设备防重复）</span>
+                <span class="setting-desc">开启后不收集姓名和手机号，使用浏览器设备标识限制重复提交</span>
+              </div>
               <label class="toggle-switch">
-                <input type="checkbox" v-model="form.allowRepeat" />
+                <input type="checkbox" v-model="form.anonymousMode" />
                 <span class="toggle-slider"></span>
               </label>
             </div>
-            
-            <div v-if="form.allowRepeat" class="repeat-detail">
-              <div class="setting-row">
-                <span class="setting-label">判断依据</span>
-                <div class="radio-group">
-                  <label class="radio-item">
-                    <input type="radio" v-model="form.repeatCheckBy" value="phone" />
-                    <span>手机号</span>
-                  </label>
-                  <label class="radio-item">
-                    <input type="radio" v-model="form.repeatCheckBy" value="phone_name" />
-                    <span>手机号+姓名</span>
-                  </label>
-                </div>
-              </div>
-              
-              <div class="setting-row">
-                <span class="setting-label">提交间隔</span>
-                <div class="interval-options">
-                  <button 
-                    v-for="opt in repeatIntervalOptions" 
-                    :key="opt.value"
-                    type="button"
-                    :class="['interval-btn', { active: form.repeatIntervalHours === opt.value }]"
-                    @click="form.repeatIntervalHours = opt.value"
-                  >
-                    {{ opt.label }}
-                  </button>
-                </div>
-              </div>
-              
-              <div class="setting-row">
-                <span class="setting-label">最多提交次数</span>
-                <div class="max-input">
-                  <input 
-                    type="number" 
-                    v-model="form.maxSubmissions" 
-                    min="0" 
-                    class="form-input small" 
-                  />
-                  <span class="input-hint">0 表示不限制</span>
-                </div>
-              </div>
-            </div>
-            
-            <div v-else class="no-repeat-hint">
+            <div v-if="form.anonymousMode" class="anonymous-mode-hint">
               <i class="ri-information-line"></i>
-              <span>每人只能提交一次，系统将根据手机号识别重复</span>
+              <span>轻量防重复可以拦截同一浏览器再次提交，但清除缓存、换浏览器或换设备仍可能绕过。</span>
             </div>
+          </div>
+
+          <div class="form-group repeat-settings" :class="{ 'is-disabled': form.anonymousMode }">
+            <label><i class="ri-repeat-2-line"></i> 重复提交设置</label>
+            <div v-if="form.anonymousMode" class="no-repeat-hint anonymous-repeat-hint">
+              <i class="ri-lock-line"></i>
+              <span>匿名模式使用同设备防重复，不再使用姓名/手机号校验。</span>
+            </div>
+            <template v-else>
+              <div class="setting-row">
+                <span class="setting-label">允许同一人重复提交</span>
+                <label class="toggle-switch">
+                  <input type="checkbox" v-model="form.allowRepeat" />
+                  <span class="toggle-slider"></span>
+                </label>
+              </div>
+              
+              <div v-if="form.allowRepeat" class="repeat-detail">
+                <div class="setting-row">
+                  <span class="setting-label">判断依据</span>
+                  <div class="radio-group">
+                    <label class="radio-item">
+                      <input type="radio" v-model="form.repeatCheckBy" value="phone" />
+                      <span>手机号</span>
+                    </label>
+                    <label class="radio-item">
+                      <input type="radio" v-model="form.repeatCheckBy" value="phone_name" />
+                      <span>手机号+姓名</span>
+                    </label>
+                  </div>
+                </div>
+                
+                <div class="setting-row">
+                  <span class="setting-label">提交间隔</span>
+                  <div class="interval-options">
+                    <button 
+                      v-for="opt in repeatIntervalOptions" 
+                      :key="opt.value"
+                      type="button"
+                      :class="['interval-btn', { active: form.repeatIntervalHours === opt.value }]"
+                      @click="form.repeatIntervalHours = opt.value"
+                    >
+                      {{ opt.label }}
+                    </button>
+                  </div>
+                </div>
+                
+                <div class="setting-row">
+                  <span class="setting-label">最多提交次数</span>
+                  <div class="max-input">
+                    <input 
+                      type="number" 
+                      v-model="form.maxSubmissions" 
+                      min="0" 
+                      class="form-input small" 
+                    />
+                    <span class="input-hint">0 表示不限制</span>
+                  </div>
+                </div>
+              </div>
+              
+              <div v-else class="no-repeat-hint">
+                <i class="ri-information-line"></i>
+                <span>每人只能提交一次，系统将根据手机号识别重复</span>
+              </div>
+            </template>
           </div>
 
           <div class="form-group">

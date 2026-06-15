@@ -125,6 +125,7 @@ class AssessmentCreate(AssessmentBase):
     repeat_check_by: str = "phone"  # 重复判断依据
     repeat_interval_hours: int = 0  # 重复提交间隔（小时）
     max_submissions: int = 0  # 最大提交次数（0=不限）
+    anonymous_mode: bool = False  # 匿名收集：同设备防重复
     routing_config: Optional[Dict[str, Any]] = {}  # ⭐ 部门路由配置
 
 
@@ -142,6 +143,7 @@ class AssessmentUpdate(BaseModel):
     repeat_check_by: Optional[str] = None
     repeat_interval_hours: Optional[int] = None
     max_submissions: Optional[int] = None
+    anonymous_mode: Optional[bool] = None
     routing_config: Optional[Dict[str, Any]] = None  # ⭐ 部门路由配置
 
 
@@ -158,6 +160,7 @@ class AssessmentResponse(AssessmentBase):
     repeat_check_by: str = "phone"
     repeat_interval_hours: int = 0
     max_submissions: int = 0
+    anonymous_mode: bool = False
     view_count: int = 0
     start_count: int = 0
     routing_config: Optional[Dict[str, Any]] = None
@@ -191,6 +194,7 @@ class SubmissionCreate(BaseModel):
     candidate_email: Optional[str] = None
     gender: Optional[str] = None  # ⭐ 性别字段
     target_position: Optional[str] = None
+    anonymous_device_id: Optional[str] = None
     custom_data: Optional[Dict[str, Any]] = {}  # ⭐ 自定义字段数据
 
 
@@ -262,6 +266,7 @@ class PublicAssessmentInfo(BaseModel):
     repeat_check_by: str = "phone"
     repeat_interval_hours: int = 0
     max_submissions: int = 0
+    anonymous_mode: bool = False
 
 
 class PublicSubmissionStart(BaseModel):

@@ -422,6 +422,15 @@ async def get_public_assessment_info(
             form_fields_data = fields
         elif not form_fields_data:
             form_fields_data = default_form_fields
+
+    if assessment.anonymous_mode and isinstance(form_fields_data, list):
+        identity_field_names = {"name", "candidate_name", "phone", "candidate_phone"}
+        form_fields_data = [
+            field
+            for field in form_fields_data
+            if not isinstance(field, dict)
+            or str(field.get("name") or field.get("id") or "").strip() not in identity_field_names
+        ]
     
     # ⭐ 获取问卷题目数据（用于前端 fallback）
     questions_data = questionnaire.questions_data.get("questions", []) if questionnaire.questions_data else []
@@ -445,6 +454,7 @@ async def get_public_assessment_info(
         repeat_check_by=assessment.repeat_check_by or "phone",
         repeat_interval_hours=assessment.repeat_interval_hours or 0,
         max_submissions=assessment.max_submissions or 0,
+        anonymous_mode=bool(assessment.anonymous_mode),
     )
 
 
@@ -461,8 +471,15 @@ async def check_can_submit(
     
     phone = data.get("phone", "")
     name = data.get("name", "")
+    anonymous_device_id = data.get("anonymous_device_id", "")
     
-    result = await service.check_can_submit(session, assessment.id, phone, name)
+    result = await service.check_can_submit(
+        session,
+        assessment.id,
+        phone,
+        name,
+        anonymous_device_id=anonymous_device_id,
+    )
     return result
 
 
@@ -481,7 +498,8 @@ async def start_assessment(
     check_result = await service.check_can_submit(
         session, assessment.id, 
         data.candidate_phone, 
-        data.candidate_name
+        data.candidate_name,
+        anonymous_device_id=data.anonymous_device_id,
     )
     if not check_result["can_submit"]:
         raise HTTPException(status_code=403, detail=check_result["reason"])

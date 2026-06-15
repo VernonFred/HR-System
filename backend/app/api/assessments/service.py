@@ -131,6 +131,8 @@ async def create_assessment(session: Session, data: dict) -> Assessment:
     """创建测评."""
     if "routing_config" in data:
         data["routing_config"] = await normalize_routing_config(session, data.get("routing_config"), strict=True)
+    if data.get("anonymous_mode"):
+        data["allow_repeat"] = False
     code = generate_assessment_code()
     assessment_data = {**data, "code": code}
     assessment = Assessment(**assessment_data)
@@ -284,7 +286,8 @@ async def check_can_submit(
     session: Session, 
     assessment_id: int, 
     phone: str, 
-    name: str = ""
+    name: str = "",
+    anonymous_device_id: Optional[str] = None,
 ) -> dict:
     """
     检查是否可以提交测评.
@@ -301,7 +304,21 @@ async def check_can_submit(
     if not assessment:
         return {"can_submit": False, "reason": "测评不存在", "submission_number": 0, "previous_submissions": []}
 
-    condition = _build_repeat_submission_condition(assessment, phone, name)
+    normalized_device_id = (anonymous_device_id or "").strip()
+    if assessment.anonymous_mode and not normalized_device_id:
+        return {
+            "can_submit": False,
+            "reason": "匿名设备标识缺失，请刷新页面后重试",
+            "submission_number": 0,
+            "previous_submissions": [],
+        }
+
+    condition = _build_repeat_submission_condition(
+        assessment,
+        phone,
+        name,
+        anonymous_device_id=normalized_device_id,
+    )
     statement = select(Submission).where(condition).order_by(Submission.submitted_at.desc())
     submissions = session.exec(statement).all()
     submission_count = len(submissions)
@@ -319,7 +336,7 @@ async def check_can_submit(
     ]
     
     # 1. 检查是否允许重复
-    if not assessment.allow_repeat and submission_count > 0:
+    if (assessment.anonymous_mode or not assessment.allow_repeat) and submission_count > 0:
         return {
             "can_submit": False, 
             "reason": "该测评不允许重复提交",
@@ -366,6 +383,7 @@ def _build_repeat_submission_condition(
     assessment: Assessment,
     phone: str,
     name: str = "",
+    anonymous_device_id: Optional[str] = None,
     exclude_submission_id: Optional[int] = None,
 ):
     """构建重复提交判断条件，只统计已完成提交。"""
@@ -374,7 +392,9 @@ def _build_repeat_submission_condition(
         Submission.status == "completed",
     ]
 
-    if assessment.repeat_check_by == "phone_name":
+    if assessment.anonymous_mode:
+        conditions.append(Submission.anonymous_device_id == (anonymous_device_id or "").strip())
+    elif assessment.repeat_check_by == "phone_name":
         conditions.extend([
             Submission.candidate_phone == phone,
             Submission.candidate_name == name,
@@ -411,17 +431,21 @@ async def _validate_submission_repeat_rules_before_complete(
     if not assessment:
         raise ValueError("测评不存在")
 
+    if assessment.anonymous_mode and not (submission.anonymous_device_id or "").strip():
+        raise ValueError("匿名设备标识缺失，请刷新页面后重试")
+
     condition = _build_repeat_submission_condition(
         assessment,
         submission.candidate_phone,
         submission.candidate_name,
+        anonymous_device_id=submission.anonymous_device_id,
         exclude_submission_id=submission.id,
     )
     statement = select(Submission).where(condition).order_by(Submission.submitted_at.desc())
     completed_submissions = session.exec(statement).all()
     completed_count = len(completed_submissions)
 
-    if not assessment.allow_repeat and completed_count > 0:
+    if (assessment.anonymous_mode or not assessment.allow_repeat) and completed_count > 0:
         raise ValueError("该测评不允许重复提交")
 
     if assessment.repeat_interval_hours > 0 and completed_submissions:
@@ -660,6 +684,8 @@ async def update_assessment(session: Session, assessment_id: int, data: dict) ->
     
     if "routing_config" in data:
         data["routing_config"] = await normalize_routing_config(session, data.get("routing_config"), strict=True)
+    if data.get("anonymous_mode"):
+        data["allow_repeat"] = False
 
     # 更新字段
     for key, value in data.items():

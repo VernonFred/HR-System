@@ -10,6 +10,7 @@ import {
   type SubmitCheckResult,
 } from "../api/assessments";
 import CustomAlert from "../components/CustomAlert.vue";
+import { getAnonymousDeviceId } from "../utils/anonymousDevice";
 import {
   formatQuestionnaireSystemMessage,
   getQuestionnaireCopy,
@@ -53,6 +54,22 @@ const closeAlert = () => {
   alertConfig.value.show = false;
 };
 
+const identityFieldNames = new Set(["name", "candidate_name", "phone", "candidate_phone"]);
+
+const normalizeFormFields = (fields: any[], anonymousMode: boolean) => {
+  return fields
+    .filter(f => f.enabled !== false)
+    .map(f => ({
+      ...f,
+      // 优先使用 name，如果没有则使用 id
+      name: f.name || f.id,
+    }))
+    .filter(f => {
+      if (!anonymousMode) return true;
+      return !identityFieldNames.has(String(f.name || "").trim());
+    });
+};
+
 const loadAssessment = async () => {
   try {
     loading.value = true;
@@ -62,14 +79,7 @@ const loadAssessment = async () => {
 
     // ⭐ 动态初始化表单字段
     if (res.form_fields && Array.isArray(res.form_fields)) {
-      // 处理字段数据，兼容 id 和 name 两种格式
-      formFields.value = res.form_fields
-        .filter(f => f.enabled !== false)
-        .map(f => ({
-          ...f,
-          // 优先使用 name，如果没有则使用 id
-          name: f.name || f.id,
-        }));
+      formFields.value = normalizeFormFields(res.form_fields, !!res.anonymous_mode);
       // 初始化表单值
       formFields.value.forEach(field => {
         form.value[field.name] = "";
@@ -83,6 +93,7 @@ const loadAssessment = async () => {
         { name: "gender", label: "性别", type: "select", required: false, icon: "ri-user-line", options: ["男", "女"] },
         { name: "target_position", label: "应聘岗位", type: "text", required: false, icon: "ri-briefcase-line" },
       ];
+      formFields.value = normalizeFormFields(formFields.value, !!res.anonymous_mode);
       formFields.value.forEach(field => {
         form.value[field.name] = "";
       });
@@ -163,9 +174,10 @@ const handleStart = async () => {
 
   try {
     loading.value = true;
+    const anonymousDeviceId = assessment.value?.anonymous_mode ? getAnonymousDeviceId() : undefined;
     
     // ⭐ 先检查是否可以提交
-    const checkResult = await checkCanSubmit(code.value, candidatePhone, candidateName);
+    const checkResult = await checkCanSubmit(code.value, candidatePhone, candidateName, anonymousDeviceId);
     
     submitCheckResult.value = checkResult;
     
@@ -229,6 +241,7 @@ const handleStart = async () => {
     const res = await startAssessment(code.value, {
       ...builtinFields,
       custom_data: customData,
+      anonymous_device_id: anonymousDeviceId,
     } as any, assessment.value?.type, assessment.value?.questions);
 
     // ⭐ 存储测评数据到 sessionStorage，供填写页面使用

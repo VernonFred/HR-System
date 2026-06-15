@@ -156,6 +156,7 @@ export interface Assessment {
   repeat_check_by?: string;
   repeat_interval_hours?: number;
   max_submissions?: number;
+  anonymous_mode?: boolean;
   routing_config?: DepartmentRoutingConfig;
   created_at: string;
 }
@@ -183,6 +184,7 @@ export interface AssessmentCreate {
   repeat_check_by?: string;
   repeat_interval_hours?: number;
   max_submissions?: number;
+  anonymous_mode?: boolean;
   routing_config?: DepartmentRoutingConfig;
 }
 
@@ -244,6 +246,7 @@ export const createAssessment = (data: AssessmentCreate) => {
     valid_from: data.valid_from,
     valid_until: data.valid_until,
     description: data.description,
+    anonymous_mode: data.anonymous_mode,
     created_at: new Date().toISOString()
   };
   
@@ -272,6 +275,7 @@ export interface AssessmentUpdate {
   repeat_check_by?: string;
   repeat_interval_hours?: number;
   max_submissions?: number;
+  anonymous_mode?: boolean;
   routing_config?: DepartmentRoutingConfig;
 }
 
@@ -528,6 +532,7 @@ export interface PublicAssessmentInfo {
   repeat_check_by?: string;
   repeat_interval_hours?: number;
   max_submissions?: number;
+  anonymous_mode?: boolean;
 }
 
 export interface PublicSubmissionStart {
@@ -557,11 +562,11 @@ export interface SubmitCheckResult {
 }
 
 // 检查是否可以提交
-export const checkCanSubmit = (code: string, phone: string, name: string = "") => {
+export const checkCanSubmit = (code: string, phone: string, name: string = "", anonymousDeviceId?: string) => {
   return apiRequestWithBody<SubmitCheckResult>({
     path: `/api/public/assessment/${code}/check-submit`,
     method: "POST",
-    body: { phone, name },
+    body: { phone, name, anonymous_device_id: anonymousDeviceId },
     fallback: { can_submit: true, reason: "", submission_number: 1, previous_submissions: [] },
     auth: false,
   });
@@ -572,6 +577,9 @@ export interface SubmissionStart {
   candidate_phone: string;
   candidate_email?: string;
   target_position?: string;
+  gender?: string;
+  custom_data?: Record<string, any>;
+  anonymous_device_id?: string;
 }
 
 export const fetchPublicAssessment = (code: string) => {
@@ -596,6 +604,7 @@ export const fetchPublicAssessment = (code: string) => {
     valid: now >= validFrom && now <= validUntil,
     expired: now > validUntil,
     description: assessment.description || questionnaire.name,
+    anonymous_mode: assessment.anonymous_mode || false,
     form_fields: [
       { id: 1, name: 'candidate_name', label: '姓名', type: 'text', enabled: true, required: true, builtin: true },
       { id: 2, name: 'candidate_phone', label: '手机号', type: 'text', enabled: true, required: true, builtin: true }
