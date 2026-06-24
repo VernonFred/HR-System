@@ -951,6 +951,10 @@ const getGroupSubmissions = (group: GroupedCandidate) => {
   return group.submissions.slice(start, start + groupPageSize)
 }
 
+const getGroupPendingCount = (group: GroupedCandidate) => {
+  return Math.max(0, group.totalSubmissions - group.completedCount)
+}
+
 const changeGroupPage = (group: GroupedCandidate, page: number) => {
   const totalPages = getGroupTotalPages(group)
   if (page < 1 || page > totalPages) return
@@ -1783,7 +1787,7 @@ const executeStatsExport = async () => {
           @click="activeTab = 'submissions'"
         >
           <i class="ri-file-list-3-line"></i>
-          提交记录
+          答题记录
           <span class="tab-count">{{ submissions.length }}</span>
         </button>
         <button 
@@ -1802,8 +1806,8 @@ const executeStatsExport = async () => {
           <!-- 空状态 -->
           <div v-if="submissions.length === 0" class="empty-state">
             <i class="ri-inbox-line"></i>
-            <p>暂无提交记录</p>
-            <span>分发问卷后，提交记录将在这里显示</span>
+            <p>暂无答题记录</p>
+            <span>分发问卷后，答题记录将在这里显示</span>
           </div>
 
           <!-- 分组视图 -->
@@ -1897,11 +1901,15 @@ const executeStatsExport = async () => {
                       <div class="group-stats">
                         <span class="stat-badge total">
                           <i class="ri-file-list-3-line"></i>
-                          {{ group.totalSubmissions }}次提交
+                          {{ group.totalSubmissions }}条记录
                         </span>
                         <span class="stat-badge completed" v-if="group.completedCount > 0">
                           <i class="ri-checkbox-circle-fill"></i>
                           {{ group.completedCount }}已完成
+                        </span>
+                        <span class="stat-badge pending" v-if="getGroupPendingCount(group) > 0">
+                          <i class="ri-time-fill"></i>
+                          {{ getGroupPendingCount(group) }}未完成
                         </span>
                         <span class="stat-badge latest" v-if="group.latestSubmission">
                           <i class="ri-time-line"></i>

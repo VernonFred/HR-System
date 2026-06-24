@@ -672,6 +672,11 @@
   color: #065f46;
 }
 
+.stat-badge.pending {
+  background: #fef3c7;
+  color: #92400e;
+}
+
 .stat-badge.latest {
   background: #dbeafe;
   color: #1e40af;

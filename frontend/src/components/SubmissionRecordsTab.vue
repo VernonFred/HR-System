@@ -387,6 +387,10 @@ const groupedSubmissionsAll = computed<GroupedCandidate[]>(() => {
 
 const groupListTotalPages = computed(() => Math.ceil(groupedSubmissionsAll.value.length / groupListPageSize) || 1)
 
+const getGroupPendingCount = (group: GroupedCandidate) => {
+  return Math.max(0, group.totalSubmissions - group.completedCount)
+}
+
 const paginatedGroupedSubmissions = computed<GroupedCandidate[]>(() => {
   const start = (groupListPage.value - 1) * groupListPageSize
   const end = start + groupListPageSize
@@ -878,11 +882,15 @@ const executeExport = async () => {
             <div class="group-stats">
               <span class="stat-badge total">
                 <i class="ri-file-list-3-line"></i>
-                {{ group.totalSubmissions }}次测评
+                {{ group.totalSubmissions }}条记录
               </span>
               <span class="stat-badge completed" v-if="group.completedCount > 0">
                 <i class="ri-checkbox-circle-fill"></i>
                 {{ group.completedCount }}已完成
+              </span>
+              <span class="stat-badge pending" v-if="getGroupPendingCount(group) > 0">
+                <i class="ri-time-fill"></i>
+                {{ getGroupPendingCount(group) }}未完成
               </span>
                   <span class="stat-badge latest" v-if="group.latestSubmission?.submitted_at">
                 <i class="ri-time-line"></i>
@@ -2183,6 +2191,11 @@ const executeExport = async () => {
 .stat-badge.completed {
   background: #d1fae5;
   color: #065f46;
+}
+
+.stat-badge.pending {
+  background: #fef3c7;
+  color: #92400e;
 }
 
 .stat-badge.latest {
