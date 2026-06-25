@@ -10,7 +10,7 @@ import { ref, computed, watch, onMounted, onBeforeUnmount, nextTick } from 'vue'
 import { init, type ECharts, type EChartsOption, type SetOptionOpts } from 'echarts/core'
 import EChartContainer from './EChartContainer.vue'
 import * as XLSX from 'xlsx'
-import type { Questionnaire, Submission, QuestionStat, TextSummary, TextAnswerGroup } from '../api/assessments'
+import type { Questionnaire, Submission, QuestionStat, QuestionOptionStat, TextSummary, TextAnswerGroup } from '../api/assessments'
 import { fetchQuestionnaireQuestionStats, type QuestionnaireQuestionStats } from '../api/assessments'
 
 // ===== Props =====
@@ -372,6 +372,17 @@ const normalizePercentage = (percentage?: number): number => {
   const value = Number(percentage || 0)
   if (Number.isNaN(value)) return 0
   return Math.min(100, Math.max(0, Math.round(value * 10) / 10))
+}
+
+const getQuestionResponseText = (question: QuestionStat): string => {
+  const answerCount = Number(question.total_answers || 0)
+  const selectionCount = Number(question.total_selections || 0)
+
+  if (isMultipleChoiceQuestion(question.type) && selectionCount > answerCount) {
+    return `${answerCount} 份回答 · ${selectionCount} 次选择`
+  }
+
+  return `${answerCount} 份回答`
 }
 
 const truncateChartLabel = (value: string, max = 10) => {
@@ -2301,7 +2312,7 @@ const executeStatsExport = async () => {
                       <div class="question-detail-panel">
                         <div class="detail-panel-title">
                           <span>选项明细</span>
-                          <em>{{ q.total_answers }} 份回答</em>
+                          <em>{{ getQuestionResponseText(q) }}</em>
                         </div>
                         <div class="option-detail-list">
                           <div class="option-detail-row" v-for="opt in q.options" :key="opt.index ?? opt.text">
@@ -2532,7 +2543,7 @@ const executeStatsExport = async () => {
               <span class="question-index">Q{{ q.index }}</span>
               <div>
                 <h3>{{ q.text }}</h3>
-                <p>{{ getQuestionTypeLabel(q.type) }} · {{ q.total_answers }} 份回答</p>
+                <p>{{ getQuestionTypeLabel(q.type) }} · {{ getQuestionResponseText(q) }}</p>
               </div>
             </div>
 
@@ -2588,7 +2599,7 @@ const executeStatsExport = async () => {
                 <div class="stats-export-detail-box">
                   <div class="detail-panel-title">
                     <span>选项明细</span>
-                    <em>{{ q.total_answers }} 份回答</em>
+                    <em>{{ getQuestionResponseText(q) }}</em>
                   </div>
                   <div class="option-detail-list">
                     <div class="option-detail-row" v-for="opt in q.options" :key="`export-opt-${q.id}-${opt.index ?? opt.text}`">

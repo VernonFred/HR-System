@@ -452,6 +452,7 @@ export interface QuestionStat {
   text: string;
   type: string;  // single, multiple, text, rating
   total_answers: number;
+  total_selections?: number;
   options: QuestionOptionStat[];
   text_summary?: TextSummary;
 }

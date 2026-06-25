@@ -1146,6 +1146,8 @@ async def get_question_answer_statistics(
         # 收集所有答案
         answer_counts = Counter()
         text_answers = []
+        answered_submission_count = 0
+        total_selections = 0
         
         for sub in submissions:
             answers = sub.answers or {}
@@ -1164,19 +1166,35 @@ async def get_question_answer_statistics(
             if q_type in ("text", "textarea"):
                 # 文本题收集答案
                 if isinstance(answer, str) and answer.strip():
+                    answered_submission_count += 1
                     text_answers.append(answer.strip())
             elif q_type in ("multiple", "checkbox") or isinstance(answer, list):
                 # 多选题
-                for a in (answer if isinstance(answer, list) else [answer]):
+                selected_answers = answer if isinstance(answer, list) else [answer]
+                selected_answers = [
+                    a for a in selected_answers
+                    if a is not None and (not isinstance(a, str) or a.strip())
+                ]
+                if selected_answers:
+                    answered_submission_count += 1
+                    total_selections += len(selected_answers)
+                for a in selected_answers:
                     answer_counts[str(a)] += 1
             else:
                 # 单选题
+                answered_submission_count += 1
+                total_selections += 1
                 answer_counts[str(answer)] += 1
         
         # 构建选项统计
         option_stats = []
-        total_answers = sum(answer_counts.values()) if answer_counts else len(text_answers)
+        total_answers = answered_submission_count
+        if q_type in ("text", "textarea"):
+            total_selections = len(text_answers)
+        elif total_selections == 0:
+            total_selections = sum(answer_counts.values())
         text_summary = None
+        percentage_denominator = total_answers or total_submissions
         
         if q_type == "text" or q_type == "textarea":
             # 文本题：智能聚合与分组
@@ -1235,7 +1253,7 @@ async def get_question_answer_statistics(
             
             for score in range(scale_min, scale_max + 1):
                 count = answer_counts.get(str(score), 0)
-                percentage = round(count / total_submissions * 100, 1) if total_submissions > 0 else 0
+                percentage = round(count / percentage_denominator * 100, 1) if percentage_denominator > 0 else 0
                 
                 # 使用智能标签生成
                 label = _get_scale_label(score, scale_min, scale_max, min_label, max_label)
@@ -1266,7 +1284,7 @@ async def get_question_answer_statistics(
                 if opt_text != opt_value and opt_text != str(opt_idx):
                     count += answer_counts.get(opt_text, 0)
                 
-                percentage = round(count / total_submissions * 100, 1) if total_submissions > 0 else 0
+                percentage = round(count / percentage_denominator * 100, 1) if percentage_denominator > 0 else 0
                 
                 option_stats.append({
                     "index": opt_idx,
@@ -1281,6 +1299,7 @@ async def get_question_answer_statistics(
             "text": q_text,
             "type": q_type,
             "total_answers": total_answers,
+            "total_selections": total_selections,
             "options": option_stats,
             "text_summary": text_summary
         })
