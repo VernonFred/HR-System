@@ -303,22 +303,6 @@ const changeGroupListPage = (newPage: number) => {
   groupListPage.value = newPage
 }
 
-// 筛选变化时重置页码
-watch([searchQuery, filterQuestionnaire, filterStatus, filterYear, filterMonth], () => {
-  currentPage.value = 1
-  groupListPage.value = 1
-})
-
-watch(groupByCandidate, () => {
-  groupListPage.value = 1
-})
-
-watch(groupListTotalPages, (total) => {
-  if (groupListPage.value > total) {
-    groupListPage.value = total
-  }
-})
-
 // ===== 按候选人分组的提交记录 =====
 interface GroupedCandidate {
   phone: string
@@ -386,6 +370,22 @@ const groupedSubmissionsAll = computed<GroupedCandidate[]>(() => {
 })
 
 const groupListTotalPages = computed(() => Math.ceil(groupedSubmissionsAll.value.length / groupListPageSize) || 1)
+
+// 筛选变化时重置页码
+watch([searchQuery, filterQuestionnaire, filterStatus, filterYear, filterMonth], () => {
+  currentPage.value = 1
+  groupListPage.value = 1
+})
+
+watch(groupByCandidate, () => {
+  groupListPage.value = 1
+})
+
+watch(groupListTotalPages, (total) => {
+  if (groupListPage.value > total) {
+    groupListPage.value = total
+  }
+})
 
 const getGroupPendingCount = (group: GroupedCandidate) => {
   return Math.max(0, group.totalSubmissions - group.completedCount)
