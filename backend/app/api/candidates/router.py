@@ -22,7 +22,7 @@ router = APIRouter(prefix="/api/candidates", tags=["candidates"])
 async def get_candidate_portrait(
     candidate_id: int,
     refresh: bool = Query(False, description="强制刷新（跳过缓存）"),
-    analysis_level: str = Query("pro", description="分析级别: pro(深度分析，默认)/expert(专家分析)"),
+    analysis_level: str = Query("pro", description="画像分析模式；兼容旧 expert 参数，当前统一按 pro 单模型处理"),
     session: Session = Depends(get_session)
 ):
     """获取候选人的完整画像数据.
@@ -33,9 +33,9 @@ async def get_candidate_portrait(
     - 岗位匹配（基于 target_position 关联岗位画像）
     - 综合评价（优势、建议、综合得分）
     
-    **分析级别 V5**：
-    - pro: 深度分析（DeepSeek V4 Pro 深度提示词模式，交叉分析测评与简历）
-    - expert: 专家分析（DeepSeek V4 Pro 专家提示词模式，推理与发展建议）
+    **分析模式**：
+    - 当前统一使用单模型画像生成。
+    - 旧的 expert 参数保留兼容，但后端会归一为 pro，避免重复生成两套话术。
     
     **缓存策略**：
     - 首次访问：调用AI分析，结果存入缓存
@@ -112,11 +112,7 @@ async def get_portrait_cache_status(
 ):
     """获取候选人已缓存的画像分析级别.
     
-    返回每个分析级别是否有有效缓存：
-    - pro: 深度分析缓存
-    - expert: 专家分析缓存
-    
-    用于前端切换查看时判断是否需要重新生成。
+    返回画像缓存状态。旧版曾用于前端切换分析级别，当前仅保留接口兼容。
     """
     from sqlmodel import select
     

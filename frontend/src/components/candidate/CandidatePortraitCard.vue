@@ -10,7 +10,6 @@ import CompetencySection from './CompetencySection.vue';
 import SummaryCard from './SummaryCard.vue';
 import ScoreBreakdownModal from './ScoreBreakdownModal.vue';
 import { getResumeInfo, getResumeDownloadUrl, deleteResume, parseResume } from '../../api/resumes';
-import { getPortraitCacheStatus, type PortraitCacheStatus } from '../../api/candidatePortraits';
 
 const props = withDefaults(defineProps<{ 
   profile: CandidateProfile | null;
@@ -34,12 +33,6 @@ const showExportMenu = ref(false);
 const showResumeModal = ref(false);
 const resumeInfo = ref<any>(null);
 const resumeLoading = ref(false);
-
-// ⭐ V38: 分析级别切换状态
-const currentAnalysisLevel = ref<'pro' | 'expert'>('pro');
-const cacheStatus = ref<PortraitCacheStatus | null>(null);
-const isLoadingCacheStatus = ref(false);
-const isSwitchingLevel = ref(false);
 
 // 消息提示状态
 const toastMessage = ref('');
@@ -1284,8 +1277,7 @@ const exportAsPNG = async () => {
     console.log('图片生成成功');
     
     const link = document.createElement('a');
-    // 文件名包含分析级别
-    const levelLabel = currentAnalysisLevel.value === 'expert' ? '专家分析' : '深度分析';
+    const levelLabel = 'AI画像';
     link.download = `候选人画像-${displayData.value.name}-${levelLabel}-${Date.now()}.png`;
     link.href = dataUrl;
     link.click();
@@ -1386,8 +1378,7 @@ const exportAsPDF = async () => {
       }
     }
     
-    // 文件名包含分析级别
-    const levelLabel = currentAnalysisLevel.value === 'expert' ? '专家分析' : '深度分析';
+    const levelLabel = 'AI画像';
     pdf.save(`候选人画像-${displayData.value.name}-${levelLabel}-${Date.now()}.pdf`);
     console.log(`PDF导出成功 (${levelLabel})`);
   } catch (error) {
@@ -1502,11 +1493,8 @@ const handleParseComplete = (level: 'pro' | 'expert' = 'pro') => {
 // ⭐ 重新生成画像功能
 const isRegeneratingPortrait = ref(false);
 
-const regeneratePortrait = (level: 'pro' | 'expert' = 'pro') => {
+const regeneratePortrait = (_level: 'pro' | 'expert' = 'pro') => {
   if (!props.profile?.id) return;
-  
-  // 保存当前分析级别
-  currentAnalysisLevel.value = level;
   
   // 设置加载状态（按钮显示加载中）
     isRegeneratingPortrait.value = true;
@@ -1515,8 +1503,8 @@ const regeneratePortrait = (level: 'pro' | 'expert' = 'pro') => {
     showResumeModal.value = false;
     
   // 触发父组件重新生成画像（由父组件负责调用API和显示进度条动画）
-  // 传递分析级别给父组件，简历解析后需要强制刷新
-  emit('portrait-regenerated', level, true); // forceRefresh = true
+  // 单模型模式下统一使用默认画像生成流程。
+  emit('portrait-regenerated', 'pro', true); // forceRefresh = true
   
   // 注意：isRegeneratingPortrait 会在父组件完成后自动重置
   // 这里延迟重置，确保弹窗关闭动画完成
@@ -1524,57 +1512,6 @@ const regeneratePortrait = (level: 'pro' | 'expert' = 'pro') => {
     isRegeneratingPortrait.value = false;
   }, 500);
 };
-
-// ⭐ V38: 加载缓存状态
-const loadCacheStatus = async () => {
-  if (!props.profile?.id) return;
-  
-  isLoadingCacheStatus.value = true;
-  try {
-    cacheStatus.value = await getPortraitCacheStatus(Number(props.profile.id));
-    console.log('📦 缓存状态:', cacheStatus.value);
-  } catch (error) {
-    console.error('获取缓存状态失败:', error);
-  } finally {
-    isLoadingCacheStatus.value = false;
-  }
-};
-
-// ⭐ V38: 切换分析级别（使用缓存或重新生成）
-const switchAnalysisLevel = async (level: 'pro' | 'expert') => {
-  if (!props.profile?.id || level === currentAnalysisLevel.value) return;
-  
-  isSwitchingLevel.value = true;
-  currentAnalysisLevel.value = level;
-  
-  // 检查是否有缓存
-  const hasCached = cacheStatus.value?.cached_levels[level];
-  
-  if (hasCached) {
-    // 有缓存，直接切换（不需要强制刷新，从缓存加载）
-    console.log(`🔄 切换到${level}（使用缓存，forceRefresh=false）`);
-    emit('portrait-regenerated', level, false); // forceRefresh = false
-    setTimeout(() => {
-      isSwitchingLevel.value = false;
-    }, 500);
-  } else {
-    // 无缓存，需要重新生成
-    console.log(`🔄 切换到${level}（需要生成，forceRefresh=true）`);
-    emit('portrait-regenerated', level, true); // forceRefresh = true
-    // 生成完成后更新缓存状态
-    setTimeout(async () => {
-      await loadCacheStatus();
-      isSwitchingLevel.value = false;
-    }, 3000);
-  }
-};
-
-// 监听 profile 变化，加载缓存状态
-watch(() => props.profile?.id, async (newId) => {
-  if (newId) {
-    await loadCacheStatus();
-  }
-}, { immediate: true });
 
 // 🟢 P0优化：新增 computed
 const currentAssessmentType = computed(() => {
@@ -1595,7 +1532,7 @@ const handleRetryAI = () => {
   showMessageToast('正在重新生成AI分析...', 'info')
   
   // 强制刷新，跳过缓存
-  emit('portrait-regenerated', currentAnalysisLevel.value, true)
+  emit('portrait-regenerated', 'pro', true)
 }
 
 </script>
@@ -1704,39 +1641,8 @@ const handleRetryAI = () => {
                 </span>
               </div>
               
-              <!-- 专家分析按钮保留，深度分析按钮隐藏避免误触 -->
+              <!-- 单模型模式：画像自动生成，仅保留评分详情入口 -->
               <div class="analysis-level-switch">
-                <button 
-                  class="level-btn"
-                  style="display: none;"
-                  :class="{ 
-                    active: currentAnalysisLevel === 'pro',
-                    cached: cacheStatus?.cached_levels?.pro
-                  }"
-                  @click="switchAnalysisLevel('pro')"
-                  :disabled="isSwitchingLevel"
-                  title="深度分析"
-                >
-                  <i class="ri-focus-3-line"></i>
-                  <span>深度分析</span>
-                  <span v-if="cacheStatus?.cached_levels?.pro" class="cache-dot" title="已缓存"></span>
-                </button>
-                <button 
-                  class="level-btn"
-                  :class="{ 
-                    active: currentAnalysisLevel === 'expert',
-                    cached: cacheStatus?.cached_levels?.expert
-                  }"
-                  @click="switchAnalysisLevel('expert')"
-                  :disabled="isSwitchingLevel"
-                  title="专家分析 (DeepSeek)"
-                >
-                  <i class="ri-vip-crown-line"></i>
-                  <span>专家分析</span>
-                  <span v-if="cacheStatus?.cached_levels?.expert" class="cache-dot" title="已缓存"></span>
-                </button>
-                
-                <!-- 🟢 P0+P1: 评分详情按钮 -->
                 <button 
                   class="level-btn score-detail-header-btn"
                   @click="showScoreBreakdown = true"
@@ -1745,10 +1651,6 @@ const handleRetryAI = () => {
                   <i class="ri-pie-chart-line"></i>
                   <span>评分详情</span>
                 </button>
-                
-                <span v-if="isSwitchingLevel" class="switching-indicator">
-                  <i class="ri-loader-4-line spin"></i>
-                </span>
               </div>
             </div>
           </div>
@@ -2193,4 +2095,3 @@ const handleRetryAI = () => {
   display: none;
 }
 </style>
-

@@ -125,6 +125,8 @@ class FallbackAnalyzer:
             keys = ["product_planning", "user_insight", "communication", "execution", "learning", "pressure_resistance"]
         elif target_position and ("技术" in target_position or "开发" in target_position or "工程师" in target_position):
             keys = ["execution", "learning", "pressure_resistance", "communication"]
+        elif target_position and ("销售" in target_position or "客户" in target_position or "商务" in target_position):
+            keys = ["communication", "execution", "pressure_resistance", "user_insight", "learning"]
         elif target_position and ("运营" in target_position):
             keys = ["communication", "execution", "user_insight", "learning"]
         else:

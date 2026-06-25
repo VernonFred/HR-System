@@ -75,7 +75,8 @@ export interface CandidatePortraitListResponse {
 // ========== API函数 ==========
 
 /**
- * 分析级别类型 - V5: 只保留 pro 和 expert
+ * 画像分析模式。
+ * expert 仅为旧调用兼容，后端会统一按 pro 单模型处理。
  */
 export type AnalysisLevel = 'pro' | 'expert';
 
@@ -83,17 +84,16 @@ export type AnalysisLevel = 'pro' | 'expert';
  * 获取候选人完整画像
  * @param candidateId 候选人ID
  * @param refresh 是否强制刷新（跳过缓存）
- * @param analysisLevel 分析级别: pro(深度分析，默认)/expert(专家分析)
+ * @param analysisLevel 画像分析模式；expert 兼容旧参数，后端统一按 pro 处理
  * @returns 完整画像数据
  */
 export const getCandidatePortrait = async (
   candidateId: number,
   refresh: boolean = false,
-  analysisLevel: AnalysisLevel = 'pro'  // V5: 默认使用 pro
+  analysisLevel: AnalysisLevel = 'pro'
 ): Promise<CandidatePortrait> => {
   const params = new URLSearchParams();
   if (refresh) params.append('refresh', 'true');
-  // V5: 始终传递 analysis_level 参数
   params.append('analysis_level', analysisLevel);
   const query = params.toString();
   return apiRequest({
@@ -245,4 +245,3 @@ export const buildMockPortrait = (candidateId: number): CandidatePortrait => {
     generated_at: new Date().toISOString(),
   };
 };
-

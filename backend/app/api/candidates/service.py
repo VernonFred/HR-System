@@ -101,6 +101,73 @@ def _normalize_ai_insights(value: Any, candidate_name: Optional[str]) -> List[st
     return items
 
 
+_GENERIC_RULE_INSIGHT_MARKERS = (
+    "基础资料完整",
+    "建议上传简历",
+    "继续保持",
+    "测评得分偏低",
+    "建议补充更多测评",
+    "数据完整性良好",
+)
+
+
+def _is_generic_rule_insight(text: str) -> bool:
+    """识别规则引擎模板句，AI 有内容时不让这些句子抢占展示位."""
+    return any(marker in text for marker in _GENERIC_RULE_INSIGHT_MARKERS)
+
+
+def _combine_ai_first(ai_items: List[str], rule_items: List[str], max_items: int = 5) -> List[str]:
+    result: List[str] = []
+    seen = set()
+
+    def add_item(item: str) -> None:
+        text = str(item).strip()
+        if not text:
+            return
+        key = re.sub(r"\s+", "", text)
+        if key in seen:
+            return
+        seen.add(key)
+        result.append(text)
+
+    for item in ai_items:
+        add_item(item)
+
+    has_ai = len(result) > 0
+    for item in rule_items:
+        text = str(item).strip()
+        if has_ai and _is_generic_rule_insight(text):
+            continue
+        add_item(text)
+        if len(result) >= max_items:
+            break
+
+    return result[:max_items]
+
+
+def _normalize_position_items(value: Any) -> List[str]:
+    """岗位字段允许短词逗号分隔；长句保持原样，避免拆坏适配分析."""
+    items = _normalize_list_field(value)
+    expanded: List[str] = []
+
+    for item in items:
+        parts = [p.strip() for p in re.split(r"[\n、;；|]+", item) if p.strip()]
+        if len(parts) == 1:
+            comma_parts = [p.strip() for p in re.split(r"[,，]", item) if p.strip()]
+            if len(comma_parts) > 1 and all(len(p) <= 18 for p in comma_parts):
+                parts = comma_parts
+        expanded.extend(parts)
+
+    result: List[str] = []
+    seen = set()
+    for item in expanded:
+        key = re.sub(r"\s+", "", item)
+        if key and key not in seen:
+            seen.add(key)
+            result.append(item)
+    return result
+
+
 def _submission_result_payload(submission: Submission) -> Dict[str, Any]:
     """Return the result payload expected by fallback/cross-validation services."""
     for field_name in ("result_details", "scores", "answers"):
@@ -126,7 +193,7 @@ async def build_candidate_portrait(
     session: Session,
     candidate_id: int,
     force_refresh: bool = False,  # 强制刷新（跳过缓存）
-    analysis_level: str = "pro"  # V5: 分析级别默认 pro（DeepSeek 深度提示词模式）
+    analysis_level: str = "pro"
 ) -> schemas.CandidatePortrait:
     """构建候选人完整画像.
     
@@ -135,10 +202,9 @@ async def build_candidate_portrait(
     2. 测评记录（通过 candidate_id 关联）
     3. 岗位画像匹配（通过 target_position 关联）
     
-    分析级别：
-    - normal: 高级分析（DeepSeek 高级提示词模式，适合大多数岗位）
-    - pro: 深度分析（DeepSeek 深度提示词模式，更深入的洞察）
-    - expert: 专家分析（DeepSeek 专家提示词模式，专家级推理）
+    分析模式：
+    - 当前统一使用 pro 单模型画像生成。
+    - 旧的 expert 参数会在函数入口归一为 pro，避免生成重复缓存和重复话术。
     
     缓存策略：
     - 首次访问：调用AI分析，结果存入缓存
@@ -149,12 +215,14 @@ async def build_candidate_portrait(
         session: 数据库会话
         candidate_id: 候选人ID
         force_refresh: 是否强制刷新（跳过缓存）
-        analysis_level: 分析级别
+        analysis_level: 画像分析模式（当前统一归一为 pro）
         
     Returns:
         完整的候选人画像
     """
     start_time = time.time()
+    # 单模型模式下不再区分 pro/expert；旧请求统一复用默认画像缓存。
+    analysis_level = "pro"
     
     # 1. 获取候选人基本信息
     candidate = session.get(Candidate, candidate_id)
@@ -365,13 +433,7 @@ async def build_candidate_portrait(
     fallback_reason = None  # 🟢 P1-2: 降级原因
     ai_start_time = time.time()
     
-    # 根据分析级别设置超时时间
-    timeout_map = {
-        "normal": 60.0,   # 高级分析：60秒
-        "pro": 120.0,     # 深度分析：120秒
-        "expert": 180.0,  # 专家分析：180秒
-    }
-    timeout_seconds = timeout_map.get(analysis_level, 90.0)
+    timeout_seconds = 120.0
     
     logger.info(f"🎯 开始AI分析: 级别={analysis_level}, 超时={timeout_seconds}s")
     
@@ -579,20 +641,22 @@ async def build_candidate_portrait(
             logger.error(f"⚠️ 候选人{candidate_id}: 交叉验证计算失败: {str(e)}")
             cross_validation_data = None
     
-    ai_strengths = _normalize_list_field(ai_analysis.get("strengths", []))
-    ai_risks = _normalize_list_field(ai_analysis.get("risks", []))
+    ai_strengths = _normalize_ai_insights(ai_analysis.get("strengths", []), candidate.name)
+    ai_risks = _normalize_ai_insights(ai_analysis.get("risks", []), candidate.name)
     ai_summary_points = _normalize_list_field(ai_analysis.get("summary_points", []))
     ai_quick_tags = _normalize_list_field(ai_analysis.get("quick_tags", []))
-    ai_suitable_positions = _normalize_list_field(ai_analysis.get("suitable_positions", []))
-    ai_unsuitable_positions = _normalize_list_field(ai_analysis.get("unsuitable_positions", []))
+    ai_suitable_positions = _normalize_position_items(ai_analysis.get("suitable_positions", []))
+    ai_unsuitable_positions = _normalize_position_items(ai_analysis.get("unsuitable_positions", []))
+    display_strengths = _combine_ai_first(ai_strengths, strengths)
+    display_improvements = _combine_ai_first(ai_risks, improvements)
 
     portrait = schemas.CandidatePortrait(
         basic_info=basic_info,
         assessments=assessments_info,
         job_match=job_match_info,
         overall_score=overall_score,
-        strengths=strengths or ai_strengths,
-        improvements=improvements or ai_risks,
+        strengths=display_strengths,
+        improvements=display_improvements,
         personality_dimensions=[
             schemas.PersonalityDimension(**dim) 
             for dim in ai_analysis.get("personality_dimensions", [])

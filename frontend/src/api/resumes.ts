@@ -67,7 +67,7 @@ export async function deleteResume(candidateId: number) {
   return response.data;
 }
 
-// 手动触发解析（支持分析级别）
+// 手动触发解析。analysis_level 保留旧接口兼容，画像生成统一按 pro 单模型处理。
 export type AnalysisLevel = 'pro' | 'expert';
 
 export async function parseResume(
@@ -79,4 +79,3 @@ export async function parseResume(
   );
   return response.data;
 }
-

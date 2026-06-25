@@ -65,6 +65,45 @@ class JobRecommender:
             "keywords": ["项目", "管理", "协调", "pmp"],
             "category": "管理"
         },
+        "销售顾问": {
+            "competencies": {
+                "communication": 85,
+                "execution": 75,
+                "pressure_resistance": 75,
+                "user_insight": 70
+            },
+            "keywords": ["销售", "客户", "转化", "跟进", "成交"],
+            "category": "销售"
+        },
+        "客户成功": {
+            "competencies": {
+                "communication": 85,
+                "user_insight": 80,
+                "execution": 75,
+                "pressure_resistance": 70
+            },
+            "keywords": ["客户成功", "客户维护", "续费", "服务", "满意度"],
+            "category": "销售"
+        },
+        "渠道拓展": {
+            "competencies": {
+                "communication": 85,
+                "execution": 80,
+                "pressure_resistance": 80
+            },
+            "keywords": ["渠道", "商务", "拓展", "合作", "市场"],
+            "category": "销售"
+        },
+        "大客户经理": {
+            "competencies": {
+                "communication": 90,
+                "user_insight": 80,
+                "execution": 80,
+                "pressure_resistance": 85
+            },
+            "keywords": ["大客户", "KA", "销售", "解决方案", "客户关系"],
+            "category": "销售"
+        },
         "UI/UX设计师": {
             "competencies": {
                 "user_insight": 85,
@@ -353,4 +392,3 @@ class JobRecommender:
         
         match_rate = matched_count / len(job_keywords)
         return 50 + (match_rate * 50)  # 50-100分区间
-

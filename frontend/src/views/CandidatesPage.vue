@@ -160,18 +160,14 @@ const handlePortraitRegenerated = async (level: 'pro' | 'expert' = 'pro', forceR
     startRegenerateProgress(); // 开始进度动画
     console.log('🔄 进度动画已启动, regenerateProgress:', regenerateProgress.value);
     
-    // 根据分析级别调整最小显示时间 - V5: 只有 pro 和 expert
-    const levelMinTime: Record<string, number> = {
-      pro: minProgressTime * 1.5,
-      expert: minProgressTime * 2,
-    };
+    const portraitMinTime = minProgressTime * 1.5;
     
     try {
       // ⭐ 使用 refresh=true 强制刷新画像（清除缓存），传递分析级别
       const [portrait] = await Promise.all([
         getCandidatePortrait(activeCandidate.value.id, true, level),
         // 确保进度条至少显示一定时间
-        new Promise(resolve => setTimeout(resolve, levelMinTime[level]))
+        new Promise(resolve => setTimeout(resolve, portraitMinTime))
       ]);
       
       if (portrait) {

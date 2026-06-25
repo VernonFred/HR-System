@@ -5,6 +5,7 @@
 
 import json
 import logging
+import re
 from typing import Any, Dict, List, Optional, TYPE_CHECKING
 
 from .job_competencies import detect_job_family, get_job_competencies, get_default_competencies_by_position
@@ -31,6 +32,35 @@ def _submission_result_payload(submission: "Submission") -> Dict[str, Any]:
             if isinstance(parsed, dict) and parsed:
                 return parsed
     return {}
+
+
+def _position_items(value: Any) -> List[str]:
+    if value is None:
+        return []
+    raw_items = value if isinstance(value, list) else [value]
+    result: List[str] = []
+    seen = set()
+    for item in raw_items:
+        text = str(item).strip()
+        if not text:
+            continue
+        parts = [p.strip() for p in re.split(r"[\n、;；|]+", text) if p.strip()]
+        if len(parts) == 1:
+            comma_parts = [p.strip() for p in re.split(r"[,，]", text) if p.strip()]
+            if len(comma_parts) > 1 and all(len(p) <= 18 for p in comma_parts):
+                parts = comma_parts
+        for part in parts:
+            key = re.sub(r"\s+", "", part)
+            if key and key not in seen:
+                seen.add(key)
+                result.append(part)
+    return result
+
+
+def _looks_like_default_positions(items: List[str]) -> bool:
+    defaults = {"技术开发", "数据分析师", "项目管理", "运营专员"}
+    normalized = {re.sub(r"\s+", "", item) for item in items}
+    return len(normalized & defaults) >= 3
 
 
 def build_resume_context(candidate: "Candidate") -> str:
@@ -201,16 +231,15 @@ async def generate_ai_analysis(
     1. 无简历：仅基于测评数据生成画像
     2. 有简历：融合测评数据 + 简历信息生成更丰富的画像
     
-    ⭐ 分析级别：
-    - normal: 高级分析（DeepSeek 高级提示词模式）
-    - pro: 深度分析（DeepSeek 深度提示词模式）
-    - expert: 专家分析（DeepSeek 专家提示词模式）
+    ⭐ 分析模式：
+    - 当前统一使用 pro 单模型画像生成。
+    - 旧 analysis_level 参数仅保留兼容，函数内部会归一为 pro。
     
     Args:
         candidate: 候选人对象
         submission: 测评提交记录
         target_position: 目标岗位
-        analysis_level: 分析级别
+        analysis_level: 画像分析模式（当前统一归一为 pro）
         custom_job_competencies: 自定义岗位能力维度（来自岗位画像配置）
     
     Returns:
@@ -262,25 +291,9 @@ async def generate_ai_analysis(
         # ⭐ V7新增：检测岗位族
         job_family = detect_job_family(target_position)
         
-        # 🟢 P2-3增强: 先使用算法推荐候选岗位，作为AI分析的参考
-        # 注意：此时还没有formatted_competencies，所以无法传入详细胜任力
-        # 这里只是获取候选岗位列表，具体匹配度计算在AI分析之后
+        # 不在 AI 生成前注入默认岗位参考。
+        # 之前这里用空胜任力计算岗位，容易把所有候选人都引向同一批默认岗位。
         candidate_positions_for_ai = None
-        if session:
-            try:
-                from app.services.job_recommender import JobRecommender
-                # 简单推荐，只基于岗位名称
-                candidate_positions_for_ai = JobRecommender.recommend_positions(
-                    competencies=[],  # 暂时为空，因为还没有AI生成的胜任力
-                    resume_keywords=None,
-                    current_position=target_position,
-                    top_n=5,
-                    session=session
-                )
-                logger.info(f"🎯 候选岗位参考: {candidate_positions_for_ai}")
-            except Exception as e:
-                logger.warning(f"⚠️ 获取候选岗位失败: {e}")
-                candidate_positions_for_ai = None
         
         # 构建AI请求参数 - V7岗位族版
         # ⭐ 使用时间戳确保每次分析都是新的（禁用缓存以获得个性化结果）
@@ -298,9 +311,10 @@ async def generate_ai_analysis(
         }
         
         # 调用AI分析服务（带超时控制）
-        # 根据分析级别决定是否强制使用 Pro 级，以及是否启用专家级综合分析
-        force_pro = analysis_level in ("pro", "expert")
-        use_expert_summary = analysis_level == "expert"  # 专家分析模式启用二阶段生成
+        # 单模型模式：统一使用默认深度提示词，不再触发专家二阶段生成。
+        force_pro = True
+        use_expert_summary = False
+        analysis_level = "pro"
         logger.info(f"🤖 开始AI分析: {candidate.name}, 岗位: {target_position}, 级别: {analysis_level}, 专家综合: {use_expert_summary}")
         result = await ai_service.ai_interpretation(payload, force_pro=force_pro, use_expert_summary=use_expert_summary)
         
@@ -346,8 +360,27 @@ async def generate_ai_analysis(
         
         # 🟢 P2-3增强: 保留AI的深度洞察分析
         # AI已经基于候选岗位参考进行了深度分析，直接使用AI的结果
-        suitable_positions = result.get("suitable_positions", [])
-        unsuitable_positions = result.get("unsuitable_positions", [])
+        suitable_positions = _position_items(result.get("suitable_positions", []))
+        unsuitable_positions = _position_items(result.get("unsuitable_positions", []))
+        if (not suitable_positions or _looks_like_default_positions(suitable_positions)) and formatted_competencies:
+            try:
+                from app.services.job_recommender import JobRecommender
+                suitable_positions = JobRecommender.recommend_positions(
+                    competencies=formatted_competencies,
+                    resume_keywords=None,
+                    current_position=target_position,
+                    top_n=4,
+                    session=session,
+                )
+                logger.info(f"🎯 使用胜任力重新生成岗位推荐: {suitable_positions}")
+            except Exception as e:
+                logger.warning(f"⚠️ 胜任力岗位推荐失败，保留AI结果: {e}")
+        if (not unsuitable_positions or _looks_like_default_positions(unsuitable_positions)) and formatted_competencies:
+            try:
+                from app.services.job_recommender import JobRecommender
+                unsuitable_positions = JobRecommender.recommend_unsuitable_positions(formatted_competencies)
+            except Exception as e:
+                logger.warning(f"⚠️ 不适配岗位推荐失败，保留AI结果: {e}")
         
         logger.info(f"✅ AI岗位推荐: suitable={len(suitable_positions)}, unsuitable={len(unsuitable_positions)}")
         
