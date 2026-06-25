@@ -238,8 +238,8 @@ async def parse_resume(
     手动触发简历解析（使用AI模型）.
     
     **分析级别**：
-    - pro: 深度分析（Qwen2.5-32B，默认）
-    - expert: 专家分析（DeepSeek-R1）
+    - pro: 深度分析（DeepSeek V4 Pro 深度提示词模式，默认）
+    - expert: 专家分析（DeepSeek V4 Pro 专家提示词模式）
     
     AI会提取简历结构化信息，并进行深度分析：
     - 核心优势识别

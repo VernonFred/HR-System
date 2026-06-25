@@ -1,13 +1,8 @@
-"""
-AI客户端 - 硅基流动API调用（按官方文档优化）
+"""AI 客户端 - DeepSeek 单模型调用.
 
-优化策略：
-1. 使用流式输出（stream=true）避免504超时
-2. 多模型fallback策略
-3. 完善的错误处理和重试机制
-4. 详细的日志记录
-
-参考文档：https://docs.siliconflow.cn/cn/faqs/stream-mode
+统一使用 OpenAI 兼容格式：
+- AI_API_BASE=https://api.deepseek.com
+- AI_MODEL=deepseek-v4-pro
 """
 
 import asyncio
@@ -56,38 +51,34 @@ def _get_env_int(name: str, default: int) -> int:
         return default
 
 
+def _normalize_chat_completion_url(api_base: str) -> str:
+    """兼容 OpenAI SDK 风格 base_url 和完整 chat/completions URL."""
+    base = (api_base or "https://api.deepseek.com").strip().rstrip("/")
+    if base.endswith("/chat/completions"):
+        return base
+    return f"{base}/chat/completions"
+
+
 def get_model_configs() -> List[ModelConfig]:
-    """获取模型配置列表（支持多模型fallback）."""
-    configs = []
+    """获取唯一 DeepSeek 模型配置，不再加载备用模型."""
     primary_key = os.getenv("AI_API_KEY")
-    primary_base = os.getenv("AI_API_BASE", "https://api.siliconflow.cn/v1/chat/completions")
-    timeout = _get_env_int("AI_TIMEOUT", 45)
+    primary_base = _normalize_chat_completion_url(os.getenv("AI_API_BASE", "https://api.deepseek.com"))
+    timeout = _get_env_int("AI_TIMEOUT", 120)
     
+    configs = []
     if primary_key:
-        configs.append(ModelConfig(
-            name=os.getenv("AI_MODEL", "Qwen/Qwen3-8B"),
-            api_base=primary_base,
-            api_key=primary_key,
-            priority=0,
-            timeout=timeout
-        ))
-    
-    simple_fallbacks = os.getenv("AI_FALLBACK_MODELS_SIMPLE", "")
-    if simple_fallbacks and primary_key:
-        model_names = [m.strip() for m in simple_fallbacks.split(",") if m.strip()]
-        for idx, model_name in enumerate(model_names):
-            configs.append(ModelConfig(
-                name=model_name,
+        configs.append(
+            ModelConfig(
+                name=os.getenv("AI_MODEL", "deepseek-v4-pro"),
                 api_base=primary_base,
                 api_key=primary_key,
-                priority=idx + 1,
-                timeout=timeout
-            ))
-    
-    configs.sort(key=lambda x: x.priority)
+                priority=0,
+                timeout=timeout,
+            )
+        )
     
     if configs:
-        logger.info("🤖 AI模型池: %s", [c.name for c in configs])
+        logger.info("🤖 AI模型: %s", configs[0].name)
     
     return configs
 
@@ -213,7 +204,7 @@ async def post_chat(
     use_stream: Optional[bool] = None,
     max_retry: int = 2,
 ) -> Dict[str, Any]:
-    """调用AI聊天接口，支持多模型fallback."""
+    """调用 DeepSeek 聊天接口，只使用单一配置模型."""
     configs = get_model_configs()
     
     if not configs:
@@ -261,7 +252,7 @@ async def post_chat(
                 logger.error("💥 %s", error_msg)
                 break
         
-        logger.warning("🔀 模型%s失败，切换到下一个备用模型...", config.name)
+        logger.warning("模型%s调用失败", config.name)
     
     error_summary = "; ".join(errors[-5:])
     raise AIClientError(f"所有AI模型调用失败: {error_summary}")

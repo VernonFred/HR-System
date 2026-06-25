@@ -186,9 +186,9 @@ async def generate_ai_analysis(
     2. 有简历：融合测评数据 + 简历信息生成更丰富的画像
     
     ⭐ 分析级别：
-    - normal: 高级分析（Qwen2.5-7B）
-    - pro: 深度分析（Qwen2.5-32B）
-    - expert: 专家分析（DeepSeek-R1）
+    - normal: 高级分析（DeepSeek 高级提示词模式）
+    - pro: 深度分析（DeepSeek 深度提示词模式）
+    - expert: 专家分析（DeepSeek 专家提示词模式）
     
     Args:
         candidate: 候选人对象

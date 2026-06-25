@@ -12,15 +12,9 @@ load_dotenv(override=False)
 if not os.getenv("DATABASE_URL") or "postgres" in os.getenv("DATABASE_URL", ""):
     os.environ["DATABASE_URL"] = "sqlite:///./hr.db"
 
-# 配置AI备用模型（硅基流动免费模型）
-if not os.getenv("AI_FALLBACK_MODELS_SIMPLE"):
-    os.environ["AI_FALLBACK_MODELS_SIMPLE"] = "THUDM/glm-4-9b-chat,THUDM/GLM-Z1-9B-0414,THUDM/GLM-4-9B-0414"
-
-# ⭐ 配置 ModelScope API（魔塔空间 - 主力画像模型）
-if not os.getenv("MODELSCOPE_API_KEY"):
-    # 默认 API Key（长期有效）
-    os.environ["MODELSCOPE_API_KEY"] = "ms-719ff9c2-52e9-43df-bf51-3226f0acdf78"
-    os.environ["MODELSCOPE_API_KEY_EXPIRES"] = "2099-12-31"
+# AI 统一使用 DeepSeek 单模型；强制覆盖历史 ModelScope / SiliconFlow 配置残留。
+os.environ["AI_API_BASE"] = "https://api.deepseek.com"
+os.environ["AI_MODEL"] = "deepseek-v4-pro"
 
 from fastapi import Depends, FastAPI, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
@@ -324,10 +318,10 @@ def change_password(
         return {"message": "密码修改成功"}
 
 
-# ---- Token 更新 API ----
+# ---- AI Token 更新 API ----
 class UpdateTokenRequest(BaseModel):
     token: str
-    expires: str | None = None  # 可选：用户指定过期时间（格式：YYYY-MM-DD）
+    expires: str | None = None  # 兼容旧前端字段，DeepSeek Token 不再依赖本地过期时间
 
 
 @app.post("/api/settings/update-token", tags=["settings"])
@@ -335,79 +329,65 @@ def update_api_token(
     payload: UpdateTokenRequest,
     user_id: int = Depends(get_current_user),
 ):
-    """更新 ModelScope API Token.
-    
-    将新的 Token 保存到环境变量和 .env 文件中。
-    支持用户手动指定过期时间，如果不指定则默认30天。
-    """
+    """更新 DeepSeek API Token."""
     new_token = payload.token.strip()
     if not new_token:
         raise HTTPException(status_code=400, detail="Token 不能为空")
     
-    # 验证 Token 格式（简单检查）
-    if not new_token.startswith("ms-") and len(new_token) < 20:
+    if len(new_token) < 20:
         raise HTTPException(status_code=400, detail="Token 格式不正确")
     
     try:
-        # 1. 更新当前进程的环境变量
-        os.environ["MODELSCOPE_API_KEY"] = new_token
-        
-        # 2. 设置过期时间：优先使用用户指定的，否则默认30天
-        from datetime import datetime, timedelta
-        if payload.expires and payload.expires.strip():
-            # 验证日期格式
-            try:
-                datetime.strptime(payload.expires.strip(), "%Y-%m-%d")
-                expires_date = payload.expires.strip()
-            except ValueError:
-                raise HTTPException(status_code=400, detail="过期时间格式不正确，请使用 YYYY-MM-DD 格式")
-        else:
-            # 默认30天
-            expires_date = (datetime.now() + timedelta(days=30)).strftime("%Y-%m-%d")
-        os.environ["MODELSCOPE_API_KEY_EXPIRES"] = expires_date
-        
-        # 3. 尝试更新 .env 文件（如果存在）
+        os.environ["AI_API_KEY"] = new_token
+        os.environ["AI_API_BASE"] = "https://api.deepseek.com"
+        os.environ["AI_MODEL"] = "deepseek-v4-pro"
+
         env_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), ".env")
         
         if os.path.exists(env_path):
-            # 读取现有内容
             with open(env_path, 'r', encoding='utf-8') as f:
                 lines = f.readlines()
             
-            # 更新或添加 Token 配置
             key_found = False
-            expires_found = False
+            base_found = False
+            model_found = False
             new_lines = []
             
             for line in lines:
-                if line.startswith("MODELSCOPE_API_KEY="):
-                    new_lines.append(f"MODELSCOPE_API_KEY={new_token}\n")
+                if line.startswith("AI_API_KEY="):
+                    new_lines.append(f"AI_API_KEY={new_token}\n")
                     key_found = True
-                elif line.startswith("MODELSCOPE_API_KEY_EXPIRES="):
-                    new_lines.append(f"MODELSCOPE_API_KEY_EXPIRES={expires_date}\n")
-                    expires_found = True
+                elif line.startswith("AI_API_BASE="):
+                    new_lines.append("AI_API_BASE=https://api.deepseek.com\n")
+                    base_found = True
+                elif line.startswith("AI_MODEL="):
+                    new_lines.append("AI_MODEL=deepseek-v4-pro\n")
+                    model_found = True
+                elif line.startswith("AI_FALLBACK_MODELS_SIMPLE="):
+                    # DeepSeek 单模型模式下不再写回备用模型配置
+                    continue
                 else:
                     new_lines.append(line)
             
-            # 如果没找到，添加到末尾
             if not key_found:
-                new_lines.append(f"\nMODELSCOPE_API_KEY={new_token}\n")
-            if not expires_found:
-                new_lines.append(f"MODELSCOPE_API_KEY_EXPIRES={expires_date}\n")
+                new_lines.append(f"\nAI_API_KEY={new_token}\n")
+            if not base_found:
+                new_lines.append("AI_API_BASE=https://api.deepseek.com\n")
+            if not model_found:
+                new_lines.append("AI_MODEL=deepseek-v4-pro\n")
             
-            # 写回文件
             with open(env_path, 'w', encoding='utf-8') as f:
                 f.writelines(new_lines)
         else:
-            # 创建新的 .env 文件
             with open(env_path, 'w', encoding='utf-8') as f:
-                f.write(f"# ModelScope API 配置\n")
-                f.write(f"MODELSCOPE_API_KEY={new_token}\n")
-                f.write(f"MODELSCOPE_API_KEY_EXPIRES={expires_date}\n")
+                f.write("# DeepSeek API 配置\n")
+                f.write(f"AI_API_KEY={new_token}\n")
+                f.write("AI_API_BASE=https://api.deepseek.com\n")
+                f.write("AI_MODEL=deepseek-v4-pro\n")
         
         return {
-            "message": "Token 更新成功",
-            "expires": expires_date
+            "message": "DeepSeek Token 更新成功",
+            "model": "deepseek-v4-pro"
         }
         
     except Exception as e:

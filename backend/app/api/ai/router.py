@@ -1,11 +1,4 @@
-"""
-AI 路由器 - 多模型分层路由版
-
-支持：
-1. 普通画像解读（自动选择 Normal/Pro 级）
-2. 专家级深度分析（DeepSeek-R1）
-3. 路由状态查询
-"""
+"""AI 路由器 - DeepSeek 单模型版。"""
 
 from typing import Any, Dict, List, Optional
 from fastapi import APIRouter, Depends, Query
@@ -75,12 +68,7 @@ async def interpretation(
     _user_id: int = Depends(get_current_user),
 ):
     """
-    AI 画像解读 - 自动选择模型级别.
-    
-    路由逻辑：
-    1. 普通岗位 → Qwen2.5-7B-Instruct
-    2. 高级岗位/管理岗 → Qwen2.5-32B-Instruct
-    3. force_pro=True → 强制使用 Pro 级
+    AI 画像解读 - 使用 DeepSeek V4 Pro.
     """
     result = await service.ai_interpretation(payload.model_dump(), force_pro=force_pro)
     return InterpretationResponse(**result)
@@ -92,7 +80,7 @@ async def expert_analysis(
     _user_id: int = Depends(get_current_user),
 ):
     """
-    专家级深度分析 - 使用 DeepSeek-R1.
+    专家级深度分析 - 使用 DeepSeek V4 Pro.
     
     输入已有的画像摘要，输出：
     - 3 条深度洞察
@@ -114,9 +102,9 @@ async def router_status(_user_id: int = Depends(get_current_user)):
     获取 AI 路由器状态.
     
     返回：
-    - ModelScope 是否可用
+    - DeepSeek 是否配置
     - 可用模型列表
-    - Fallback 策略
+    - Fallback 策略（固定为关闭）
     """
     status = service.get_ai_router_status()
     return RouterStatusResponse(**status)

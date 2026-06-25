@@ -87,7 +87,8 @@ class FallbackAnalyzer:
         
         # 1. 计算胜任力评分
         competencies = cls._calculate_competencies(submissions, target_position)
-        logger.debug(f"   → 胜任力评分: {[f'{c['label']}={c['score']}' for c in competencies]}")
+        score_summary = [f"{c['label']}={c['score']}" for c in competencies]
+        logger.debug("   → 胜任力评分: %s", score_summary)
         
         # 2. 生成优势分析
         strengths = cls._generate_strengths(competencies, submissions)
@@ -366,4 +367,3 @@ class FallbackAnalyzer:
         
         # 去重并限制数量
         return list(dict.fromkeys(positions))[:3]
-

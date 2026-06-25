@@ -1,14 +1,4 @@
-"""
-AI 服务层 - 多模型分层路由版
-
-路由策略：
-1. Level A（主力）: Qwen2.5-7B-Instruct - 日常画像分析
-2. Level B（高阶）: Qwen2.5-32B-Instruct - 高级岗位/管理岗
-3. Level C（专家）: DeepSeek-R1-0528 - 深度洞察/面试追问
-
-Fallback 策略：
-ModelScope 失败 → 硅基流动 Qwen3-8B → GLM fallback 链
-"""
+"""AI 服务层 - DeepSeek 单模型版。"""
 
 import logging
 from functools import lru_cache
@@ -50,18 +40,12 @@ async def ai_interpretation(
     use_expert_summary: bool = False,
 ) -> Dict[str, Any]:
     """
-    AI 画像解读 - 多模型分层路由版.
-    
-    路由逻辑：
-    1. 检查是否需要 Pro 级分析（高级岗位/管理岗/极端分数）
-    2. 优先使用 ModelScope 模型
-    3. ModelScope 失败时 fallback 到硅基流动
-    4. 如果启用专家级综合分析，使用二阶段生成
+    AI 画像解读 - 统一使用 DeepSeek V4 Pro.
     
     Args:
         payload: 画像生成参数
         force_pro: 是否强制使用 Pro 级分析
-        use_expert_summary: 是否使用专家级综合分析（二阶段生成，用 DeepSeek-R1）
+        use_expert_summary: 是否使用专家级综合分析（二阶段生成，仍走 DeepSeek V4 Pro）
         
     Returns:
         画像结果字典
@@ -76,10 +60,10 @@ async def ai_interpretation(
     # 判断分析级别
     position = payload.get("position_keywords", [""])[0] if payload.get("position_keywords") else ""
     
-    # ⭐ 关键修复：专家分析使用 expert 级别，否则判断是否使用 pro
+    # level 只用于选择提示词模板；模型固定为 DeepSeek V4 Pro。
     if use_expert_summary:
         level = "expert"
-        logger.info("🧠 使用专家分析模式 (level=expert, DeepSeek-R1)")
+        logger.info("🧠 使用专家分析提示词模式 (level=expert, model=DeepSeek V4 Pro)")
     else:
         use_pro = should_use_pro_level(
             position=position,
@@ -87,7 +71,7 @@ async def ai_interpretation(
             competency_scores=payload.get("competency_scores"),
         )
         level = "pro" if use_pro else "normal"
-        logger.info(f"📊 使用分析级别: {level}")
+        logger.info("📊 使用画像提示词模式: %s", level)
     
     # ⭐ 关键修复：传入 level 参数以选择对应的提示词
     # 🟢 P2-3增强: 传递候选岗位参考给提示词构建器
@@ -157,11 +141,11 @@ async def ai_expert_analysis(
     """
     生成专家级深度分析.
     
-    使用 DeepSeek-R1 对已有的画像摘要进行深度推理，
+    使用 DeepSeek V4 Pro 对已有的画像摘要进行深度推理，
     输出 3 条深度洞察或面试追问建议。
     
     Args:
-        summary_json: 7B/32B 生成的结构化摘要
+        summary_json: 基础画像生成阶段产出的结构化摘要
         scores: 测评分数
         job_family: 岗位族
         target_position: 目标岗位

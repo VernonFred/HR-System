@@ -7,7 +7,7 @@
 定位：辅助工具，不存储简历数据
 
 V5 更新：
-- 使用 ModelScope Pro (32B) 模型
+- 使用 DeepSeek V4 Pro 单模型
 - 使用新的 V5 提示词
 """
 
@@ -44,13 +44,13 @@ async def analyze_resume_for_job_profile(
     messages = build_job_resume_analysis_prompt(resume_text, job_title, department)
     
     try:
-        # V5: 使用 ModelScope Pro (32B) 模型
+        # V5: 使用 DeepSeek V4 Pro 深度提示词模式
         logger.info(f"🎯 岗位画像-简历分析: {job_title}")
         print(f"🎯 岗位画像-简历分析: {job_title}")
         
         response = await call_portrait_model(
             messages=messages,
-            level="pro",  # 使用 32B 模型
+            level="pro",  # 深度提示词模式
             max_tokens=2048,
             temperature=0.4,
         )
@@ -98,13 +98,13 @@ async def analyze_jd_for_job_profile(
     messages = build_job_jd_analysis_prompt(jd_text, job_title, department)
     
     try:
-        # V5: 使用 ModelScope Pro (32B) 模型
+        # V5: 使用 DeepSeek V4 Pro 深度提示词模式
         logger.info(f"🎯 岗位画像-JD分析: {job_title}")
         print(f"🎯 岗位画像-JD分析: {job_title}")
         
         response = await call_portrait_model(
             messages=messages,
-            level="pro",  # 使用 32B 模型
+            level="pro",  # 深度提示词模式
             max_tokens=2048,
             temperature=0.4,
         )

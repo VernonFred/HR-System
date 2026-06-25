@@ -108,7 +108,7 @@ async def build_candidate_portrait(
     session: Session,
     candidate_id: int,
     force_refresh: bool = False,  # 强制刷新（跳过缓存）
-    analysis_level: str = "pro"  # V5: 分析级别默认 pro (32B)
+    analysis_level: str = "pro"  # V5: 分析级别默认 pro（DeepSeek 深度提示词模式）
 ) -> schemas.CandidatePortrait:
     """构建候选人完整画像.
     
@@ -118,9 +118,9 @@ async def build_candidate_portrait(
     3. 岗位画像匹配（通过 target_position 关联）
     
     分析级别：
-    - normal: 高级分析（Qwen2.5-7B，适合大多数岗位）
-    - pro: 深度分析（Qwen2.5-32B，更深入的洞察）
-    - expert: 专家分析（DeepSeek-R1，专家级推理）
+    - normal: 高级分析（DeepSeek 高级提示词模式，适合大多数岗位）
+    - pro: 深度分析（DeepSeek 深度提示词模式，更深入的洞察）
+    - expert: 专家分析（DeepSeek 专家提示词模式，专家级推理）
     
     缓存策略：
     - 首次访问：调用AI分析，结果存入缓存
@@ -343,7 +343,7 @@ async def build_candidate_portrait(
     
     # 4. 调用AI生成完整分析（带超时控制）
     is_default_analysis = False  # 标记是否使用默认分析
-    ai_model_used = "Qwen/Qwen3-8B"  # 使用的AI模型
+    ai_model_used = "deepseek-v4-pro"  # 使用的AI模型
     fallback_reason = None  # 🟢 P1-2: 降级原因
     ai_start_time = time.time()
     

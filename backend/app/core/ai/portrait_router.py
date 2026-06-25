@@ -1,24 +1,9 @@
-"""
-画像专用模型路由器 - V5 三模型分层调用
-
-路由策略（V5 更新）：
-1. 深度分析（Pro）: Qwen2.5-32B-Instruct - 默认模型，所有 AI 分析优先使用
-2. 专家分析（Expert）: DeepSeek-R1-0528 - 重要候选人/深度洞察，手动切换
-3. 兜底（Normal）: Qwen2.5-7B-Instruct - Pro 失败时自动降级
-
-Fallback 策略：
-Pro(32B) 失败 → Normal(7B) → 硅基流动 Qwen3-8B
-"""
+"""画像专用模型路由器 - DeepSeek 单模型调用。"""
 
 import logging
 from typing import Any, Dict, List, Optional
 
 from .ai_client import AIClientError, post_chat, parse_json_safely
-from .modelscope_client import (
-    ModelLevel, ModelScopeError, 
-    call_modelscope, is_modelscope_available, get_model_info,
-    get_modelscope_status, check_api_key_expiry
-)
 from .position_level import (
     PositionLevel, detect_position_level,
     get_level_display_name, get_level_description
@@ -69,60 +54,17 @@ async def call_portrait_model(
     max_tokens: int = 1536,
     temperature: float = 0.3,
 ) -> Dict[str, Any]:
-    """
-    调用画像专用模型.
-    
-    路由逻辑：
-    1. 优先使用 ModelScope（如果配置了 API Key）
-    2. ModelScope 失败时，fallback 到硅基流动
-    
-    Args:
-        messages: 对话消息列表
-        level: 模型级别 ("normal" / "pro" / "expert")
-        max_tokens: 最大输出 token
-        temperature: 温度参数
-        
-    Returns:
-        API 响应字典
-    """
-    # 转换 level 字符串为枚举 - V5: 默认使用 PRO
-    model_level = {
-        "normal": ModelLevel.NORMAL,  # 兜底
-        "pro": ModelLevel.PRO,        # 默认
-        "expert": ModelLevel.EXPERT,  # 专家级
-    }.get(level, ModelLevel.PRO)  # V5: 默认 PRO 而非 NORMAL
-    
-    # 优先尝试 ModelScope
-    if is_modelscope_available():
-        try:
-            print(f"🎯 使用 ModelScope 画像模型 (level={level})")
-            logger.info(f"🎯 使用 ModelScope 画像模型 (level={level})")
-            result = await call_modelscope(
-                messages=messages,
-                level=model_level,
-                max_tokens=max_tokens,
-                temperature=temperature,
-            )
-            print(f"✅ ModelScope 调用成功 model={result.get('model', 'unknown')}")
-            return result
-        except ModelScopeError as e:
-            print(f"⚠️ ModelScope 调用失败，切换到硅基流动: {e}")
-            logger.warning(f"⚠️ ModelScope 调用失败，切换到硅基流动: {e}")
-    else:
-        print("📌 ModelScope 未配置，使用硅基流动")
-        logger.info("📌 ModelScope 未配置，使用硅基流动")
-    
-    # Fallback 到硅基流动
+    """调用画像专用模型，统一走 DeepSeek 单模型。"""
     try:
         result = await post_chat(
             messages=messages,
             max_tokens=max_tokens,
             temperature=temperature,
         )
-        result["level"] = "fallback"
+        result["level"] = "deepseek"
         return result
     except AIClientError as e:
-        logger.error(f"❌ 所有模型调用失败: {e}")
+        logger.error(f"❌ DeepSeek 模型调用失败: {e}")
         raise
 
 
@@ -169,7 +111,7 @@ async def generate_portrait(
     parsed["_model"] = result.get("model", "unknown")
     parsed["_level"] = result.get("level", level)
     
-    # 第二阶段：如果启用专家级综合分析，使用 DeepSeek-R1 增强
+    # 第二阶段：如果启用专家级综合分析，使用 DeepSeek V4 Pro 增强
     if use_expert_summary:
         logger.info("🧠 第二阶段：启用专家级综合分析")
         scores = payload.get("scores", {})
@@ -205,10 +147,10 @@ async def generate_expert_summary(
     job_family: str = "通用",
 ) -> Dict[str, Any]:
     """
-    二阶段生成：使用 DeepSeek-R1 生成更精准的综合分析.
+    二阶段生成：使用 DeepSeek V4 Pro 生成更精准的综合分析.
     
-    在「专家分析」模式下，第一阶段用 Qwen 生成基础画像，
-    第二阶段用 DeepSeek-R1 生成高质量的综合分析。
+    在「专家分析」模式下，第一阶段生成基础画像，
+    第二阶段使用专家提示词生成高质量的综合分析。
     
     Args:
         basic_portrait: 第一阶段生成的基础画像
@@ -276,7 +218,7 @@ async def generate_expert_summary(
     ]
     
     try:
-        logger.info("🧠 二阶段生成：调用 DeepSeek-R1 生成专家级综合分析")
+        logger.info("🧠 二阶段生成：使用 DeepSeek V4 Pro 专家提示词生成综合分析")
         result = await call_portrait_model(
             messages=messages,
             level="expert",
@@ -312,11 +254,11 @@ async def generate_expert_analysis(
     """
     生成专家级深度分析.
     
-    使用 DeepSeek-R1 对已有的画像摘要进行深度推理，
+    使用 DeepSeek V4 Pro 对已有的画像摘要进行深度推理，
     输出 3 条深度洞察或面试追问建议。
     
     Args:
-        summary_json: 7B/32B 生成的结构化摘要
+        summary_json: 基础画像生成阶段产出的结构化摘要
         scores: 测评分数
         job_family: 岗位族
         target_position: 目标岗位
@@ -399,21 +341,17 @@ async def generate_expert_analysis(
 
 def get_router_status() -> Dict[str, Any]:
     """获取路由器状态信息."""
-    modelscope_status = get_modelscope_status()
-    api_key_status = check_api_key_expiry()
-    
-    models = []
-    if modelscope_status["available"]:
-        for level in ModelLevel:
-            info = get_model_info(level)
-            info["available"] = True
-            models.append(info)
-    
-    return {
-        "modelscope_available": modelscope_status["available"],
-        "api_key_status": api_key_status,
-        "models": models,
-        "fallback_available": True,  # 硅基流动总是可用的（假设已配置）
-        "routing_strategy": "ModelScope → SiliconFlow → GLM",
-    }
+    import os
 
+    return {
+        "modelscope_available": False,
+        "api_key_status": {"available": bool(os.getenv("AI_API_KEY"))},
+        "models": [{
+            "model_id": os.getenv("AI_MODEL", "deepseek-v4-pro"),
+            "level": "deepseek",
+            "api_base": os.getenv("AI_API_BASE", "https://api.deepseek.com"),
+            "available": bool(os.getenv("AI_API_KEY")),
+        }],
+        "fallback_available": False,
+        "routing_strategy": "DeepSeek only",
+    }

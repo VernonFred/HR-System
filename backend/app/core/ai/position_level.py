@@ -9,9 +9,9 @@
 5. 薪资范围（可选）
 
 级别定义：
-- normal: 普通岗位 → 高级分析（Qwen2.5-7B）
-- pro: 高级岗位 → 深度分析（Qwen2.5-32B）
-- expert: 专家岗位 → 专家分析（DeepSeek-R1）
+- normal: 普通岗位 → 高级提示词模式
+- pro: 高级岗位 → 深度提示词模式
+- expert: 专家岗位 → 专家提示词模式
 """
 
 import logging
@@ -266,8 +266,8 @@ def get_level_display_name(level: PositionLevel) -> str:
 def get_level_description(level: PositionLevel) -> str:
     """获取级别描述."""
     return {
-        PositionLevel.NORMAL: "使用 Qwen2.5-7B 模型，适合大多数岗位的画像分析",
-        PositionLevel.PRO: "使用 Qwen2.5-32B 模型，更深入的分析和洞察",
-        PositionLevel.EXPERT: "使用 DeepSeek-R1 模型，专家级深度推理分析",
+        PositionLevel.NORMAL: "DeepSeek V4 Pro 单模型下的高级提示词模式，适合大多数岗位",
+        PositionLevel.PRO: "DeepSeek V4 Pro 单模型下的深度提示词模式，提供更深入洞察",
+        PositionLevel.EXPERT: "DeepSeek V4 Pro 单模型下的专家提示词模式，强调深度推理分析",
     }.get(level, "")
 

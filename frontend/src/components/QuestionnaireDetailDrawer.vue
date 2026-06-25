@@ -571,6 +571,10 @@ const questionChartSetOptionOpts: SetOptionOpts = {
 }
 
 const questionChartModeMap = ref<Record<string, 'pie' | 'bar'>>({})
+type OptionSortMode = 'default' | 'asc' | 'desc'
+const optionSortModeMap = ref<Record<string, OptionSortMode>>({})
+
+const getQuestionKey = (question: QuestionStat): string => String(question.id || question.index)
 
 const getQuestionChartMode = (question: QuestionStat): 'pie' | 'bar' => {
   return questionChartModeMap.value[question.id] || 'pie'
@@ -581,6 +585,39 @@ const setQuestionChartMode = (question: QuestionStat, mode: 'pie' | 'bar') => {
     ...questionChartModeMap.value,
     [question.id]: mode
   }
+}
+
+const getOptionSortMode = (question: QuestionStat): OptionSortMode => {
+  return optionSortModeMap.value[getQuestionKey(question)] || 'default'
+}
+
+const setOptionSortMode = (question: QuestionStat, mode: OptionSortMode) => {
+  const questionKey = getQuestionKey(question)
+  const nextMap = { ...optionSortModeMap.value }
+
+  if (mode === 'default') {
+    delete nextMap[questionKey]
+  } else {
+    nextMap[questionKey] = mode
+  }
+
+  optionSortModeMap.value = nextMap
+}
+
+const getSortedQuestionOptions = (question: QuestionStat): QuestionOptionStat[] => {
+  const options = question.options || []
+  const mode = getOptionSortMode(question)
+
+  if (mode === 'default') return options
+
+  return [...options].sort((a, b) => {
+    const diff = (a.count || 0) - (b.count || 0)
+    if (diff !== 0) return mode === 'asc' ? diff : -diff
+
+    const aIndex = a.index ?? options.indexOf(a)
+    const bIndex = b.index ?? options.indexOf(b)
+    return aIndex - bIndex
+  })
 }
 
 const getQuestionExportOptionWidth = (question: QuestionStat, option: QuestionOptionStat): number => {
@@ -2312,10 +2349,35 @@ const executeStatsExport = async () => {
                       <div class="question-detail-panel">
                         <div class="detail-panel-title">
                           <span>选项明细</span>
-                          <em>{{ getQuestionResponseText(q) }}</em>
+                          <div class="detail-panel-actions">
+                            <em>{{ getQuestionResponseText(q) }}</em>
+                            <div class="option-sort-toggle" aria-label="选项明细排序">
+                              <button
+                                type="button"
+                                :class="{ active: getOptionSortMode(q) === 'default' }"
+                                @click="setOptionSortMode(q, 'default')"
+                              >
+                                默认
+                              </button>
+                              <button
+                                type="button"
+                                :class="{ active: getOptionSortMode(q) === 'desc' }"
+                                @click="setOptionSortMode(q, 'desc')"
+                              >
+                                降序
+                              </button>
+                              <button
+                                type="button"
+                                :class="{ active: getOptionSortMode(q) === 'asc' }"
+                                @click="setOptionSortMode(q, 'asc')"
+                              >
+                                升序
+                              </button>
+                            </div>
+                          </div>
                         </div>
                         <div class="option-detail-list">
-                          <div class="option-detail-row" v-for="opt in q.options" :key="opt.index ?? opt.text">
+                          <div class="option-detail-row" v-for="opt in getSortedQuestionOptions(q)" :key="opt.index ?? opt.text">
                             <div class="option-detail-head">
                               <span class="option-text">{{ opt.text }}</span>
                               <span class="option-stats">{{ opt.count }}人 · {{ normalizePercentage(opt.percentage) }}%</span>
@@ -2602,7 +2664,7 @@ const executeStatsExport = async () => {
                     <em>{{ getQuestionResponseText(q) }}</em>
                   </div>
                   <div class="option-detail-list">
-                    <div class="option-detail-row" v-for="opt in q.options" :key="`export-opt-${q.id}-${opt.index ?? opt.text}`">
+                    <div class="option-detail-row" v-for="opt in getSortedQuestionOptions(q)" :key="`export-opt-${q.id}-${opt.index ?? opt.text}`">
                       <div class="option-detail-head">
                         <span class="option-text">{{ opt.text }}</span>
                         <span class="option-stats">{{ opt.count }}人 · {{ normalizePercentage(opt.percentage) }}%</span>

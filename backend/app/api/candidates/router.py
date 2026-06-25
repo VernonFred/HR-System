@@ -34,8 +34,8 @@ async def get_candidate_portrait(
     - 综合评价（优势、建议、综合得分）
     
     **分析级别 V5**：
-    - pro: 深度分析（Qwen2.5-32B，默认，交叉分析测评与简历）
-    - expert: 专家分析（DeepSeek-R1，专家级推理与发展建议）
+    - pro: 深度分析（DeepSeek V4 Pro 深度提示词模式，交叉分析测评与简历）
+    - expert: 专家分析（DeepSeek V4 Pro 专家提示词模式，推理与发展建议）
     
     **缓存策略**：
     - 首次访问：调用AI分析，结果存入缓存

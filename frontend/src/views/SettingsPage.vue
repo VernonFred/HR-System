@@ -17,30 +17,40 @@ const saving = ref(false);
 const passwordChangeSuccess = ref(false);
 const passwordChangeError = ref("");
 
-// ⭐ Token 管理
+// DeepSeek API Key 管理
 const tokenStatus = ref<{
   available: boolean;
-  expires: string | null;
-  days_remaining: number | null;
-  warning: string | null;
+  expires?: string | null;
+  days_remaining?: number | null;
+  warning?: string | null;
 } | null>(null);
+const aiModelInfo = ref<{
+  model_id: string;
+  api_base: string;
+  fallback_available: boolean;
+  routing_strategy: string;
+}>({
+  model_id: "deepseek-v4-pro",
+  api_base: "https://api.deepseek.com",
+  fallback_available: false,
+  routing_strategy: "DeepSeek only",
+});
 const tokenLoading = ref(false);
 const newToken = ref("");
-const newTokenExpires = ref("");  // 新增：Token 过期时间
 const showTokenInput = ref(false);
 const tokenSaving = ref(false);
 const tokenUpdateSuccess = ref(false);
 const tokenUpdateError = ref("");
 
-// Token 状态样式
+// API Key 状态样式
 const tokenStatusClass = computed(() => {
   if (!tokenStatus.value) return '';
   if (!tokenStatus.value.available) return 'error';
-  if (tokenStatus.value.days_remaining !== null && tokenStatus.value.days_remaining < 7) return 'warning';
+  if (typeof tokenStatus.value.days_remaining === 'number' && tokenStatus.value.days_remaining < 7) return 'warning';
   return 'success';
 });
 
-// 加载 Token 状态 - V45: 使用统一的 API 客户端（支持自动刷新 Token）
+// 加载 API Key 状态 - 使用统一的 API 客户端
 const loadTokenStatus = async () => {
   tokenLoading.value = true;
   try {
@@ -48,18 +58,25 @@ const loadTokenStatus = async () => {
       path: '/api/ai/router-status',
       auth: true,
     });
-      tokenStatus.value = data.api_key_status;
+    tokenStatus.value = data.api_key_status || null;
+    const model = Array.isArray(data.models) && data.models.length > 0 ? data.models[0] : null;
+    aiModelInfo.value = {
+      model_id: model?.model_id || "deepseek-v4-pro",
+      api_base: model?.api_base || "https://api.deepseek.com",
+      fallback_available: Boolean(data.fallback_available),
+      routing_strategy: data.routing_strategy || "DeepSeek only",
+    };
   } catch (error) {
-    console.error('加载Token状态失败:', error);
+    console.error('加载 DeepSeek API Key 状态失败:', error);
   } finally {
     tokenLoading.value = false;
   }
 };
 
-// ⭐ 真正的 Token 更新 - V45: 使用统一的 API 客户端
+// 更新 DeepSeek API Key
 const updateToken = async () => {
   if (!newToken.value.trim()) {
-    tokenUpdateError.value = "请输入新的 Token";
+    tokenUpdateError.value = "请输入 DeepSeek API Key";
     return;
   }
   
@@ -72,7 +89,6 @@ const updateToken = async () => {
       method: 'POST',
       body: {
         token: newToken.value.trim(),
-        expires: newTokenExpires.value.trim() || undefined,
       },
       auth: true,
     });
@@ -80,9 +96,8 @@ const updateToken = async () => {
     tokenUpdateSuccess.value = true;
     showTokenInput.value = false;
     newToken.value = "";
-    newTokenExpires.value = "";
     
-      // 刷新Token状态
+      // 刷新 API Key 状态
       await loadTokenStatus();
     
     setTimeout(() => {
@@ -446,7 +461,7 @@ const toggleSection = (section: string) => {
           </div>
             <div class="option-info">
             <h3>AI 模型配置</h3>
-            <p>管理 ModelScope API Token</p>
+            <p>DeepSeek V4 Pro 单模型运行</p>
           </div>
             <div v-if="tokenStatus" class="status-badge" :class="tokenStatusClass">
               <span class="status-dot"></span>
@@ -474,11 +489,11 @@ const toggleSection = (section: string) => {
               </div>
                   <div class="status-card-content">
                     <div class="status-card-title">
-                      {{ tokenStatus.available ? 'Token 状态正常' : 'Token 未配置或已失效' }}
+                      {{ tokenStatus.available ? 'DeepSeek API Key 已配置' : 'DeepSeek API Key 未配置' }}
               </div>
-                    <div v-if="tokenStatus.days_remaining !== null" class="status-card-meta">
-                      <i class="ri-calendar-line"></i>
-                      剩余有效期：{{ tokenStatus.days_remaining }} 天
+                    <div class="status-card-meta">
+                      <i class="ri-cpu-line"></i>
+                      当前模型：{{ aiModelInfo.model_id }}
                     </div>
                   </div>
                   <div v-if="tokenStatus.available" class="status-card-badge">
@@ -491,42 +506,46 @@ const toggleSection = (section: string) => {
               {{ tokenStatus.warning }}
           </div>
 
+                <div class="ai-model-grid">
+                  <div class="ai-model-card primary">
+                    <span class="ai-model-label">模型</span>
+                    <strong>{{ aiModelInfo.model_id }}</strong>
+                    <small>DeepSeek V4 Pro</small>
+                  </div>
+                  <div class="ai-model-card">
+                    <span class="ai-model-label">接口地址</span>
+                    <strong>{{ aiModelInfo.api_base }}</strong>
+                    <small>OpenAI 兼容格式</small>
+                  </div>
+                  <div class="ai-model-card">
+                    <span class="ai-model-label">运行模式</span>
+                    <strong>{{ aiModelInfo.fallback_available ? '多模型' : '单模型' }}</strong>
+                    <small>不启用备用模型兜底</small>
+                  </div>
+                  <div class="ai-model-card">
+                    <span class="ai-model-label">路由策略</span>
+                    <strong>{{ aiModelInfo.routing_strategy }}</strong>
+                    <small>画像、报告、岗位分析共用</small>
+                  </div>
+                </div>
+
                 <div class="form-container">
             <div class="form-group">
                     <label class="form-label">
                       <i class="ri-key-2-line"></i>
-                      API Token
+                      DeepSeek API Key
                     </label>
                     <div class="input-wrapper">
               <input
                 v-model="newToken"
-                type="text"
+                type="password"
                         class="form-input"
-                        placeholder="请输入 ModelScope API Token"
+                        placeholder="请输入 DeepSeek API Key"
               />
                     </div>
                     <p class="form-hint">
                       <i class="ri-information-line"></i>
-                      从 ModelScope 控制台获取
-                    </p>
-            </div>
-            
-            <div class="form-group" style="margin-top: 20px;">
-                    <label class="form-label">
-                      <i class="ri-calendar-line"></i>
-                      Token 过期时间
-                    </label>
-                    <div class="input-wrapper">
-              <input
-                v-model="newTokenExpires"
-                type="date"
-                        class="form-input"
-                        placeholder="YYYY-MM-DD"
-              />
-                    </div>
-                    <p class="form-hint">
-                      <i class="ri-information-line"></i>
-                      请填写 ModelScope 显示的 Token 有效期
+                      API Key 仅用于服务端调用 DeepSeek，不会在前端明文展示
                     </p>
             </div>
             
@@ -537,13 +556,13 @@ const toggleSection = (section: string) => {
             
                   <div v-if="tokenUpdateSuccess" class="alert alert-success">
             <i class="ri-checkbox-circle-fill"></i>
-            Token 更新成功
+            DeepSeek API Key 更新成功
           </div>
 
                   <div class="form-actions">
                     <button class="btn-primary" :disabled="tokenSaving || !newToken.trim()" @click="updateToken">
                       <i :class="tokenSaving ? 'ri-loader-4-line spin' : 'ri-save-line'"></i>
-                      {{ tokenSaving ? '保存中...' : '保存 Token' }}
+                      {{ tokenSaving ? '保存中...' : '保存 Key' }}
             </button>
                     <button class="btn-secondary" @click="loadTokenStatus">
                       <i class="ri-refresh-line"></i>
@@ -1394,6 +1413,53 @@ const toggleSection = (section: string) => {
 
 .warning-banner i {
   font-size: 1.125rem;
+}
+
+/* DeepSeek 模型信息 */
+.ai-model-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.875rem;
+  margin-bottom: 1.25rem;
+}
+
+.ai-model-card {
+  padding: 1rem;
+  background: linear-gradient(135deg, #f8fafc 0%, #eef2ff 100%);
+  border: 1px solid #dbe4ff;
+  border-radius: 14px;
+  min-width: 0;
+}
+
+.ai-model-card.primary {
+  background: linear-gradient(135deg, #eff6ff 0%, #e0e7ff 100%);
+  border-color: #c7d2fe;
+}
+
+.ai-model-label {
+  display: block;
+  margin-bottom: 0.45rem;
+  color: #64748b;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.ai-model-card strong {
+  display: block;
+  color: #172033;
+  font-size: 0.95rem;
+  font-weight: 800;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ai-model-card small {
+  display: block;
+  margin-top: 0.35rem;
+  color: #8a98ae;
+  font-size: 0.72rem;
+  line-height: 1.35;
 }
 
 /* 关于系统 - 信息网格 */
