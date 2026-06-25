@@ -99,6 +99,24 @@ def _normalize_ai_insights(value: Any, candidate_name: Optional[str]) -> List[st
     if candidate_name and len(items) == 1 and items[0] == candidate_name:
         return []
     return items
+
+
+def _submission_result_payload(submission: Submission) -> Dict[str, Any]:
+    """Return the result payload expected by fallback/cross-validation services."""
+    for field_name in ("result_details", "scores", "answers"):
+        value = getattr(submission, field_name, None)
+        if isinstance(value, dict) and value:
+            return value
+        if isinstance(value, str) and value.strip():
+            try:
+                parsed = json.loads(value)
+            except json.JSONDecodeError:
+                continue
+            if isinstance(parsed, dict) and parsed:
+                return parsed
+    return {}
+
+
 from app.services.job_recommender import JobRecommender  # 🟢 P2-3
 
 logger = logging.getLogger(__name__)
@@ -510,12 +528,19 @@ async def build_candidate_portrait(
         try:
             # 准备提交记录数据（需要转换为 dict）
             submission_dicts = []
+            questionnaire_cache: Dict[int, Optional[Questionnaire]] = {}
             for sub in submissions:
+                questionnaire = None
+                if sub.questionnaire_id:
+                    if sub.questionnaire_id not in questionnaire_cache:
+                        questionnaire_cache[sub.questionnaire_id] = session.get(Questionnaire, sub.questionnaire_id)
+                    questionnaire = questionnaire_cache.get(sub.questionnaire_id)
+
                 sub_dict = {
                     'questionnaire': {
-                        'type': sub.questionnaire.type if sub.questionnaire else 'UNKNOWN'
+                        'type': questionnaire.type if questionnaire else 'UNKNOWN'
                     },
-                    'result': sub.result if isinstance(sub.result, dict) else {}
+                    'result': _submission_result_payload(sub)
                 }
                 submission_dicts.append(sub_dict)
             

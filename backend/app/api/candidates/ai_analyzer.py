@@ -12,9 +12,25 @@ from .dimension_parser import parse_personality_dimensions, get_default_personal
 
 if TYPE_CHECKING:
     from app.models import Candidate
-    from app.models_assessment import Submission
+    from app.models_assessment import Questionnaire, Submission
 
 logger = logging.getLogger(__name__)
+
+
+def _submission_result_payload(submission: "Submission") -> Dict[str, Any]:
+    """Return the result payload expected by fallback/cross-validation services."""
+    for field_name in ("result_details", "scores", "answers"):
+        value = getattr(submission, field_name, None)
+        if isinstance(value, dict) and value:
+            return value
+        if isinstance(value, str) and value.strip():
+            try:
+                parsed = json.loads(value)
+            except json.JSONDecodeError:
+                continue
+            if isinstance(parsed, dict) and parsed:
+                return parsed
+    return {}
 
 
 def build_resume_context(candidate: "Candidate") -> str:
@@ -372,7 +388,7 @@ def build_default_analysis(
     """
     from app.services.fallback_analyzer import FallbackAnalyzer
     from sqlmodel import Session, select
-    from app.models_assessment import Submission
+    from app.models_assessment import Questionnaire, Submission
     from app.db import get_engine
     
     name = candidate.name if candidate else "候选人"
@@ -388,11 +404,12 @@ def build_default_analysis(
             submissions = session.exec(stmt).all()
             
             for sub in submissions:
+                questionnaire = session.get(Questionnaire, sub.questionnaire_id) if sub.questionnaire_id else None
                 submissions_data.append({
                     'questionnaire': {
-                        'type': sub.questionnaire.type if sub.questionnaire else 'UNKNOWN'
+                        'type': questionnaire.type if questionnaire else 'UNKNOWN'
                     },
-                    'result': sub.result if isinstance(sub.result, dict) else {},
+                    'result': _submission_result_payload(sub),
                     'score_percentage': sub.score_percentage
                 })
     
@@ -501,4 +518,3 @@ def build_default_analysis(
         "suitable_positions": suitable_positions,  # 🟢 降级场景：算法推荐
         "unsuitable_positions": unsuitable_positions  # 🟢 降级场景：算法推荐
     }
-

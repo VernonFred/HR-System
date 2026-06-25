@@ -12,10 +12,10 @@
 import { onMounted, ref, computed, defineAsyncComponent, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import QuestionnaireCard from '../components/QuestionnaireCard.vue'
+import SubmissionRecordsTab from '../components/SubmissionRecordsTab.vue'
 // 使用异步组件加载弹窗组件，提升首屏加载性能
 const DistributeModal = defineAsyncComponent(() => import('../components/DistributeModal.vue'))
 const ViewLinksPanel = defineAsyncComponent(() => import('../components/ViewLinksPanel.vue'))
-const SubmissionRecordsTab = defineAsyncComponent(() => import('../components/SubmissionRecordsTab.vue'))
 import QuestionEditDialog, { type EditorQuestion } from '../components/QuestionEditDialog.vue'
 import CandidatePreviewPanel from '../components/CandidatePreviewPanel.vue'
 import {
