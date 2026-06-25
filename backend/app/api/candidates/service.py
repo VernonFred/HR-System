@@ -1050,7 +1050,10 @@ async def get_candidate_portraits_summary(
         
         # 获取最新匹配记录
         latest_match = session.exec(
-            select(ProfileMatch).join(Submission).where(
+            select(ProfileMatch).join(
+                Submission,
+                ProfileMatch.submission_id == Submission.id
+            ).where(
                 Submission.candidate_id == candidate.id
             ).order_by(ProfileMatch.created_at.desc())
         ).first()
