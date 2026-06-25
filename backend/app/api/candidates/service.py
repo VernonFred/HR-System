@@ -1022,12 +1022,12 @@ async def get_candidate_portraits_summary(
     statement = select(Candidate)
     
     if target_position:
-        statement = statement.where(Candidate.target_position == target_position)
+        statement = statement.where(Candidate.position == target_position)
     
     # 获取总数
     count_statement = select(func.count()).select_from(Candidate)
     if target_position:
-        count_statement = count_statement.where(Candidate.target_position == target_position)
+        count_statement = count_statement.where(Candidate.position == target_position)
     
     total = session.exec(count_statement).one()
     
@@ -1063,7 +1063,7 @@ async def get_candidate_portraits_summary(
         summary = schemas.CandidatePortraitSummary(
             candidate_id=candidate.id,
             name=candidate.name,
-            target_position=candidate.target_position,
+            target_position=candidate.position,
             overall_score=overall_score,
             match_score=latest_match.match_score if latest_match else None,
             assessment_count=assessment_count,

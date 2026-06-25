@@ -10,13 +10,14 @@
 from typing import List, Dict, Any, Optional
 import logging
 import json
+import re
 
 logger = logging.getLogger(__name__)
 
 
 class JobRecommender:
     """岗位推荐引擎"""
-    
+
     # 🟢 内置默认岗位特征模型 (当数据库为空时使用)
     DEFAULT_JOB_PROFILES = {
         "产品经理": {
@@ -113,30 +114,30 @@ class JobRecommender:
             "category": "设计"
         }
     }
-    
+
     @classmethod
     def load_job_profiles_from_db(cls, session) -> Dict[str, Dict[str, Any]]:
         """
         从数据库加载岗位画像配置
-        
+
         Args:
             session: 数据库会话
-            
+
         Returns:
             岗位画像字典 {岗位名称: 岗位特征}
         """
         from app.models import JobProfile
         from sqlmodel import select
-        
+
         try:
             # 查询所有激活状态的岗位画像
             stmt = select(JobProfile).where(JobProfile.status == "active")
             job_profiles = session.exec(stmt).all()
-            
+
             if not job_profiles:
                 logger.info("📦 数据库中无岗位画像，使用默认配置")
                 return cls.DEFAULT_JOB_PROFILES
-            
+
             # 转换为推荐引擎所需格式
             profiles_dict = {}
             for profile in job_profiles:
@@ -147,7 +148,7 @@ class JobRecommender:
                         dimensions = json.loads(profile.dimensions)
                     elif isinstance(profile.dimensions, list):
                         dimensions = profile.dimensions
-                
+
                 # 构建胜任力要求字典
                 competencies_dict = {}
                 for dim in dimensions:
@@ -155,42 +156,46 @@ class JobRecommender:
                         # 能力维度映射
                         dim_name = dim.get("name", "")
                         ideal_score = dim.get("ideal_score") or dim.get("idealScore") or 75
-                        
+
                         # 将中文维度名映射到代码
                         competency_key = cls._map_dimension_to_competency(dim_name)
                         if competency_key:
                             competencies_dict[competency_key] = ideal_score
-                
+
                 # 提取关键词 (从岗位名称和描述中)
                 keywords = [profile.name]
                 if profile.description:
                     # 简单提取：中文词汇分割
                     keywords.extend([word.strip() for word in profile.description.split() if len(word.strip()) > 1])
-                
+
                 # 提取部门作为类别
                 category = profile.department or "通用"
-                
+
                 profiles_dict[profile.name] = {
                     "competencies": competencies_dict,
                     "keywords": keywords[:10],  # 限制关键词数量
                     "category": category
                 }
-            
-            logger.info(f"📦 从数据库加载了 {len(profiles_dict)} 个岗位画像")
+
+            # 数据库岗位画像是主数据；内置岗位作为兜底补齐，避免某类岗位缺失时回落到固定通用岗位。
+            for default_name, default_profile in cls.DEFAULT_JOB_PROFILES.items():
+                profiles_dict.setdefault(default_name, default_profile)
+
+            logger.info(f"📦 从数据库加载并补齐了 {len(profiles_dict)} 个岗位画像")
             return profiles_dict
-            
+
         except Exception as e:
             logger.error(f"❌ 加载岗位画像失败: {e}，使用默认配置")
             return cls.DEFAULT_JOB_PROFILES
-    
+
     @classmethod
     def _map_dimension_to_competency(cls, dimension_name: str) -> Optional[str]:
         """
         将岗位画像配置中的维度名映射到胜任力代码
-        
+
         Args:
             dimension_name: 维度名称 (如 "产品规划能力")
-            
+
         Returns:
             胜任力代码 (如 "product_planning")，如果无法映射则返回None
         """
@@ -210,18 +215,18 @@ class JobRecommender:
             "逻辑思维": "logic",
             "创新能力": "innovation",
         }
-        
+
         # 精确匹配
         if dimension_name in mapping:
             return mapping[dimension_name]
-        
+
         # 模糊匹配
         for key, value in mapping.items():
             if key in dimension_name:
                 return value
-        
+
         return None
-    
+
     @classmethod
     def recommend_positions(
         cls,
@@ -233,14 +238,14 @@ class JobRecommender:
     ) -> List[str]:
         """
         推荐岗位 (简化版，直接返回岗位名称列表)
-        
+
         Args:
             competencies: 胜任力评分列表
             resume_keywords: 简历关键词
             current_position: 当前目标岗位
             top_n: 返回前N个推荐
             session: 数据库会话（如果提供，从数据库加载岗位画像）
-            
+
         Returns:
             ["产品经理", "项目管理", ...] 岗位名称列表
         """
@@ -250,36 +255,82 @@ class JobRecommender:
         else:
             job_profiles = cls.DEFAULT_JOB_PROFILES
             logger.info("🔧 使用默认岗位画像配置")
-        
+
+        preferred_family = cls._detect_position_family(current_position)
         recommendations = []
-        
+
         for job_name, job_profile in job_profiles.items():
             # 跳过当前岗位
             if current_position and job_name in current_position:
                 continue
-            
+
             # 计算匹配度
             match_score = cls._calculate_job_match(
                 job_profile,
                 competencies,
                 resume_keywords
             )
-            
+            family_match = cls._is_same_family(preferred_family, job_name, job_profile)
+            if preferred_family:
+                if family_match:
+                    match_score += 35
+                else:
+                    match_score -= 15
+
             recommendations.append({
                 "position": job_name,
-                "match_score": match_score
+                "match_score": match_score,
+                "family_match": family_match,
             })
-        
+
         # 按匹配度排序
         recommendations.sort(key=lambda x: x["match_score"], reverse=True)
-        
+        if preferred_family:
+            same_family = [rec for rec in recommendations if rec["family_match"]]
+            other_family = [rec for rec in recommendations if not rec["family_match"]]
+            recommendations = same_family + other_family
+
         # 返回前N个岗位名称
         top_positions = [rec["position"] for rec in recommendations[:top_n]]
-        
+
         logger.info(f"🎯 岗位推荐: {top_positions}")
-        
+
         return top_positions
-    
+
+    @classmethod
+    def _detect_position_family(cls, text: Optional[str]) -> Optional[str]:
+        """根据当前应聘岗位识别推荐类别，用于避免销售候选人被推荐到技术等默认岗位."""
+        if not text:
+            return None
+        normalized = re.sub(r"\s+", "", text)
+        family_keywords = {
+            "销售": ("销售", "客户", "商务", "渠道", "大客户", "顾问", "市场拓展", "KA"),
+            "产品": ("产品", "PM", "需求", "用户"),
+            "技术": ("技术", "开发", "工程师", "算法", "前端", "后端", "研发"),
+            "运营": ("运营", "活动", "增长", "社群"),
+            "数据": ("数据", "分析", "BI", "统计"),
+            "设计": ("设计", "UI", "UX", "视觉", "交互"),
+            "管理": ("项目", "管理", "主管", "经理"),
+        }
+        for family, keywords in family_keywords.items():
+            if any(keyword in normalized for keyword in keywords):
+                return family
+        return None
+
+    @classmethod
+    def _is_same_family(
+        cls,
+        preferred_family: Optional[str],
+        job_name: str,
+        job_profile: Dict[str, Any]
+    ) -> bool:
+        if not preferred_family:
+            return False
+        category = str(job_profile.get("category") or "")
+        keywords = " ".join(str(item) for item in job_profile.get("keywords", []))
+        haystack = f"{job_name} {category} {keywords}"
+        return cls._detect_position_family(haystack) == preferred_family
+
     @classmethod
     def recommend_unsuitable_positions(
         cls,
@@ -287,37 +338,37 @@ class JobRecommender:
     ) -> List[str]:
         """
         推荐不适合的岗位
-        
+
         基于胜任力短板判断
         """
         unsuitable = []
-        
+
         # 找出得分低的胜任力
         comp_dict = {c["key"]: c["score"] for c in competencies}
-        
+
         # 如果沟通能力低，不适合客户接触类岗位
         if comp_dict.get("communication", 70) < 60:
             unsuitable.append("客户服务")
             unsuitable.append("销售岗位")
-        
+
         # 如果执行能力低，不适合高强度执行岗位
         if comp_dict.get("execution", 70) < 60:
             unsuitable.append("项目执行")
-        
+
         # 如果抗压能力低，不适合高压岗位
         if comp_dict.get("pressure_resistance", 70) < 60:
             unsuitable.append("高压环境岗位")
-        
+
         # 如果学习能力低，不适合技术岗
         if comp_dict.get("learning", 70) < 60:
             unsuitable.append("快速迭代技术岗")
-        
+
         # 默认不推荐岗位
         if not unsuitable:
             unsuitable = ["高度重复性工作", "纯体力劳动岗位"]
-        
+
         return unsuitable[:3]  # 最多3个
-    
+
     @classmethod
     def _calculate_job_match(
         cls,
@@ -327,7 +378,7 @@ class JobRecommender:
     ) -> float:
         """
         计算岗位匹配度
-        
+
         算法: 加权融合
         - 胜任力匹配 70%
         - 简历经验匹配 30%
@@ -337,18 +388,18 @@ class JobRecommender:
             job_profile.get("competencies", {}),
             competencies
         )
-        
+
         # 2. 简历经验匹配度 (30%)
         resume_match = cls._match_resume(
             job_profile.get("keywords", []),
             resume_keywords or []
         )
-        
+
         # 加权融合
         total_match = comp_match * 0.7 + resume_match * 0.3
-        
+
         return total_match
-    
+
     @classmethod
     def _match_competencies(
         cls,
@@ -358,10 +409,10 @@ class JobRecommender:
         """匹配胜任力"""
         if not required_comps or not candidate_comps:
             return 60.0
-        
+
         # 将候选人胜任力转为字典
         comp_dict = {c["key"]: c["score"] for c in candidate_comps}
-        
+
         match_scores = []
         for key, required_score in required_comps.items():
             candidate_score = comp_dict.get(key, 60)
@@ -369,9 +420,9 @@ class JobRecommender:
             diff = abs(candidate_score - required_score)
             match = max(0, 100 - diff)
             match_scores.append(match)
-        
+
         return sum(match_scores) / len(match_scores) if match_scores else 60.0
-    
+
     @classmethod
     def _match_resume(
         cls,
@@ -381,14 +432,14 @@ class JobRecommender:
         """匹配简历经验"""
         if not job_keywords or not resume_keywords:
             return 50.0
-        
+
         # 简单关键词匹配
         resume_str = " ".join([k.lower() for k in resume_keywords])
-        
+
         matched_count = sum(
             1 for keyword in job_keywords
             if keyword.lower() in resume_str
         )
-        
+
         match_rate = matched_count / len(job_keywords)
         return 50 + (match_rate * 50)  # 50-100分区间
