@@ -63,6 +63,19 @@ def _looks_like_default_positions(items: List[str]) -> bool:
     return len(normalized & defaults) >= 3
 
 
+def _default_analysis_with_reason(
+    candidate: "Candidate",
+    submission: Optional["Submission"],
+    target_position: Optional[str],
+    session: Any = None,
+    reason: str = "ai_invalid_response",
+) -> Dict[str, Any]:
+    result = build_default_analysis(candidate, submission, target_position, session)
+    result["_fallback_reason"] = reason
+    result["_is_default_analysis"] = True
+    return result
+
+
 def build_resume_context(candidate: "Candidate") -> str:
     """构建简历上下文信息，用于AI分析融合 - V3增强版.
     
@@ -250,7 +263,13 @@ async def generate_ai_analysis(
     
     # 如果没有测评数据，返回基于候选人的默认分析
     if not submission or not submission.scores:
-        return build_default_analysis(candidate, None, target_position)
+        return _default_analysis_with_reason(
+            candidate,
+            None,
+            target_position,
+            session,
+            "no_assessment_scores",
+        )
     
     try:
         # 解析测评分数
@@ -328,7 +347,13 @@ async def generate_ai_analysis(
         )
         if not has_valid_data:
             logger.warning(f"⚠️ AI返回数据不完整，使用默认分析")
-            return build_default_analysis(candidate, submission, target_position)
+            return _default_analysis_with_reason(
+                candidate,
+                submission,
+                target_position,
+                session,
+                "ai_invalid_response",
+            )
         
         # ⭐ 强制使用测评结果中的真实维度数据（不使用AI生成的维度）
         personality_dimensions = parse_personality_dimensions(result_details)
@@ -339,7 +364,13 @@ async def generate_ai_analysis(
             logger.error(f"❌ 维度解析失败! result_details keys: {list(result_details.keys()) if result_details else 'None'}")
             logger.error(f"   questionnaire_type: {result_details.get('questionnaire_type') if result_details else 'None'}")
             # 使用默认维度（会在 build_default_analysis 中处理）
-            return build_default_analysis(candidate, submission, target_position)
+            return _default_analysis_with_reason(
+                candidate,
+                submission,
+                target_position,
+                session,
+                "dimension_parse_failed",
+            )
         
         # ⭐ 转换 competencies 格式（AI返回的是 name/level/score/evidence，前端需要 key/label/score）
         raw_competencies = result.get("competencies", [])
@@ -398,7 +429,13 @@ async def generate_ai_analysis(
         
     except Exception as e:
         logger.warning(f"❌ AI分析失败: {str(e)}，使用默认分析")
-        return build_default_analysis(candidate, submission, target_position)
+        return _default_analysis_with_reason(
+            candidate,
+            submission,
+            target_position,
+            session,
+            "ai_error",
+        )
 
 
 def build_default_analysis(

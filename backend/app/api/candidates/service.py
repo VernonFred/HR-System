@@ -460,6 +460,11 @@ async def build_candidate_portrait(
         is_default_analysis = True
         ai_model_used = "fallback"  # 🟢 P1-2: 标识为降级
         fallback_reason = "ai_error"
+
+    if ai_analysis.get("_is_default_analysis") or ai_analysis.get("_fallback_reason"):
+        is_default_analysis = True
+        ai_model_used = "fallback"
+        fallback_reason = ai_analysis.get("_fallback_reason") or fallback_reason or "ai_invalid_response"
     
     ai_generation_time = int((time.time() - ai_start_time) * 1000)  # 毫秒
     

@@ -87,7 +87,7 @@ async def ai_interpretation(
         resp = await call_portrait_model(
             messages=messages,
             level=level,
-            max_tokens=1536,
+            max_tokens=4096,
             temperature=0.7,  # 提高temperature增加输出多样性
         )
         data = parse_json_safely(pick_content_text(resp))

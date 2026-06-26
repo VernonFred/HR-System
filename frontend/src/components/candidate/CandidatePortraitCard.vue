@@ -1651,6 +1651,15 @@ const handleRetryAI = () => {
                   <i class="ri-pie-chart-line"></i>
                   <span>评分详情</span>
                 </button>
+                <button
+                  class="level-btn regenerate-header-btn"
+                  @click="regeneratePortrait()"
+                  :disabled="isRegeneratingPortrait"
+                  title="清除缓存并重新生成AI画像"
+                >
+                  <i :class="isRegeneratingPortrait ? 'ri-loader-4-line spin' : 'ri-refresh-line'"></i>
+                  <span>{{ isRegeneratingPortrait ? '生成中' : '重新生成' }}</span>
+                </button>
               </div>
             </div>
           </div>
@@ -2087,6 +2096,39 @@ const handleRetryAI = () => {
 
 <style scoped>
 @import './styles/portrait-card.css';
+
+.analysis-level-switch {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.regenerate-header-btn {
+  border-color: rgba(255, 255, 255, 0.4);
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+}
+
+.regenerate-header-btn:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.2);
+  transform: translateY(-1px);
+}
+
+.regenerate-header-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+.spin {
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
 
 /* 页面显示时隐藏SVG文字（只在导出时显示） */
 .score-svg-value,
