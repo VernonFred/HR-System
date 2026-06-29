@@ -1,0 +1,3 @@
+schema: spec-driven
+created: 2026-06-29
+goal: 拆分问卷统计导出关键大文件，并从中文文档沉淀 OpenSpec 规范

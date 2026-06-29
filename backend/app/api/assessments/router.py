@@ -354,6 +354,21 @@ async def get_questionnaire_question_stats(
     return stats
 
 
+@router.get(
+    "/questionnaires/{questionnaire_id}/answer-export",
+    response_model=schemas.AnswerExportResponse,
+)
+async def get_questionnaire_answer_export(
+    questionnaire_id: int,
+    session: Session = Depends(get_session)
+):
+    """获取问卷逐人答题明细导出数据."""
+    export_data = await service.get_questionnaire_answer_export(session, questionnaire_id)
+    if not export_data:
+        raise HTTPException(status_code=404, detail="问卷不存在")
+    return export_data
+
+
 # ========== 导出 API ==========
 
 @router.get("/export/excel")

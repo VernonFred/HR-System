@@ -1,0 +1,14 @@
+schema: spec-driven
+context: |
+  Project: QZ TalentLens HR 人事画像系统。
+  Frontend: Vue 3 + TypeScript + Vite + ECharts + XLSX。
+  Backend: FastAPI + SQLModel + SQLite/PostgreSQL-compatible model layer。
+  Domain: 候选人画像、专业测评、问卷调查、岗位画像、AI 分析、统计导出。
+  Security: OpenSpec 中不得写入服务器密码、API Key、数据库凭据或真实 Token；敏感信息必须使用占位符。
+rules:
+  proposal:
+    - 使用中文说明业务意图和影响范围。
+    - 明确区分行为变更与纯重构。
+  tasks:
+    - 每个任务必须包含验证方式。
+    - 涉及部署时必须包含本地构建、后端测试和远程健康检查。

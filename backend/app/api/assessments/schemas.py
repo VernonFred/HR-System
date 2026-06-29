@@ -244,6 +244,44 @@ class SubmissionListResponse(BaseModel):
     total: int
 
 
+class AnswerExportQuestionOption(BaseModel):
+    """答题明细导出中的题目选项."""
+    value: Optional[Any] = None
+    label: Optional[str] = None
+
+
+class AnswerExportQuestion(BaseModel):
+    """答题明细导出中的题目定义."""
+    id: Union[int, str]
+    index: int
+    text: str
+    type: Optional[str] = None
+    options: List[AnswerExportQuestionOption] = Field(default_factory=list)
+
+
+class AnswerExportSubmission(BaseModel):
+    """答题明细导出中的提交记录."""
+    id: int
+    code: str
+    candidate_name: Optional[str] = None
+    candidate_phone: Optional[str] = None
+    candidate_email: Optional[str] = None
+    gender: Optional[str] = None
+    target_position: Optional[str] = None
+    status: str
+    started_at: datetime
+    submitted_at: Optional[datetime] = None
+    answers: Dict[str, Any]
+
+
+class AnswerExportResponse(BaseModel):
+    """答题明细导出响应."""
+    questionnaire_id: int
+    questionnaire_name: str
+    questions: List[AnswerExportQuestion]
+    submissions: List[AnswerExportSubmission]
+
+
 # ========== 公开API（候选人端） ==========
 
 class PublicAssessmentInfo(BaseModel):

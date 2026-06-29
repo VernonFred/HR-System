@@ -329,6 +329,42 @@ export interface Submission {
   custom_data?: Record<string, any>;  // 自定义字段（用于部门等信息展示）
 }
 
+export interface AnswerExportOption {
+  index?: number;
+  label?: string;
+  text?: string;
+  value?: string | number;
+}
+
+export interface AnswerExportQuestion {
+  id: string | number;
+  index: number;
+  text: string;
+  type: string;
+  options?: AnswerExportOption[];
+}
+
+export interface AnswerExportSubmission {
+  id: number;
+  code: string;
+  candidate_name?: string;
+  candidate_phone?: string;
+  candidate_email?: string;
+  gender?: string;
+  target_position?: string;
+  status: string;
+  started_at?: string;
+  submitted_at?: string;
+  answers: Record<string, any>;
+}
+
+export interface QuestionnaireAnswerExportData {
+  questionnaire_id: number;
+  questionnaire_name: string;
+  questions: AnswerExportQuestion[];
+  submissions: AnswerExportSubmission[];
+}
+
 export const fetchSubmissions = (params?: {
   assessment_id?: number;
   status?: string;
@@ -351,6 +387,13 @@ export const fetchSubmissions = (params?: {
     path: `/api/assessments/submissions${qs ? `?${qs}` : ""}`,
     fallback: { items: filteredSubmissions, total: filteredSubmissions.length },
     auth: true, // 使用真实接口，失败时回退到 mock
+  });
+};
+
+export const fetchQuestionnaireAnswerExport = (questionnaireId: number) => {
+  return apiRequest<QuestionnaireAnswerExportData>({
+    path: `/api/assessments/questionnaires/${questionnaireId}/answer-export`,
+    auth: true,
   });
 };
 

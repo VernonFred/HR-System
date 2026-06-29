@@ -10,8 +10,28 @@ import { ref, computed, watch, onMounted, onBeforeUnmount, nextTick } from 'vue'
 import { init, type ECharts, type EChartsOption, type SetOptionOpts } from 'echarts/core'
 import EChartContainer from './EChartContainer.vue'
 import * as XLSX from 'xlsx'
-import type { Questionnaire, Submission, QuestionStat, QuestionOptionStat, TextSummary, TextAnswerGroup } from '../api/assessments'
-import { fetchQuestionnaireQuestionStats, type QuestionnaireQuestionStats } from '../api/assessments'
+import type {
+  Questionnaire,
+  Submission,
+  QuestionStat,
+  QuestionOptionStat,
+  TextSummary,
+  TextAnswerGroup,
+} from '../api/assessments'
+import { fetchQuestionnaireAnswerExport, fetchQuestionnaireQuestionStats, type QuestionnaireQuestionStats } from '../api/assessments'
+import {
+  getQuestionTypeLabel,
+  isMultipleChoiceQuestionType as isMultipleChoiceQuestion,
+  isScaleQuestionType as isScaleQuestion,
+  isSingleChoiceQuestionType as isSingleChoiceQuestion,
+  isTextQuestionType as isTextQuestion,
+} from '../utils/questionnaireQuestionTypes'
+import {
+  buildAnswerDetailRows,
+  buildOptionPersonRows,
+  buildQuestionStatsRows,
+  buildSubmissionRows,
+} from '../utils/questionnaireSubmissionExport'
 
 // ===== Props =====
 const props = defineProps<{
@@ -333,40 +353,6 @@ const highScoreRate = computed(() => {
   const highCount = gradeDistribution.value.A + gradeDistribution.value.B
   return Math.round((highCount / total) * 100)
 })
-
-// V46: 题目类型标签映射
-const getQuestionTypeLabel = (type: string): string => {
-  const typeMap: Record<string, string> = {
-    'single': '单选',
-    'radio': '单选',
-    'multiple': '多选',
-    'checkbox': '多选',
-    'text': '文本',
-    'textarea': '文本',
-    'scale': '量表',
-    'rating': '评分',
-    'yesno': '是非',
-    'choice': '选择'
-  }
-  return typeMap[type] || type
-}
-
-// V46: 判断是否为文本题
-const isTextQuestion = (type: string): boolean => {
-  return ['text', 'textarea'].includes(type)
-}
-
-const isSingleChoiceQuestion = (type: string): boolean => {
-  return ['single', 'radio', 'yesno', 'choice'].includes(type)
-}
-
-const isMultipleChoiceQuestion = (type: string): boolean => {
-  return ['multiple', 'checkbox'].includes(type)
-}
-
-const isScaleQuestion = (type: string): boolean => {
-  return ['scale', 'rating'].includes(type)
-}
 
 const normalizePercentage = (percentage?: number): number => {
   const value = Number(percentage || 0)
@@ -1187,84 +1173,6 @@ const closeExportModal = () => {
   showExportModal.value = false
 }
 
-const getQuestionTypeText = (type: string) => {
-  const map: Record<string, string> = {
-    single: '单选',
-    radio: '单选',
-    multiple: '多选',
-    checkbox: '多选',
-    text: '文本',
-    textarea: '文本',
-    scale: '量表',
-    rating: '评分',
-    yesno: '是非',
-    choice: '选择',
-  }
-  return map[type] || type
-}
-
-const buildQuestionStatsRows = () => {
-  const rows: Array<Record<string, string | number>> = []
-  if (!questionStats.value?.questions?.length) return rows
-
-  questionStats.value.questions.forEach((q) => {
-    const questionLabel = `Q${q.index}`
-    const questionType = getQuestionTypeText(q.type)
-
-    if (q.options?.length) {
-      q.options.forEach((opt) => {
-        rows.push({
-          '题号': questionLabel,
-          '题目': q.text || '',
-          '题型': questionType,
-          '选项/答案': opt.text || '',
-          '人数': opt.count ?? 0,
-          '占比': `${opt.percentage ?? 0}%`,
-        })
-      })
-      return
-    }
-
-    // 文本题：优先导出标签聚合，再导出长答案聚合
-    const tags = q.text_summary?.tags || []
-    const longAnswers = q.text_summary?.long_answers || []
-    if (tags.length || longAnswers.length) {
-      tags.forEach((item) => {
-        rows.push({
-          '题号': questionLabel,
-          '题目': q.text || '',
-          '题型': questionType,
-          '选项/答案': `[标签] ${item.text || ''}`,
-          '人数': item.count ?? 0,
-          '占比': '',
-        })
-      })
-      longAnswers.forEach((item) => {
-        rows.push({
-          '题号': questionLabel,
-          '题目': q.text || '',
-          '题型': questionType,
-          '选项/答案': `[文本] ${item.text || ''}`,
-          '人数': item.count ?? 0,
-          '占比': '',
-        })
-      })
-      return
-    }
-
-    rows.push({
-      '题号': questionLabel,
-      '题目': q.text || '',
-      '题型': questionType,
-      '选项/答案': '(无选项统计)',
-      '人数': q.total_answers ?? 0,
-      '占比': '',
-    })
-  })
-
-  return rows
-}
-
 const executeExport = async () => {
   exportLoading.value = true
   
@@ -1274,18 +1182,10 @@ const executeExport = async () => {
       await loadQuestionStats()
     }
 
-    const data = props.submissions.map(r => ({
-      '姓名': r.candidate_name || '',
-      '联系方式': r.candidate_phone || '',
-      '问卷': props.questionnaire?.name || '',
-      '得分': r.total_score !== null && r.total_score !== undefined ? r.total_score : '',
-      '等级': r.grade || '',
-      '状态': getStatusLabel(r.status),
-      '提交时间': formatDate(r.submitted_at)
-    }))
+    const data = buildSubmissionRows(props.submissions, props.questionnaire, formatDate, getStatusLabel)
     
     const headers = Object.keys(data[0] || {})
-    const questionStatsRows = buildQuestionStatsRows()
+    const questionStatsRows = buildQuestionStatsRows(questionStats.value)
     const questionStatsHeaders = Object.keys(questionStatsRows[0] || {})
     const dateStr = new Date().toISOString().slice(0, 10)
     const fileName = `${props.questionnaire?.name || '问卷'}_提交记录_${dateStr}`
@@ -1324,6 +1224,28 @@ const executeExport = async () => {
         XLSX.utils.book_append_sheet(workbook, statsSheet, '题目统计')
       }
 
+      if (props.questionnaire?.id) {
+        const answerExportData = await fetchQuestionnaireAnswerExport(props.questionnaire.id)
+        const answerDetailRows = buildAnswerDetailRows(answerExportData, formatDate, getStatusLabel)
+        const optionPersonRows = buildOptionPersonRows(answerExportData, formatDate)
+
+        if (answerDetailRows.length > 0) {
+          XLSX.utils.book_append_sheet(
+            workbook,
+            XLSX.utils.json_to_sheet(answerDetailRows),
+            '答题明细'
+          )
+        }
+
+        if (optionPersonRows.length > 0) {
+          XLSX.utils.book_append_sheet(
+            workbook,
+            XLSX.utils.json_to_sheet(optionPersonRows),
+            '选项人员明细'
+          )
+        }
+      }
+
       const excelBuffer = XLSX.write(workbook, {
         bookType: 'xlsx',
         type: 'array'
@@ -1344,6 +1266,7 @@ const executeExport = async () => {
     
   } catch (error) {
     console.error('导出失败:', error)
+    alert('导出失败，请检查网络连接或稍后重试')
   } finally {
     exportLoading.value = false
   }
@@ -1509,7 +1432,7 @@ const exportStatsAsExcel = () => {
     XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(getStatsGradeRows()), '得分分布')
   }
 
-  const questionRows = buildQuestionStatsRows()
+  const questionRows = buildQuestionStatsRows(questionStats.value)
   if (questionRows.length > 0) {
     XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(questionRows), '题目统计')
   }
@@ -2811,7 +2734,7 @@ const executeStatsExport = async () => {
                   <input type="radio" v-model="exportFormat" value="excel" />
                   <i class="ri-file-excel-2-line"></i>
                   <span>Excel 文件</span>
-                  <small>带格式的表格文件</small>
+                  <small>含提交明细、答题明细、选项人员明细</small>
                 </label>
               </div>
             </div>
