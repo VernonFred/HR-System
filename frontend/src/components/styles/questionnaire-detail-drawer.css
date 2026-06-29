@@ -2228,6 +2228,13 @@
   display: flex;
   flex-direction: column;
   gap: 8px;
+  max-height: none;
+  overflow: visible;
+}
+
+.stats-export-text-list .text-answer-item {
+  break-inside: avoid;
+  page-break-inside: avoid;
 }
 
 /* 空统计状态 */

@@ -1626,7 +1626,13 @@ const getStatsExportSliceRanges = (
   const breakableSelectors = [
     '.stats-export-hero',
     '.stats-export-section',
-    '.stats-export-question-card'
+    '.stats-export-question-card',
+    '.stats-export-question-head',
+    '.stats-export-question-body',
+    '.stats-export-detail-box',
+    '.stats-export-chart-box',
+    '.stats-export-static-row',
+    '.stats-export-text-list .text-answer-item'
   ]
 
   breakableSelectors.forEach(selector => {
