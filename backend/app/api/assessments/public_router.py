@@ -1,11 +1,13 @@
 """Public assessment entry and submission routes."""
 from datetime import datetime
+from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlmodel import Session
 
 from app.db import get_session
 from app.api.assessments import schemas, service
+from app.api.assessments import meeting_integration
 
 
 # ========== 公开API（候选人端） ==========
@@ -13,9 +15,32 @@ from app.api.assessments import schemas, service
 public_router = APIRouter(prefix="/api/public/assessment", tags=["public-assessment"])
 
 
+def _resolve_public_form_fields(raw_fields, *, use_default_fields: bool):
+    """Normalize HR-configured entry fields without adding meeting-only fields."""
+    default_form_fields = [
+        {"id": 1, "name": "candidate_name", "label": "姓名", "type": "text", "enabled": True, "required": True, "builtin": True, "icon": "ri-user-line"},
+        {"id": 2, "name": "candidate_phone", "label": "手机号", "type": "tel", "enabled": True, "required": True, "builtin": True, "icon": "ri-phone-line"},
+        {"id": 3, "name": "candidate_email", "label": "电子邮箱", "type": "email", "enabled": True, "required": False, "builtin": True, "icon": "ri-mail-line"},
+        {"id": 4, "name": "target_position", "label": "应聘岗位", "type": "text", "enabled": True, "required": False, "builtin": True, "icon": "ri-briefcase-line"},
+    ]
+
+    if raw_fields is None or raw_fields == {}:
+        return default_form_fields if use_default_fields else []
+    if isinstance(raw_fields, dict):
+        fields = raw_fields.get("fields")
+        if isinstance(fields, list):
+            return fields
+        return default_form_fields if use_default_fields and not raw_fields else []
+    if isinstance(raw_fields, list):
+        return raw_fields
+    return default_form_fields if use_default_fields else []
+
+
 @public_router.get("/{code}", response_model=schemas.PublicAssessmentInfo)
 async def get_public_assessment_info(
     code: str,
+    survey_token: Optional[str] = Query(None, alias="surveyToken"),
+    participant_url: Optional[str] = Query(None, alias="participantUrl"),
     session: Session = Depends(get_session)
 ):
     """获取测评信息（候选人端）."""
@@ -31,33 +56,25 @@ async def get_public_assessment_info(
     valid = assessment.valid_from <= now <= assessment.valid_until
     expired = now > assessment.valid_until
     
-    # ⭐ 如果没有配置字段，返回默认字段
-    default_form_fields = [
-        {"id": 1, "name": "candidate_name", "label": "姓名", "type": "text", "enabled": True, "required": True, "builtin": True, "icon": "ri-user-line"},
-        {"id": 2, "name": "candidate_phone", "label": "手机号", "type": "tel", "enabled": True, "required": True, "builtin": True, "icon": "ri-phone-line"},
-        {"id": 3, "name": "candidate_email", "label": "电子邮箱", "type": "email", "enabled": True, "required": False, "builtin": True, "icon": "ri-mail-line"},
-        {"id": 4, "name": "target_position", "label": "应聘岗位", "type": "text", "enabled": True, "required": False, "builtin": True, "icon": "ri-briefcase-line"},
-    ]
-    
-    form_fields_data = assessment.form_fields
-    # 允许空列表表示“不显示任何字段”，仅在未配置或空对象时回退默认
-    if form_fields_data is None or form_fields_data == {}:
-        form_fields_data = default_form_fields
-    elif isinstance(form_fields_data, dict):
-        # 兼容可能的历史结构：{"fields": [...]}
-        fields = form_fields_data.get("fields")
-        if isinstance(fields, list):
-            form_fields_data = fields
-        elif not form_fields_data:
-            form_fields_data = default_form_fields
+    has_meeting_context = bool(survey_token and participant_url)
+    form_fields_data = _resolve_public_form_fields(
+        assessment.form_fields,
+        use_default_fields=not has_meeting_context,
+    )
+
+    meeting_identity = {}
+    if survey_token and participant_url:
+        meeting_identity = await meeting_integration.fetch_meeting_identity(participant_url, survey_token)
+
+    entry_prefill = {}
+    if not assessment.anonymous_mode:
+        entry_prefill = meeting_integration.build_entry_prefill(form_fields_data, meeting_identity)
 
     if assessment.anonymous_mode and isinstance(form_fields_data, list):
-        identity_field_names = {"name", "candidate_name", "phone", "candidate_phone"}
         form_fields_data = [
             field
             for field in form_fields_data
-            if not isinstance(field, dict)
-            or str(field.get("name") or field.get("id") or "").strip() not in identity_field_names
+            if not meeting_integration.is_identity_form_field(field)
         ]
     
     # ⭐ 获取问卷题目数据（用于前端 fallback）
@@ -83,6 +100,7 @@ async def get_public_assessment_info(
         repeat_interval_hours=assessment.repeat_interval_hours or 0,
         max_submissions=assessment.max_submissions or 0,
         anonymous_mode=bool(assessment.anonymous_mode),
+        entry_prefill=entry_prefill,
     )
 
 
@@ -135,7 +153,28 @@ async def start_assessment(
     # ⭐ 增加开始测评统计
     await service.increment_start_count(session, assessment.id)
 
-    payload = data.model_dump(exclude={"assessment_code"})
+    payload = data.model_dump(exclude={"assessment_code", "survey_token", "participant_url", "callback_url"})
+
+    custom_data = payload.get("custom_data")
+    if not isinstance(custom_data, dict):
+        custom_data = {}
+
+    meeting_identity = {}
+    if data.survey_token and data.participant_url:
+        meeting_identity = await meeting_integration.fetch_meeting_identity(
+            data.participant_url,
+            data.survey_token,
+        )
+        if meeting_identity:
+            custom_data["meeting_identity"] = meeting_identity
+
+    if data.callback_url and data.survey_token:
+        custom_data["__meeting_callback"] = {
+            "callback_url": data.callback_url,
+            "survey_token": data.survey_token,
+        }
+
+    payload["custom_data"] = custom_data
 
     # ⭐ 根据部门路由解析本次应使用的问卷
     try:
@@ -186,6 +225,21 @@ async def submit_assessment(
             keyword in detail for keyword in ["重复提交", "最大提交次数", "距上次提交"]
         ) else 400
         raise HTTPException(status_code=status_code, detail=detail)
+
+    callback_config = {}
+    if isinstance(submission.custom_data, dict):
+        callback_config = submission.custom_data.get("__meeting_callback") or {}
+    callback_url = data.callback_url or callback_config.get("callback_url")
+    survey_token = data.survey_token or callback_config.get("survey_token")
+    try:
+        await meeting_integration.send_completion_callback(
+            callback_url,
+            survey_token,
+            submission.id,
+            submission.submitted_at or submission.started_at,
+        )
+    except Exception:
+        pass
     
     return schemas.PublicSubmissionSuccess(
         success=True,

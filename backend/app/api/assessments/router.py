@@ -5,6 +5,7 @@ from sqlmodel import Session
 
 from app.db import get_session
 from app.api.assessments import schemas, service
+from app.api.assessments.meeting_integration import sanitize_custom_data
 from app.api.assessments.questionnaire_parser import parse_questionnaire_file, parse_questionnaire_file_async
 from app.models_assessment import Questionnaire
 
@@ -259,7 +260,7 @@ async def get_submissions(
             max_score=sub.max_score,
             score_percentage=sub.score_percentage,
             result_details=sub.result_details,
-            custom_data=sub.custom_data,
+            custom_data=sanitize_custom_data(sub.custom_data),
         )
         result_items.append(item)
     
@@ -311,7 +312,7 @@ async def get_submission_detail(
         "submitted_at": submission.submitted_at,
         "answers": submission.answers or answers,  # ⭐ 优先使用 submission.answers
         "result_details": submission.result_details,
-        "custom_data": submission.custom_data,
+        "custom_data": sanitize_custom_data(submission.custom_data),
     }
 
 

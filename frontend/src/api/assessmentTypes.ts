@@ -132,6 +132,9 @@ export interface Submission {
   code: string;
   candidate_name: string;
   candidate_phone: string;
+  candidate_email?: string;
+  gender?: string;
+  target_position?: string;
   questionnaire_id?: number;  // ⭐ 新增：问卷ID，用于前端过滤
   questionnaire_name?: string;
   questionnaire_type?: string;
@@ -141,7 +144,9 @@ export interface Submission {
   started_at: string;
   submitted_at?: string;
   result_details?: any; // 测评维度详细数据 (MBTI/DISC/EPQ等)
-  custom_data?: Record<string, any>;  // 自定义字段（用于部门等信息展示）
+  custom_data?: Record<string, any> & {
+    meeting_identity?: Record<string, any>;
+  };  // 自定义字段（用于部门等信息展示）
 }
 
 export interface AnswerExportOption {
@@ -278,6 +283,7 @@ export interface PublicAssessmentInfo {
   repeat_interval_hours?: number;
   max_submissions?: number;
   anonymous_mode?: boolean;
+  entry_prefill?: Record<string, any>;
 }
 
 export interface PublicSubmissionStart {
@@ -313,6 +319,9 @@ export interface SubmissionStart {
   gender?: string;
   custom_data?: Record<string, any>;
   anonymous_device_id?: string;
+  survey_token?: string;
+  participant_url?: string;
+  callback_url?: string;
 }
 
 export interface QuestionnaireImportResponse {

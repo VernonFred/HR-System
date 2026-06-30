@@ -8,6 +8,19 @@ import type { PublicAssessmentInfo, PublicSubmissionStart, SubmitCheckResult, Su
 
 // ========== 公开API（候选人端） ==========
 
+export interface MeetingEntranceContext {
+  surveyToken?: string;
+  participantUrl?: string;
+  callbackUrl?: string;
+}
+
+const appendMeetingQuery = (path: string, context?: MeetingEntranceContext) => {
+  const search = new URLSearchParams();
+  if (context?.surveyToken) search.append('surveyToken', context.surveyToken);
+  if (context?.participantUrl) search.append('participantUrl', context.participantUrl);
+  const qs = search.toString();
+  return qs ? `${path}?${qs}` : path;
+};
 
 
 // ⭐ 重复提交检测结果
@@ -24,7 +37,7 @@ export const checkCanSubmit = (code: string, phone: string, name: string = "", a
 }
 
 
-export const fetchPublicAssessment = (code: string) => {
+export const fetchPublicAssessment = (code: string, context?: MeetingEntranceContext) => {
   // 构建fallback数据
   const assessment = MOCK_ASSESSMENTS.find(a => a.code === code);
   const questionnaire = assessment
@@ -69,7 +82,7 @@ export const fetchPublicAssessment = (code: string) => {
   } as PublicAssessmentInfo;
 
   return apiRequest<PublicAssessmentInfo>({
-    path: `/api/public/assessment/${code}`,
+    path: appendMeetingQuery(`/api/public/assessment/${code}`, context),
     fallback: fallbackData,
     auth: false,
   });

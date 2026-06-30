@@ -9,6 +9,7 @@ import {
   type SubmissionStart,
   type SubmitCheckResult,
 } from "../api/assessments";
+import type { MeetingEntranceContext } from "../api/publicAssessmentApi";
 import CustomAlert from "../components/CustomAlert.vue";
 import { getAnonymousDeviceId } from "../utils/anonymousDevice";
 import {
@@ -20,6 +21,15 @@ const route = useRoute();
 const router = useRouter();
 
 const code = computed(() => route.params.code as string);
+const getQueryString = (value: unknown) => {
+  if (Array.isArray(value)) return value[0] || "";
+  return typeof value === "string" ? value : "";
+};
+const meetingContext = computed<MeetingEntranceContext>(() => ({
+  surveyToken: getQueryString(route.query.surveyToken),
+  participantUrl: getQueryString(route.query.participantUrl),
+  callbackUrl: getQueryString(route.query.callbackUrl),
+}));
 const assessment = ref<PublicAssessmentInfo | null>(null);
 const loading = ref(true);
 const error = ref("");
@@ -74,7 +84,7 @@ const loadAssessment = async () => {
   try {
     loading.value = true;
     error.value = "";
-    const res = await fetchPublicAssessment(code.value);
+    const res = await fetchPublicAssessment(code.value, meetingContext.value);
     assessment.value = res;
 
     // ⭐ 动态初始化表单字段
@@ -82,7 +92,7 @@ const loadAssessment = async () => {
       formFields.value = normalizeFormFields(res.form_fields, !!res.anonymous_mode);
       // 初始化表单值
       formFields.value.forEach(field => {
-        form.value[field.name] = "";
+        form.value[field.name] = res.entry_prefill?.[field.name] ?? "";
       });
     } else {
       // 默认字段（兼容旧数据）
@@ -95,7 +105,7 @@ const loadAssessment = async () => {
       ];
       formFields.value = normalizeFormFields(formFields.value, !!res.anonymous_mode);
       formFields.value.forEach(field => {
-        form.value[field.name] = "";
+        form.value[field.name] = res.entry_prefill?.[field.name] ?? "";
       });
     }
 
@@ -242,6 +252,9 @@ const handleStart = async () => {
       ...builtinFields,
       custom_data: customData,
       anonymous_device_id: anonymousDeviceId,
+      survey_token: meetingContext.value.surveyToken,
+      participant_url: meetingContext.value.participantUrl,
+      callback_url: meetingContext.value.callbackUrl,
     } as any, assessment.value?.type, assessment.value?.questions);
 
     // ⭐ 存储测评数据到 sessionStorage，供填写页面使用

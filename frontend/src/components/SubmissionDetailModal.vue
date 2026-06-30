@@ -36,6 +36,22 @@ const submissionDepartment = computed(() => {
   if (value === undefined || value === null) return ''
   return String(value).trim()
 })
+const meetingIdentity = computed(() => props.submission?.custom_data?.meeting_identity || {})
+const meetingIdentityRows = computed(() => {
+  const identity = meetingIdentity.value
+  const currentName = String(props.submission?.candidate_name || '').trim()
+  const currentPhone = String(props.submission?.candidate_phone || '').trim()
+  const showMeetingName = !currentName || ['匿名', '未知'].includes(currentName)
+  const showMeetingPhone = !currentPhone
+  return [
+    { key: 'candidate_name', icon: 'ri-user-line', value: showMeetingName ? identity.candidate_name : '' },
+    { key: 'candidate_phone', icon: 'ri-phone-line', value: showMeetingPhone ? identity.candidate_phone : '' },
+    { key: 'candidate_email', icon: 'ri-mail-line', value: identity.candidate_email },
+    { key: 'school', icon: 'ri-school-line', value: identity.school },
+    { key: 'department', icon: 'ri-building-line', value: identity.department },
+    { key: 'target_position', icon: 'ri-briefcase-line', value: identity.target_position },
+  ].filter(row => row.value !== undefined && row.value !== null && String(row.value).trim())
+})
 
 // ===== 方法 =====
 const close = () => emit('close')
@@ -139,6 +155,14 @@ const getDimensionValue = (dim: any): number => {
             <div v-if="submissionDepartment" class="info-row">
               <i class="ri-building-line"></i>
               <span>{{ submissionDepartment }}</span>
+            </div>
+            <div
+              v-for="row in meetingIdentityRows"
+              :key="row.key"
+              class="info-row"
+            >
+              <i :class="row.icon"></i>
+              <span>{{ row.value }}</span>
             </div>
           </div>
           <div v-if="submission?.total_score !== null && submission?.total_score !== undefined" class="score-badge">

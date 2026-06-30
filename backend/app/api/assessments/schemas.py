@@ -196,12 +196,17 @@ class SubmissionCreate(BaseModel):
     target_position: Optional[str] = None
     anonymous_device_id: Optional[str] = None
     custom_data: Optional[Dict[str, Any]] = {}  # ⭐ 自定义字段数据
+    survey_token: Optional[str] = None
+    participant_url: Optional[str] = None
+    callback_url: Optional[str] = None
 
 
 class AnswerSubmit(BaseModel):
     """提交答案."""
     submission_code: str
     answers: Dict[str, Any]  # {question_id: selected_option} 支持字符串、数字、数组等类型
+    survey_token: Optional[str] = None
+    callback_url: Optional[str] = None
 
 
 class SubmissionResponse(BaseModel):
@@ -305,6 +310,7 @@ class PublicAssessmentInfo(BaseModel):
     repeat_interval_hours: int = 0
     max_submissions: int = 0
     anonymous_mode: bool = False
+    entry_prefill: Dict[str, Any] = {}
 
 
 class PublicSubmissionStart(BaseModel):
