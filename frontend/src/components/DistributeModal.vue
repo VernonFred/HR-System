@@ -24,6 +24,7 @@ import {
 } from '../api/assessments'
 import FieldConfigPanel from './FieldConfigPanel.vue'
 import { getQuestionnaireCopy } from '../utils/questionnaireCopy'
+import { isPlainObject, useDistributeConfigStorage } from './distributeConfigStorage'
 
 // ===== Props =====
 const props = defineProps<{
@@ -410,70 +411,13 @@ const getFieldIcon = (field: FormField) => {
 // ===== 配置持久化 =====
 const storageKey = computed(() => `distribute_config_${copy.value.mode}`)
 
-const isPlainObject = (value: unknown): value is Record<string, any> => {
-  return typeof value === 'object' && value !== null && !Array.isArray(value)
-}
-
-// 保存配置到 localStorage
-const saveConfig = () => {
-  try {
-    const config = {
-      form: {
-        validityType: form.value.validityType,
-        expiryDays: form.value.expiryDays,
-        allowRepeat: form.value.allowRepeat,
-        repeatCheckBy: form.value.repeatCheckBy,
-        repeatIntervalHours: form.value.repeatIntervalHours,
-        maxSubmissions: form.value.maxSubmissions,
-        anonymousMode: form.value.anonymousMode,
-      },
-      formFields: formFields.value,
-      pageTexts: pageTexts.value,
-      routingConfig: routingConfig.value,
-    }
-    localStorage.setItem(storageKey.value, JSON.stringify(config))
-  } catch (e) {
-    console.warn('保存分发配置失败:', e)
-  }
-}
-
-// 从 localStorage 加载配置
-const loadConfig = () => {
-  try {
-    const saved = localStorage.getItem(storageKey.value)
-    if (saved) {
-      const config = JSON.parse(saved)
-      // 恢复表单配置
-      if (isPlainObject(config.form)) {
-        form.value.validityType = config.form.validityType || 'temporary'
-        form.value.expiryDays = config.form.expiryDays || 7
-        form.value.allowRepeat = config.form.allowRepeat || false
-        form.value.repeatCheckBy = config.form.repeatCheckBy || 'phone'
-        form.value.repeatIntervalHours = config.form.repeatIntervalHours || 24
-        form.value.maxSubmissions = config.form.maxSubmissions || 0
-        form.value.anonymousMode = !!config.form.anonymousMode
-      }
-      // 恢复字段配置
-      if (config.formFields && Array.isArray(config.formFields)) {
-        formFields.value = config.formFields
-      }
-      // 恢复页面文案
-      if (isPlainObject(config.pageTexts)) {
-        pageTexts.value = { ...pageTexts.value, ...config.pageTexts }
-      }
-      if (isPlainObject(config.routingConfig)) {
-        routingConfig.value = {
-          enabled: !!config.routingConfig.enabled,
-          department_field: config.routingConfig.department_field || 'department',
-          fallback_to_default: config.routingConfig.fallback_to_default !== false,
-          mappings: Array.isArray(config.routingConfig.mappings) ? config.routingConfig.mappings : [],
-        }
-      }
-    }
-  } catch (e) {
-    console.warn('加载分发配置失败:', e)
-  }
-}
+const { saveConfig, loadConfig } = useDistributeConfigStorage({
+  storageKey,
+  form,
+  formFields,
+  pageTexts,
+  routingConfig,
+})
 
 const applyAssessmentToForm = () => {
   if (!props.assessment) return

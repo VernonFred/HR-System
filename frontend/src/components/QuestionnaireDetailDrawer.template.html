@@ -1,6 +1,5 @@
   <div class="drawer-overlay" @click="close">
     <div class="drawer-panel" :class="{ 'is-exporting-stats': statsExportLoading }" @click.stop>
-      <!-- 抽屉头部 -->
       <div class="drawer-header">
         <div class="drawer-title">
           <button class="btn-back" @click="close">
@@ -14,42 +13,26 @@
           </button>
         </div>
       </div>
-
-      <!-- Tab 切换 -->
       <div class="drawer-tabs">
-        <button
-          :class="['tab-btn', { active: activeTab === 'submissions' }]"
-          @click="activeTab = 'submissions'"
-        >
+        <button :class="['tab-btn', { active: activeTab === 'submissions' }]" @click="activeTab = 'submissions'" >
           <i class="ri-file-list-3-line"></i>
           答题记录
           <span class="tab-count">{{ submissions.length }}</span>
         </button>
-        <button
-          :class="['tab-btn', { active: activeTab === 'statistics' }]"
-          @click="activeTab = 'statistics'"
-        >
+        <button :class="['tab-btn', { active: activeTab === 'statistics' }]" @click="activeTab = 'statistics'" >
           <i class="ri-bar-chart-grouped-line"></i>
           问卷统计
         </button>
       </div>
-
-      <!-- 抽屉内容 -->
       <div class="drawer-content">
-        <!-- 提交记录 Tab -->
         <div v-if="activeTab === 'submissions'" class="tab-submissions">
-          <!-- 空状态 -->
           <div v-if="submissions.length === 0" class="empty-state">
             <i class="ri-inbox-line"></i>
             <p>暂无答题记录</p>
             <span>分发问卷后，答题记录将在这里显示</span>
           </div>
-
-          <!-- 分组视图 -->
           <div v-else class="grouped-view">
-            <!-- V45: 年份/月份筛选 + 控制栏 -->
             <div class="grouped-controls">
-              <!-- 日期筛选 -->
               <div class="date-filters">
                 <select v-model="filterYear" class="date-select">
                   <option :value="null">全部年份</option>
@@ -69,23 +52,15 @@
                 <i class="ri-download-line"></i>
                 导出数据
               </button>
-              <!-- ⭐ V44: 批量删除按钮 -->
-              <button
-                :class="['btn-batch-select', { active: isSelectMode }]"
-                @click="toggleSelectMode"
-              >
+              <button :class="['btn-batch-select', { active: isSelectMode }]" @click="toggleSelectMode" >
                 <i :class="isSelectMode ? 'ri-close-line' : 'ri-checkbox-multiple-line'"></i>
                 {{ isSelectMode ? '取消选择' : '批量删除' }}
               </button>
             </div>
-
-            <!-- ⭐ V44: 批量操作栏 -->
             <div v-if="isSelectMode" class="batch-action-bar">
               <div class="batch-left">
                 <label class="select-all-checkbox">
-                  <input
-                    type="checkbox"
-                    :checked="selectedSubmissions.size === submissions.length && submissions.length > 0"
+                  <input type="checkbox" :checked="selectedSubmissions.size === submissions.length && submissions.length > 0"
                     @change="toggleSelectAll"
                   />
                   <span>全选</span>
@@ -93,36 +68,16 @@
                 <span class="selected-count">已选择 {{ selectedSubmissions.size }} 条</span>
               </div>
               <div class="batch-right">
-                <button
-                  class="btn-batch-delete"
-                  :disabled="selectedSubmissions.size === 0"
-                  @click="openBatchDeleteModal"
-                >
+                <button class="btn-batch-delete" :disabled="selectedSubmissions.size === 0" @click="openBatchDeleteModal" >
                   <i class="ri-delete-bin-line"></i>
                   删除选中 ({{ selectedSubmissions.size }})
                 </button>
               </div>
             </div>
-
-            <!-- 候选人分组卡片 -->
             <div class="candidate-groups">
-              <div
-                v-for="group in paginatedGroupedSubmissions"
-                :key="getGroupKey(group)"
-                class="candidate-group-card"
-                :class="{ expanded: expandedCandidates.has(getGroupKey(group)) }"
-              >
-                <!-- 分组头部 V42: 调整布局，标签放名字旁边 -->
-                <div
-                  class="group-header"
-                  @click="toggleCandidateExpand(getGroupKey(group))"
-                >
-                  <!-- ⭐ V44: 选择模式下显示复选框 -->
-                  <input
-                    v-if="isSelectMode"
-                    type="checkbox"
-                    class="group-checkbox"
-                    :checked="group.submissions.every(s => selectedSubmissions.has(s.id))"
+              <div v-for="group in paginatedGroupedSubmissions" :key="getGroupKey(group)" class="candidate-group-card" :class="{ expanded: expandedCandidates.has(getGroupKey(group)) }" >
+                <div class="group-header" @click="toggleCandidateExpand(getGroupKey(group))" >
+                  <input v-if="isSelectMode" type="checkbox" class="group-checkbox" :checked="group.submissions.every(s => selectedSubmissions.has(s.id))"
                     @click.stop
                     @change="group.submissions.forEach(s => toggleSubmissionSelect(s.id))"
                   />
@@ -155,15 +110,8 @@
                   </div>
                   <i :class="['expand-icon', expandedCandidates.has(getGroupKey(group)) ? 'ri-arrow-up-s-line' : 'ri-arrow-down-s-line']"></i>
                 </div>
-
-                <!-- 展开的提交列表 -->
                 <div v-if="expandedCandidates.has(getGroupKey(group))" class="group-submissions">
-                  <div
-                    v-for="(sub, idx) in getGroupSubmissions(group)"
-                    :key="sub.id"
-                    class="submission-item"
-                    :class="{ selected: selectedSubmission?.id === sub.id }"
-                  >
+                  <div v-for="(sub, idx) in getGroupSubmissions(group)" :key="sub.id" class="submission-item" :class="{ selected: selectedSubmission?.id === sub.id }" >
                     <div class="submission-order">
                       #{{ (getGroupPage(group) - 1) * groupPageSize + idx + 1 }}
                     </div>
@@ -180,28 +128,20 @@
                       </span>
                     </div>
                     <div class="submission-actions">
-                      <!-- V42: 移除查看详情按钮，人员画像中已有问卷数据展示 -->
                       <button class="btn-mini delete" title="删除" @click.stop="handleDeleteSubmission(sub)">
                         <i class="ri-delete-bin-line"></i>
                       </button>
                     </div>
                   </div>
-
                   <div v-if="getGroupTotalPages(group) > 1" class="group-pagination">
-                    <button
-                      class="page-btn"
-                      :disabled="getGroupPage(group) <= 1"
-                      @click="changeGroupPage(group, getGroupPage(group) - 1)"
-                    >
+                    <button class="page-btn" :disabled="getGroupPage(group) <= 1" @click="changeGroupPage(group, getGroupPage(group) - 1)" >
                       <i class="ri-arrow-left-s-line"></i>
                       上一页
                     </button>
                     <span class="page-info">
                       {{ getGroupPage(group) }} / {{ getGroupTotalPages(group) }}
                     </span>
-                    <button
-                      class="page-btn"
-                      :disabled="getGroupPage(group) >= getGroupTotalPages(group)"
+                    <button class="page-btn" :disabled="getGroupPage(group) >= getGroupTotalPages(group)"
                       @click="changeGroupPage(group, getGroupPage(group) + 1)"
                     >
                       下一页
@@ -212,20 +152,13 @@
               </div>
             </div>
             <div v-if="groupListTotalPages > 1" class="group-list-pagination">
-              <button
-                class="page-btn"
-                :disabled="groupListPage === 1"
-                @click="changeGroupListPage(groupListPage - 1)"
-                title="上一页"
-              >
+              <button class="page-btn" :disabled="groupListPage === 1" @click="changeGroupListPage(groupListPage - 1)" title="上一页" >
                 <i class="ri-arrow-left-s-line"></i>
               </button>
               <span class="page-info">
                 {{ groupListPage }} / {{ groupListTotalPages }} (共 {{ groupedSubmissions.length }} 人)
               </span>
-              <button
-                class="page-btn"
-                :disabled="groupListPage >= groupListTotalPages"
+              <button class="page-btn" :disabled="groupListPage >= groupListTotalPages"
                 @click="changeGroupListPage(groupListPage + 1)"
                 title="下一页"
               >
@@ -234,47 +167,33 @@
             </div>
           </div>
         </div>
-
-        <!-- 问卷统计 Tab - V42 全新设计 -->
         <div v-if="activeTab === 'statistics'" class="tab-statistics">
-          <!-- 加载状态 -->
           <div v-if="statsLoading" class="stats-loading">
             <i class="ri-loader-4-line spinning"></i>
             <span>加载统计数据中...</span>
           </div>
-
-          <!-- 错误状态 -->
           <div v-else-if="statsError" class="stats-error">
             <i class="ri-error-warning-line"></i>
             <span>{{ statsError }}</span>
             <button @click="loadQuestionStats">重试</button>
           </div>
-
-          <!-- 统计内容 -->
           <template v-else>
             <div class="statistics-toolbar">
               <div class="statistics-toolbar-text">
                 <h3>问卷统计</h3>
                 <p>导出完整可视化统计报告，包含全部题目分析</p>
               </div>
-              <button
-                class="btn-stats-export"
-                :disabled="statsLoading || statsExportLoading"
-                @click="openStatsExportModal"
-              >
+              <button class="btn-stats-export" :disabled="statsLoading || statsExportLoading" @click="openStatsExportModal" >
                 <i class="ri-download-cloud-2-line"></i>
                 导出统计
               </button>
             </div>
-
-            <!-- V45: 核心指标卡片 - 修复无数据时显示问题 -->
             <div class="stats-overview">
               <div class="stat-card">
                 <div class="stat-icon participants">
                   <i class="ri-group-line"></i>
                 </div>
                 <div class="stat-data">
-                  <!-- V46: 使用 actualSubmissionCount 确保显示正确 -->
                   <span class="stat-value">{{ actualSubmissionCount }}</span>
                   <span class="stat-label">参与人数</span>
                 </div>
@@ -284,12 +203,10 @@
                   <i class="ri-checkbox-circle-line"></i>
                 </div>
                 <div class="stat-data">
-                  <!-- V46: 修复完成率显示 -->
                   <span class="stat-value">{{ actualSubmissionCount > 0 ? (questionStats?.completion_rate ?? 100) : 0 }}%</span>
                   <span class="stat-label">完成率</span>
                 </div>
               </div>
-              <!-- V43: 评分问卷显示优良率，调查问卷显示题目数 -->
               <div class="stat-card" v-if="isScored">
                 <div class="stat-icon highlight">
                   <i class="ri-star-line"></i>
@@ -318,8 +235,6 @@
                 </div>
               </div>
             </div>
-
-            <!-- V45: 无数据时显示空状态提示 -->
             <div v-if="!hasSubmissions" class="stats-empty-state">
               <div class="empty-icon">
                 <i class="ri-bar-chart-line"></i>
@@ -327,33 +242,16 @@
               <h4>暂无统计数据</h4>
               <p>分发问卷并收集回复后，统计数据将在这里显示</p>
             </div>
-
-            <!-- V43: 得分分布（优化布局，修复换行问题） -->
             <div v-if="isScored && completedSubmissions.length > 0" class="grade-distribution">
               <h4><i class="ri-bar-chart-grouped-line"></i> 得分分布</h4>
               <div class="grade-bars">
-                <div
-                  v-for="gradeInfo in [
-                    { grade: 'A', label: '优秀', color: '#10b981' },
-                    { grade: 'B', label: '良好', color: '#3b82f6' },
-                    { grade: 'C', label: '及格', color: '#f59e0b' },
-                    { grade: 'D', label: '待提升', color: '#ef4444' }
-                  ]"
-                  :key="gradeInfo.grade"
-                  class="grade-bar"
-                >
+                <div v-for="gradeInfo in [ { grade: 'A', label: '优秀', color: '#10b981' }, { grade: 'B', label: '良好', color: '#3b82f6' }, { grade: 'C', label: '及格', color: '#f59e0b' }, { grade: 'D', label: '待提升', color: '#ef4444' } ]" :key="gradeInfo.grade" class="grade-bar" >
                   <div class="grade-label-wrap" :style="{ color: gradeInfo.color }">
                     <span class="grade-letter">{{ gradeInfo.grade }}</span>
                     <span class="grade-text">{{ gradeInfo.label }}</span>
                   </div>
                   <div class="grade-track">
-                    <div
-                      class="grade-fill"
-                      :class="`grade-${gradeInfo.grade.toLowerCase()}`"
-                      :style="{
-                        width: getGradePercent(gradeInfo.grade) + '%'
-                      }"
-                    ></div>
+                    <div class="grade-fill" :class="`grade-${gradeInfo.grade.toLowerCase()}`" :style="{ width: getGradePercent(gradeInfo.grade) + '%' }" ></div>
                   </div>
                   <span class="grade-count">
                     {{ getGradePercentLabel(gradeInfo.grade) }}%
@@ -362,93 +260,40 @@
                 </div>
               </div>
             </div>
-
-            <!-- V43: 提交趋势（优化样式） -->
             <div v-if="questionStats?.daily_trend && questionStats.daily_trend.length > 0" class="submission-trend">
               <div class="trend-header">
                 <h4><i class="ri-calendar-line"></i> 提交趋势</h4>
                 <div class="trend-range">
-                  <button
-                    class="range-btn"
-                    :class="{ active: trendRange === 'week' }"
-                    @click="trendRange = 'week'"
-                  >
+                  <button class="range-btn" :class="{ active: trendRange === 'week' }" @click="trendRange = 'week'" >
                     本周
                   </button>
-                  <button
-                    class="range-btn"
-                    :class="{ active: trendRange === 'month' }"
-                    @click="trendRange = 'month'"
-                  >
+                  <button class="range-btn" :class="{ active: trendRange === 'month' }" @click="trendRange = 'month'" >
                     近一个月
                   </button>
                 </div>
               </div>
               <div class="trend-chart-v43">
                 <div class="trend-line-container" ref="trendContainerRef">
-                  <!-- 背景网格 -->
                   <div class="trend-grid">
                     <div class="grid-line" v-for="i in 4" :key="i"></div>
                   </div>
-                  <div
-                    v-if="trendTooltip.visible"
-                    class="trend-tooltip"
-                    :style="{ left: `${trendTooltip.x}px`, top: `${trendTooltip.y}px` }"
-                  >
+                  <div v-if="trendTooltip.visible" class="trend-tooltip" :style="{ left: `${trendTooltip.x}px`, top: `${trendTooltip.y}px` }" >
                     {{ trendTooltip.text }}
                   </div>
-                  <!-- 数据点和连线 -->
-                  <svg
-                    class="trend-svg"
-                    :viewBox="`0 0 ${trendChartWidth} ${trendSvgHeight}`"
-                    preserveAspectRatio="none"
-                  >
+                  <svg class="trend-svg" :viewBox="`0 0 ${trendChartWidth} ${trendSvgHeight}`" preserveAspectRatio="none" >
                     <defs>
                       <linearGradient id="areaGradient" x1="0%" y1="0%" x2="0%" y2="100%">
                         <stop offset="0%" style="stop-color: #7c3aed; stop-opacity: 0.3" />
                         <stop offset="100%" style="stop-color: #7c3aed; stop-opacity: 0.02" />
                       </linearGradient>
                     </defs>
-                    <!-- 面积填充 -->
-                    <path
-                      :d="trendAreaPath"
-                      fill="url(#areaGradient)"
-                    />
-                    <!-- 折线 -->
-                    <path
-                      :d="trendLinePath"
-                      fill="none"
-                      stroke="#7c3aed"
-                      stroke-width="2.5"
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                    />
-                    <!-- 数据点 -->
-                  <g
-                      v-for="(point, idx) in trendPoints"
-                      :key="idx"
-                    @mouseenter="showTrendTooltip($event, point)"
-                    @mousemove="moveTrendTooltip"
-                    @mouseleave="hideTrendTooltip"
-                  >
-                    <circle
-                      :cx="point.x"
-                      :cy="point.y"
-                      r="4"
-                      fill="white"
-                      stroke="#7c3aed"
-                      stroke-width="2"
-                    />
+                    <path :d="trendAreaPath" fill="url(#areaGradient)" />
+                    <path :d="trendLinePath" fill="none" stroke="#7c3aed" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" />
+                  <g v-for="(point, idx) in trendPoints" :key="idx" @mouseenter="showTrendTooltip($event, point)" @mousemove="moveTrendTooltip" @mouseleave="hideTrendTooltip" >
+                    <circle :cx="point.x" :cy="point.y" r="4" fill="white" stroke="#7c3aed" stroke-width="2" />
                   </g>
                   <g class="trend-axis-labels">
-                    <text
-                      v-for="(point, idx) in trendLabelPoints"
-                      :key="`label-${idx}`"
-                      :x="point.x"
-                      :y="trendLabelY"
-                      :text-anchor="point.anchor"
-                      class="trend-axis-label"
-                    >
+                    <text v-for="(point, idx) in trendLabelPoints" :key="`label-${idx}`" :x="point.x" :y="trendLabelY" :text-anchor="point.anchor" class="trend-axis-label" >
                       {{ formatTrendDate(point.date) }}
                     </text>
                   </g>
@@ -456,19 +301,13 @@
                 </div>
               </div>
             </div>
-
-            <!-- V43: 题目分析（带分页，每页10条） -->
             <div v-if="questionStats?.questions && questionStats.questions.length > 0" class="question-analysis">
               <div class="question-analysis-header">
                 <h4><i class="ri-file-list-3-line"></i> 题目分析</h4>
                 <span class="question-total">共 {{ questionStats.questions.length }} 题</span>
               </div>
               <div class="question-list">
-                <div
-                  v-for="q in paginatedQuestions"
-                  :key="q.id"
-                  class="question-stat-card"
-                >
+                <div v-for="q in paginatedQuestions" :key="q.id" class="question-stat-card" >
                   <div class="question-header">
                     <span class="question-index">Q{{ q.index }}</span>
                     <span class="question-text">{{ q.text }}</span>
@@ -476,50 +315,28 @@
                       <span class="question-type-badge" :class="`type-${q.type}`">
                         {{ getQuestionTypeLabel(q.type) }}
                       </span>
-                      <span
-                        v-if="isSingleChoiceQuestion(q.type) && q.options.length > 0"
+                      <span v-if="isSingleChoiceQuestion(q.type) && q.options.length > 0"
                         class="question-type-toggle"
                       >
-                        <button
-                          type="button"
-                          class="toggle-btn"
-                          :class="{ active: getQuestionChartMode(q) === 'pie' }"
-                          @click="setQuestionChartMode(q, 'pie')"
-                        >
+                        <button type="button" class="toggle-btn" :class="{ active: getQuestionChartMode(q) === 'pie' }" @click="setQuestionChartMode(q, 'pie')" >
                           环形图
                         </button>
-                        <button
-                          type="button"
-                          class="toggle-btn"
-                          :class="{ active: getQuestionChartMode(q) === 'bar' }"
-                          @click="setQuestionChartMode(q, 'bar')"
-                        >
+                        <button type="button" class="toggle-btn" :class="{ active: getQuestionChartMode(q) === 'bar' }" @click="setQuestionChartMode(q, 'bar')" >
                           条形图
                         </button>
                       </span>
                     </div>
                   </div>
-
                   <div class="question-stat-body" :class="{ 'is-text': isTextQuestion(q.type) }">
-                    <!-- 选择题/量表题选项分布 -->
                     <template v-if="!isTextQuestion(q.type)">
                       <div class="question-chart-panel">
                         <div class="chart-mode-label">{{ getQuestionVisualLabel(q) }}</div>
                         <div v-if="q.options.length > 0" class="option-chart">
                           <div class="option-chart-body">
-                            <EChartContainer
-                              :option="getQuestionVisualOption(q)"
-                              theme="light"
-                              :set-option-opts="questionChartSetOptionOpts"
-                              :style="{ height: `${getQuestionChartHeight(q)}px` }"
-                            />
+                            <EChartContainer :option="getQuestionVisualOption(q)" theme="light" :set-option-opts="questionChartSetOptionOpts" :style="{ height: `${getQuestionChartHeight(q)}px` }" />
                           </div>
                           <div v-if="getQuestionVisualMode(q) === 'pie'" class="chart-legend-list">
-                            <div
-                              v-for="(opt, optIndex) in q.options"
-                              :key="`legend-${q.id}-${opt.index ?? opt.text}`"
-                              class="chart-legend-item"
-                            >
+                            <div v-for="(opt, optIndex) in q.options" :key="`legend-${q.id}-${opt.index ?? opt.text}`" class="chart-legend-item" >
                               <span class="chart-legend-dot" :style="{ background: getQuestionOptionColor(optIndex) }"></span>
                               <span class="chart-legend-text">{{ opt.text }}</span>
                               <span class="chart-legend-value">{{ opt.count }}人</span>
@@ -530,32 +347,19 @@
                           暂无统计数据
                         </div>
                       </div>
-
                       <div class="question-detail-panel">
                         <div class="detail-panel-title">
                           <span>选项明细</span>
                           <div class="detail-panel-actions">
                             <em>{{ getQuestionResponseText(q) }}</em>
                             <div class="option-sort-toggle" aria-label="选项明细排序">
-                              <button
-                                type="button"
-                                :class="{ active: getOptionSortMode(q) === 'default' }"
-                                @click="setOptionSortMode(q, 'default')"
-                              >
+                              <button type="button" :class="{ active: getOptionSortMode(q) === 'default' }" @click="setOptionSortMode(q, 'default')" >
                                 默认
                               </button>
-                              <button
-                                type="button"
-                                :class="{ active: getOptionSortMode(q) === 'desc' }"
-                                @click="setOptionSortMode(q, 'desc')"
-                              >
+                              <button type="button" :class="{ active: getOptionSortMode(q) === 'desc' }" @click="setOptionSortMode(q, 'desc')" >
                                 降序
                               </button>
-                              <button
-                                type="button"
-                                :class="{ active: getOptionSortMode(q) === 'asc' }"
-                                @click="setOptionSortMode(q, 'asc')"
-                              >
+                              <button type="button" :class="{ active: getOptionSortMode(q) === 'asc' }" @click="setOptionSortMode(q, 'asc')" >
                                 升序
                               </button>
                             </div>
@@ -573,22 +377,15 @@
                           </div>
                         </div>
                       </div>
-
                     </template>
-                    <!-- 文本题答案展示 -->
                     <template v-else>
                       <div class="text-insight-panel">
                         <div class="text-answer-count">共收到 {{ q.total_answers }} 条回答</div>
                         <div v-if="hasTextSummary(q)" class="text-answer-summary">
-                          <div
-                            v-if="getTextTags(q).length > 0 || getTextEmptyCount(q) > 0"
+                          <div v-if="getTextTags(q).length > 0 || getTextEmptyCount(q) > 0"
                             class="text-answer-tags"
                           >
-                            <span
-                              v-for="(tag, idx) in getTextTags(q)"
-                              :key="`tag-${q.id}-${idx}`"
-                              class="text-tag"
-                            >
+                            <span v-for="(tag, idx) in getTextTags(q)" :key="`tag-${q.id}-${idx}`" class="text-tag" >
                               {{ tag.text }} <em>×{{ tag.count }}</em>
                             </span>
                             <span v-if="getTextEmptyCount(q) > 0" class="text-tag muted">
@@ -600,35 +397,22 @@
                           暂无关键词汇总
                         </div>
                       </div>
-
                       <div class="text-answers-panel">
                         <div class="detail-panel-title">
                           <span>代表性回答</span>
                           <em>{{ getTextTotalPages(q) > 1 ? `${getTextPage(q)} / ${getTextTotalPages(q)}` : '全部' }}</em>
                         </div>
                         <div v-if="hasTextSummary(q) && getTextLongAnswers(q).length > 0" class="text-answer-samples">
-                          <div
-                            v-for="(ans, idx) in getTextLongAnswerPage(q)"
-                            :key="`ans-${q.id}-${idx}`"
-                            class="text-answer-item"
-                          >
+                          <div v-for="(ans, idx) in getTextLongAnswerPage(q)" :key="`ans-${q.id}-${idx}`" class="text-answer-item" >
                             "{{ ans.text }}"
                             <span class="text-answer-count-badge">×{{ ans.count }}</span>
                           </div>
                           <div v-if="getTextTotalPages(q) > 1" class="text-answer-pagination">
-                            <button
-                              class="page-btn"
-                              :disabled="getTextPage(q) === 1"
-                              @click="setTextPage(q, getTextPage(q) - 1)"
-                            >
+                            <button class="page-btn" :disabled="getTextPage(q) === 1" @click="setTextPage(q, getTextPage(q) - 1)" >
                               <i class="ri-arrow-left-s-line"></i>
                             </button>
                             <span class="page-info">{{ getTextPage(q) }} / {{ getTextTotalPages(q) }}</span>
-                            <button
-                              class="page-btn"
-                              :disabled="getTextPage(q) === getTextTotalPages(q)"
-                              @click="setTextPage(q, getTextPage(q) + 1)"
-                            >
+                            <button class="page-btn" :disabled="getTextPage(q) === getTextTotalPages(q)" @click="setTextPage(q, getTextPage(q) + 1)" >
                               <i class="ri-arrow-right-s-line"></i>
                             </button>
                           </div>
@@ -650,19 +434,11 @@
                 </div>
               </div>
               <div v-if="questionTotalPages > 1" class="question-pagination">
-                <button
-                  class="page-btn"
-                  :disabled="questionCurrentPage === 1"
-                  @click="questionCurrentPage--"
-                >
+                <button class="page-btn" :disabled="questionCurrentPage === 1" @click="questionCurrentPage--" >
                   <i class="ri-arrow-left-s-line"></i>
                 </button>
                 <span class="page-info">{{ questionCurrentPage }} / {{ questionTotalPages }}</span>
-                <button
-                  class="page-btn"
-                  :disabled="questionCurrentPage === questionTotalPages"
-                  @click="questionCurrentPage++"
-                >
+                <button class="page-btn" :disabled="questionCurrentPage === questionTotalPages" @click="questionCurrentPage++" >
                   <i class="ri-arrow-right-s-line"></i>
                 </button>
               </div>
@@ -672,28 +448,5 @@
       </div>
     </div>
   </div>
-
-  <QuestionnaireStatsExportReport
-    v-if="renderStatsExportReport" ref="statsExportReportRef"
-    :questionnaire="questionnaire" :question-stats="questionStats" :actual-submission-count="actualSubmissionCount"
-    :is-scored="isScored" :completed-submissions="completedSubmissions" :grade-distribution="gradeDistribution"
-    :high-score-rate="highScoreRate" :average-score="averageScore" :trend-range-label="trendRangeLabel" :trend-series="trendSeries"
-    :stats-export-chart-images="statsExportChartImages" :get-export-date-text="getExportDateText"
-    :get-grade-count="getGradeCount" :get-grade-percent="getGradePercent" :get-grade-percent-label="getGradePercentLabel"
-    :format-trend-date="formatTrendDate" :is-text-question="isTextQuestion" :get-question-visual-label="getQuestionVisualLabel"
-    :get-question-export-chart-key="getQuestionExportChartKey" :get-question-visual-mode="getQuestionVisualMode"
-    :get-question-option-color="getQuestionOptionColor" :normalize-percentage="normalizePercentage"
-    :get-question-export-option-width="getQuestionExportOptionWidth" :get-sorted-question-options="getSortedQuestionOptions"
-    :get-text-tags="getTextTags" :get-text-empty-count="getTextEmptyCount" :get-text-long-answers="getTextLongAnswers"
-  />
-  <QuestionnaireDetailExportModals
-    v-model:stats-export-format="statsExportFormat" v-model:export-format="exportFormat"
-    :show-stats-export-modal="showStatsExportModal" :stats-export-loading="statsExportLoading" :question-stats="questionStats"
-    :show-export-modal="showExportModal" :export-loading="exportLoading" :submissions="submissions"
-    :show-export-success-toast="showExportSuccessToast" :show-stats-export-toast="showStatsExportToast"
-    :stats-export-toast-type="statsExportToastType" :stats-export-toast-message="statsExportToastMessage"
-    :show-batch-delete-modal="showBatchDeleteModal" :selected-submissions="selectedSubmissions" :format-date="formatDate"
-    @close-stats-export-modal="closeStatsExportModal" @execute-stats-export="executeStatsExport"
-    @close-export-modal="closeExportModal" @execute-export="executeExport"
-    @close-batch-delete-modal="showBatchDeleteModal = false" @confirm-batch-delete="confirmBatchDelete"
-  />
+  <QuestionnaireStatsExportReport v-if="renderStatsExportReport" ref="statsExportReportRef" :questionnaire="questionnaire" :question-stats="questionStats" :actual-submission-count="actualSubmissionCount" :is-scored="isScored" :completed-submissions="completedSubmissions" :grade-distribution="gradeDistribution" :high-score-rate="highScoreRate" :average-score="averageScore" :trend-range-label="trendRangeLabel" :trend-series="trendSeries" :stats-export-chart-images="statsExportChartImages" :get-export-date-text="getExportDateText" :get-grade-count="getGradeCount" :get-grade-percent="getGradePercent" :get-grade-percent-label="getGradePercentLabel" :format-trend-date="formatTrendDate" :is-text-question="isTextQuestion" :get-question-visual-label="getQuestionVisualLabel" :get-question-export-chart-key="getQuestionExportChartKey" :get-question-visual-mode="getQuestionVisualMode" :get-question-option-color="getQuestionOptionColor" :normalize-percentage="normalizePercentage" :get-question-export-option-width="getQuestionExportOptionWidth" :get-sorted-question-options="getSortedQuestionOptions" :get-text-tags="getTextTags" :get-text-empty-count="getTextEmptyCount" :get-text-long-answers="getTextLongAnswers" />
+  <QuestionnaireDetailExportModals v-model:stats-export-format="statsExportFormat" v-model:export-format="exportFormat" :show-stats-export-modal="showStatsExportModal" :stats-export-loading="statsExportLoading" :question-stats="questionStats" :show-export-modal="showExportModal" :export-loading="exportLoading" :submissions="submissions" :show-export-success-toast="showExportSuccessToast" :show-stats-export-toast="showStatsExportToast" :stats-export-toast-type="statsExportToastType" :stats-export-toast-message="statsExportToastMessage" :show-batch-delete-modal="showBatchDeleteModal" :selected-submissions="selectedSubmissions" :format-date="formatDate" @close-stats-export-modal="closeStatsExportModal" @execute-stats-export="executeStatsExport" @close-export-modal="closeExportModal" @execute-export="executeExport" @close-batch-delete-modal="showBatchDeleteModal = false" @confirm-batch-delete="confirmBatchDelete" />

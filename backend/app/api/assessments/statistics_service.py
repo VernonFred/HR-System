@@ -5,124 +5,23 @@ from typing import Any, Dict, List, Optional
 from sqlmodel import Session, select
 
 from app.models_assessment import Questionnaire, Submission
+from app.api.assessments.statistics_normalizers import (
+    _normalize_questionnaire_questions,
+    _normalize_submission_answers,
+)
 
 
 # ========== 统计相关 ==========
-
-COMPLETED_SUBMISSION_STATUSES = ("completed", "已完成", "done", "submitted")
-
-
-def _parse_json_object(raw_value: Any, default: Any) -> Any:
-    """兼容历史字符串 JSON 字段."""
-    if isinstance(raw_value, str):
-        import json
-        try:
-            return json.loads(raw_value)
-        except Exception:
-            return default
-    return raw_value if raw_value is not None else default
-
-
-def _normalize_questionnaire_questions(questionnaire: Questionnaire) -> List[Dict[str, Any]]:
-    """提取问卷题目列表，兼容历史结构."""
-    questions_data = _parse_json_object(questionnaire.questions_data or [], [])
-    if isinstance(questions_data, dict):
-        questions_data = questions_data.get("questions", [])
-    if not isinstance(questions_data, list):
-        return []
-    return [question for question in questions_data if isinstance(question, dict)]
-
-
-def _normalize_export_options(raw_options: Any) -> List[Dict[str, Any]]:
-    """标准化题目选项为 value/label 结构."""
-    if not isinstance(raw_options, list):
-        return []
-
-    normalized_options: List[Dict[str, Any]] = []
-    for option_index, option in enumerate(raw_options):
-        if isinstance(option, dict):
-            option_value = option.get("value")
-            option_label = option.get("label") or option.get("text") or option.get("value")
-            if option_value is None:
-                option_value = option.get("label") or option.get("text")
-            if option_label is not None:
-                option_label = str(option_label)
-            normalized_options.append({"index": option_index, "value": option_value, "label": option_label})
-        else:
-            normalized_options.append({"index": option_index, "value": option, "label": str(option)})
-    return normalized_options
-
-
-def _normalize_submission_answers(raw_answers: Any) -> Dict[str, Any]:
-    """标准化提交答案结构."""
-    answers = _parse_json_object(raw_answers or {}, {})
-    return answers if isinstance(answers, dict) else {}
-
-
-def _select_export_submissions(session: Session, questionnaire_id: int) -> List[Submission]:
-    """优先选择已完成记录，缺失时回退到有答案的记录."""
-    completed_query = (
-        select(Submission)
-        .where(
-            Submission.questionnaire_id == questionnaire_id,
-            Submission.status.in_(COMPLETED_SUBMISSION_STATUSES),
-        )
-        .order_by(Submission.submitted_at.desc(), Submission.id.desc())
-    )
-    submissions = list(session.exec(completed_query).all())
-    if submissions:
-        return submissions
-
-    fallback_query = (
-        select(Submission)
-        .where(Submission.questionnaire_id == questionnaire_id)
-        .order_by(Submission.submitted_at.desc(), Submission.id.desc())
-    )
-    all_submissions = list(session.exec(fallback_query).all())
-    return [submission for submission in all_submissions if _normalize_submission_answers(submission.answers)]
-
 
 async def get_questionnaire_answer_export(
     session: Session,
     questionnaire_id: int,
 ) -> Optional[Dict[str, Any]]:
     """获取问卷逐人答题明细导出数据."""
-    questionnaire = session.get(Questionnaire, questionnaire_id)
-    if not questionnaire:
-        return None
+    from app.api.assessments.answer_export_service import get_questionnaire_answer_export as _impl
 
-    questions = []
-    for index, question in enumerate(_normalize_questionnaire_questions(questionnaire), start=1):
-        questions.append({
-            "id": question.get("id", str(index)),
-            "index": index,
-            "text": question.get("text") or question.get("question") or f"问题 {index}",
-            "type": question.get("type"),
-            "options": _normalize_export_options(question.get("options")),
-        })
+    return await _impl(session, questionnaire_id)
 
-    submissions = []
-    for submission in _select_export_submissions(session, questionnaire_id):
-        submissions.append({
-            "id": submission.id,
-            "code": submission.code,
-            "candidate_name": submission.candidate_name,
-            "candidate_phone": submission.candidate_phone,
-            "candidate_email": submission.candidate_email,
-            "gender": submission.gender,
-            "target_position": submission.target_position,
-            "status": submission.status,
-            "started_at": submission.started_at,
-            "submitted_at": submission.submitted_at,
-            "answers": _normalize_submission_answers(submission.answers),
-        })
-
-    return {
-        "questionnaire_id": questionnaire_id,
-        "questionnaire_name": questionnaire.name,
-        "questions": questions,
-        "submissions": submissions,
-    }
 
 async def get_submission_statistics(
     session: Session,

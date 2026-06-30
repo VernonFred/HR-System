@@ -1,0 +1,315 @@
+.btn-batch-select {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  background: white;
+  color: #64748b;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+
+.btn-batch-select:hover {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+  color: #475569;
+}
+
+
+.btn-batch-select.active {
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+  color: white;
+  border-color: transparent;
+}
+
+
+.btn-batch-select.active:hover {
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+}
+
+
+/* ⭐ V44: 批量操作栏 */
+
+.batch-action-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 16px;
+  background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
+  border: 1px solid #fecaca;
+  border-radius: 10px;
+  margin-bottom: 12px;
+}
+
+
+.batch-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+
+.select-all-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  font-size: 13px;
+  color: #64748b;
+}
+
+
+.select-all-checkbox input {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+  accent-color: #ef4444;
+}
+
+
+.selected-count {
+  font-size: 13px;
+  font-weight: 500;
+  color: #ef4444;
+}
+
+
+.batch-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+
+.btn-batch-delete {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+
+.btn-batch-delete:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+}
+
+
+.btn-batch-delete:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+
+/* 分组复选框 */
+
+.group-checkbox {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+  accent-color: #7c3aed;
+  margin-right: 8px;
+  flex-shrink: 0;
+}
+
+
+/* ⭐ V44: 批量删除弹窗样式 - V45: 标题改为白色 */
+
+.batch-delete-modal .modal-header h3 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: white;
+}
+
+
+.batch-delete-preview {
+  background: #f8fafc;
+  border-radius: 8px;
+  padding: 12px;
+  margin: 16px 0;
+  max-height: 150px;
+  overflow-y: auto;
+}
+
+
+.preview-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+
+.preview-item:last-child {
+  border-bottom: none;
+}
+
+
+.preview-name {
+  font-weight: 500;
+  color: #1e293b;
+}
+
+
+.preview-time {
+  font-size: 12px;
+  color: #64748b;
+}
+
+
+.preview-more {
+  text-align: center;
+  padding: 8px;
+  color: #64748b;
+  font-size: 13px;
+  font-style: italic;
+}
+
+
+.confirm-modal .modal-body {
+  padding: 20px 24px;
+}
+
+
+.confirm-warning {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #f59e0b;
+  font-size: 13px;
+  margin-top: 12px;
+}
+
+
+.confirm-warning i {
+  font-size: 16px;
+}
+
+
+.btn-cancel {
+  padding: 10px 20px;
+  background: #f1f5f9;
+  color: #64748b;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+
+.btn-cancel:hover {
+  background: #e2e8f0;
+}
+
+
+.btn-danger {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 20px;
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+
+.btn-danger:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+}
+
+
+.btn-toggle-all:hover {
+  background: #f3f4f6;
+  border-color: #d1d5db;
+}
+
+
+.candidate-groups {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+
+.candidate-group-card {
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  overflow: hidden;
+  transition: all 0.2s;
+}
+
+
+.candidate-group-card:hover {
+  border-color: #d1d5db;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+
+.candidate-group-card.expanded {
+  border-color: #8b5cf6;
+  box-shadow: 0 4px 12px rgba(139, 92, 246, 0.1);
+}
+
+
+.group-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  cursor: pointer;
+  background: linear-gradient(135deg, #faf5ff 0%, #f5f3ff 100%);
+  transition: all 0.2s;
+}
+
+
+.group-header:hover {
+  background: linear-gradient(135deg, #f3e8ff 0%, #ede9fe 100%);
+}
+
+
+/* V42: 新布局 - 标签放名字旁边 */
+
+.group-main {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex: 1;
+}
+
+
+.group-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #7c3aed 0%, #a855f7 100%);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  font-weight: 600;
+}

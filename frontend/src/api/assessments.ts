@@ -5,42 +5,67 @@ import { apiRequest, apiRequestWithBody } from "./client";
 import { MOCK_QUESTIONNAIRES, MOCK_ASSESSMENTS, MOCK_SUBMISSIONS } from "./mocks/assessments";
 import { getQuestionsForQuestionnaireType } from "./assessmentFallbacks";
 
+import type {
+  Questionnaire,
+  QuestionnaireDetail,
+  QuestionnaireCreate,
+  Assessment,
+  DepartmentRoutingConfig,
+  AssessmentCreate,
+  FormField,
+  PageTexts,
+  AssessmentUpdate,
+  Submission,
+  AnswerExportOption,
+  AnswerExportQuestion,
+  AnswerExportSubmission,
+  QuestionnaireAnswerExportData,
+  SubmissionStatistics,
+  QuestionOptionStat,
+  TextAnswerGroup,
+  TextSummary,
+  QuestionStat,
+  DailyTrend,
+  QuestionnaireQuestionStats,
+  PublicAssessmentInfo,
+  PublicSubmissionStart,
+  SubmitCheckResult,
+  SubmissionStart,
+  QuestionnaireImportResponse
+} from './assessmentTypes';
+export type {
+  Questionnaire,
+  QuestionnaireDetail,
+  QuestionnaireCreate,
+  Assessment,
+  DepartmentRoutingConfig,
+  AssessmentCreate,
+  FormField,
+  PageTexts,
+  AssessmentUpdate,
+  Submission,
+  AnswerExportOption,
+  AnswerExportQuestion,
+  AnswerExportSubmission,
+  QuestionnaireAnswerExportData,
+  SubmissionStatistics,
+  QuestionOptionStat,
+  TextAnswerGroup,
+  TextSummary,
+  QuestionStat,
+  DailyTrend,
+  QuestionnaireQuestionStats,
+  PublicAssessmentInfo,
+  PublicSubmissionStart,
+  SubmitCheckResult,
+  SubmissionStart,
+  QuestionnaireImportResponse
+} from './assessmentTypes';
+
 // ========== 问卷管理 ==========
 
-export interface Questionnaire {
-  id: number;
-  name: string;
-  type: string; // EPQ/DISC/MBTI
-  category?: string;
-  custom_type?: string;
-  scoring_config?: any;
-  purpose?: string;
-  creator?: string;
-  questions_count: number;
-  estimated_minutes: number;
-  status: string;
-  created_at: string;
-  updated_at: string;
-}
 
-export interface QuestionnaireDetail extends Questionnaire {
-  questions_data: any;
-  scoring_rules: any;
-}
 
-export interface QuestionnaireCreate {
-  name: string;
-  type: string;
-  category?: string;
-  description?: string;
-  questions_count?: number;
-  estimated_minutes?: number;
-  questions_data?: any;
-  scoring_rules?: any;
-  custom_type?: string;
-  scoring_config?: any;
-  purpose?: string;
-}
 
 export const fetchQuestionnaires = (params?: {
   skip?: number;
@@ -140,81 +165,12 @@ export const copyQuestionnaire = (id: number) => {
 
 // ========== 测评管理 ==========
 
-export interface Assessment {
-  id: number;
-  name: string;
-  code: string;
-  questionnaire_id: number;
-  valid_from: string;
-  valid_until: string;
-  description?: string;
-  qr_code_url?: string;
-  form_fields?: FormField[];
-  page_texts?: PageTexts;
-  link_type?: string;
-  allow_repeat?: boolean;
-  repeat_check_by?: string;
-  repeat_interval_hours?: number;
-  max_submissions?: number;
-  anonymous_mode?: boolean;
-  routing_config?: DepartmentRoutingConfig;
-  created_at: string;
-}
 
-export interface DepartmentRoutingConfig {
-  enabled: boolean;
-  department_field: string;
-  fallback_to_default: boolean;
-  mappings: Array<{
-    department_value: string;
-    questionnaire_id: number;
-  }>;
-}
 
-export interface AssessmentCreate {
-  name: string;
-  questionnaire_id: number;
-  valid_from: string;
-  valid_until: string;
-  description?: string;
-  form_fields?: FormField[];
-  page_texts?: PageTexts;
-  link_type?: string;
-  allow_repeat?: boolean;
-  repeat_check_by?: string;
-  repeat_interval_hours?: number;
-  max_submissions?: number;
-  anonymous_mode?: boolean;
-  routing_config?: DepartmentRoutingConfig;
-}
 
 // 表单字段配置
-export interface FormField {
-  id: string;
-  name?: string;
-  label: string;
-  type: string;
-  placeholder?: string;
-  required: boolean;
-  enabled: boolean;
-  options?: string[] | Array<{ value: string; label: string }>;  // 支持两种格式
-  builtin?: boolean;
-}
 
 // 页面文案配置
-export interface PageTexts {
-  welcomeText?: string;
-  introText?: string;
-  guideText?: string;
-  privacyText?: string;
-  showBasicInfoTitle?: boolean; // 是否显示“请填写您的基本信息”
-  successTitle?: string;
-  successMessage?: string;
-  resultText?: string;
-  contactText?: string;
-  showNextSteps?: boolean;  // 是否显示"接下来"区域
-  nextStepsText?: string;   // "接下来"合并文本（用于兼容）
-}
 
 export const fetchAssessments = (params?: {
   skip?: number;
@@ -263,21 +219,6 @@ export const createAssessment = (data: AssessmentCreate) => {
 };
 
 // ⭐ 更新测评配置
-export interface AssessmentUpdate {
-  name?: string;
-  valid_from?: string;
-  valid_until?: string;
-  description?: string;
-  form_fields?: any[];
-  page_texts?: any;
-  link_type?: string;
-  allow_repeat?: boolean;
-  repeat_check_by?: string;
-  repeat_interval_hours?: number;
-  max_submissions?: number;
-  anonymous_mode?: boolean;
-  routing_config?: DepartmentRoutingConfig;
-}
 
 export const updateAssessment = (id: number, data: AssessmentUpdate) => {
   // 同时更新Mock数据（仅Mock模式）
@@ -312,58 +253,10 @@ export const deleteAssessment = async (id: number, force: boolean = false): Prom
 
 // ========== 提交记录管理 ==========
 
-export interface Submission {
-  id: number;
-  code: string;
-  candidate_name: string;
-  candidate_phone: string;
-  questionnaire_id?: number;  // ⭐ 新增：问卷ID，用于前端过滤
-  questionnaire_name?: string;
-  questionnaire_type?: string;
-  total_score?: number;
-  grade?: string;
-  status: string;
-  started_at: string;
-  submitted_at?: string;
-  result_details?: any; // 测评维度详细数据 (MBTI/DISC/EPQ等)
-  custom_data?: Record<string, any>;  // 自定义字段（用于部门等信息展示）
-}
 
-export interface AnswerExportOption {
-  index?: number;
-  label?: string;
-  text?: string;
-  value?: string | number;
-}
 
-export interface AnswerExportQuestion {
-  id: string | number;
-  index: number;
-  text: string;
-  type: string;
-  options?: AnswerExportOption[];
-}
 
-export interface AnswerExportSubmission {
-  id: number;
-  code: string;
-  candidate_name?: string;
-  candidate_phone?: string;
-  candidate_email?: string;
-  gender?: string;
-  target_position?: string;
-  status: string;
-  started_at?: string;
-  submitted_at?: string;
-  answers: Record<string, any>;
-}
 
-export interface QuestionnaireAnswerExportData {
-  questionnaire_id: number;
-  questionnaire_name: string;
-  questions: AnswerExportQuestion[];
-  submissions: AnswerExportSubmission[];
-}
 
 export const fetchSubmissions = (params?: {
   assessment_id?: number;
@@ -430,21 +323,6 @@ export const deleteSubmission = (id: number) => {
 
 // ========== 统计 API ==========
 
-export interface SubmissionStatistics {
-  total_submissions: number;
-  average_score: number;
-  pass_rate: number;
-  grade_distribution: Record<string, number>;
-  grade_percentages: Record<string, number>;
-  submissions: Array<{
-    id: number;
-    candidate_name: string;
-    candidate_phone: string;
-    total_score: number | null;
-    grade: string | null;
-    submitted_at: string | null;
-  }>;
-}
 
 export const fetchSubmissionStatistics = (params?: {
   category?: string;
@@ -470,55 +348,11 @@ export const fetchSubmissionStatistics = (params?: {
 };
 
 // ⭐ V42: 题目答案统计接口
-export interface QuestionOptionStat {
-  index?: number;
-  text: string;
-  count: number;
-  percentage?: number;
-}
 
-export interface TextAnswerGroup {
-  text: string;
-  count: number;
-}
 
-export interface TextSummary {
-  tags?: TextAnswerGroup[];
-  long_answers?: TextAnswerGroup[];
-  empty_count?: number;
-  total_answers?: number;
-}
 
-export interface QuestionStat {
-  id: string;
-  index: number;
-  text: string;
-  type: string;  // single, multiple, text, rating
-  total_answers: number;
-  total_selections?: number;
-  options: QuestionOptionStat[];
-  text_summary?: TextSummary;
-}
 
-export interface DailyTrend {
-  date: string;
-  count: number;
-}
 
-export interface QuestionnaireQuestionStats {
-  questionnaire_id: number;
-  questionnaire_name: string;
-  questionnaire_type: string;
-  questionnaire_category: string;
-  total_submissions: number;
-  completion_rate: number;
-  average_score: number | null;
-  average_duration_minutes: number | null;
-  questions: QuestionStat[];
-  daily_trend: DailyTrend[];
-  grade_distribution: Record<string, number>;
-  grade_percentages: Record<string, number>;
-}
 
 export const fetchQuestionnaireQuestionStats = (questionnaireId: number, range: 'week' | 'month' = 'week') => {
   const ts = Date.now();
@@ -543,289 +377,11 @@ export const fetchQuestionnaireQuestionStats = (questionnaireId: number, range: 
   });
 };
 
-// ========== 公开API（候选人端） ==========
+export {
+  checkCanSubmit,
+  fetchPublicAssessment,
+  startAssessment,
+  submitAnswers,
+} from './publicAssessmentApi';
 
-export interface PublicAssessmentInfo {
-  name: string;
-  type: string;
-  category?: string;
-  custom_type?: string;
-  purpose?: string;
-  questions_count: number;
-  estimated_minutes: number;
-  valid: boolean;
-  expired: boolean;
-  description?: string;
-  form_fields?: any[];
-  page_texts?: PageTexts & {
-    intro_text?: string;
-    guide_text?: string;
-    privacy_text?: string;
-    welcome_text?: string;
-    show_basic_info_title?: boolean;
-    success_title?: string;
-    success_message?: string;
-    success_tips?: string;
-    result_text?: string;
-    contact_text?: string;
-    show_next_steps?: boolean;
-  };
-  questions?: any[];  // ⭐ 问卷题目数据（用于 fallback）
-  // ⭐ 重复提交配置
-  allow_repeat?: boolean;
-  repeat_check_by?: string;
-  repeat_interval_hours?: number;
-  max_submissions?: number;
-  anonymous_mode?: boolean;
-}
-
-export interface PublicSubmissionStart {
-  submission_code: string;
-  questions: any[];
-  questionnaire_name?: string;
-  questionnaire_type?: string;
-  category?: string;
-  custom_type?: string;
-  purpose?: string;
-  questions_count?: number;
-  estimated_minutes?: number;
-}
-
-// ⭐ 重复提交检测结果
-export interface SubmitCheckResult {
-  can_submit: boolean;
-  reason: string;
-  submission_number: number;
-  previous_submissions: Array<{
-    code: string;
-    submitted_at: string;
-    status: string;
-    total_score?: number;
-    grade?: string;
-  }>;
-}
-
-// 检查是否可以提交
-export const checkCanSubmit = (code: string, phone: string, name: string = "", anonymousDeviceId?: string) => {
-  return apiRequestWithBody<SubmitCheckResult>({
-    path: `/api/public/assessment/${code}/check-submit`,
-    method: "POST",
-    body: { phone, name, anonymous_device_id: anonymousDeviceId },
-    fallback: { can_submit: true, reason: "", submission_number: 1, previous_submissions: [] },
-    auth: false,
-  });
-}
-
-export interface SubmissionStart {
-  candidate_name: string;
-  candidate_phone: string;
-  candidate_email?: string;
-  target_position?: string;
-  gender?: string;
-  custom_data?: Record<string, any>;
-  anonymous_device_id?: string;
-}
-
-export const fetchPublicAssessment = (code: string) => {
-  // 构建fallback数据
-  const assessment = MOCK_ASSESSMENTS.find(a => a.code === code);
-  const questionnaire = assessment
-    ? MOCK_QUESTIONNAIRES.find(q => q.id === assessment.questionnaire_id)
-    : null;
-
-  const now = new Date();
-  const validFrom = assessment ? new Date(assessment.valid_from) : now;
-  const validUntil = assessment ? new Date(assessment.valid_until) : now;
-
-  const fallbackData: PublicAssessmentInfo = assessment && questionnaire ? {
-    name: questionnaire.name,
-    type: questionnaire.type,
-    category: questionnaire.category,
-    custom_type: questionnaire.custom_type,
-    purpose: questionnaire.purpose,
-    questions_count: questionnaire.questions_count,
-    estimated_minutes: questionnaire.estimated_minutes,
-    valid: now >= validFrom && now <= validUntil,
-    expired: now > validUntil,
-    description: assessment.description || questionnaire.name,
-    anonymous_mode: assessment.anonymous_mode || false,
-    form_fields: [
-      { id: 1, name: 'candidate_name', label: '姓名', type: 'text', enabled: true, required: true, builtin: true },
-      { id: 2, name: 'candidate_phone', label: '手机号', type: 'text', enabled: true, required: true, builtin: true }
-    ],
-    page_texts: {
-      intro_text: '请认真填写以下信息',
-      privacy_text: '我们将严格保护您的隐私',
-      success_title: '提交成功',
-      success_message: '感谢您的参与！',
-      success_tips: '我们会尽快处理您的提交结果'
-    }
-  } : {
-    name: '未找到链接',
-    type: 'UNKNOWN',
-    questions_count: 0,
-    estimated_minutes: 0,
-    valid: false,
-    expired: false,
-    description: '链接不存在'
-  } as PublicAssessmentInfo;
-
-  return apiRequest<PublicAssessmentInfo>({
-    path: `/api/public/assessment/${code}`,
-    fallback: fallbackData,
-    auth: false,
-  });
-};
-
-export const startAssessment = (code: string, data: SubmissionStart, questionnaireType?: string, questionsData?: any[]) => {
-  // 构建fallback数据
-  const assessment = MOCK_ASSESSMENTS.find(a => a.code === code);
-  const questionnaire = assessment
-    ? MOCK_QUESTIONNAIRES.find(q => q.id === assessment.questionnaire_id)
-    : null;
-
-  // 生成submission code
-  const timestamp = Date.now().toString().slice(-6);
-  const random = Math.random().toString(36).slice(2, 8).toUpperCase();
-  const submissionCode = `SUB_${timestamp}_${random}`;
-
-  // ⭐ 获取正确的题目列表
-  // 优先级：1. 传入的实际题目数据 2. 根据类型获取预设题目 3. 示例题目
-  let questions: any[];
-  if (questionsData && questionsData.length > 0) {
-    // 使用传入的实际问卷题目数据
-    questions = questionsData;
-    console.log('[startAssessment] Using actual questions data:', questions.length);
-  } else {
-    // 使用预设题目或示例题目
-    questions = getQuestionsForQuestionnaireType(questionnaireType || questionnaire?.type);
-    console.log('[startAssessment] Using preset/sample questions:', questions.length);
-  }
-
-  const fallbackData = {
-    submission_code: submissionCode,
-    questions: questions
-  };
-
-  // ⭐ 调试日志
-  console.log('[startAssessment] code:', code);
-  console.log('[startAssessment] questionnaireType:', questionnaireType);
-  console.log('[startAssessment] fallback questions count:', questions.length);
-
-  // ⚠️ 重要：开始测评操作不使用fallback，确保失败时能正确抛出错误
-  // 如果使用fallback，会创建一个假的submission_code，后续提交会失败
-  return apiRequestWithBody<PublicSubmissionStart>({
-    path: `/api/public/assessment/${code}/start`,
-    method: "POST",
-    body: { ...data, assessment_code: code },
-    // 不提供fallback，确保API失败时抛出错误
-    auth: false,
-  });
-};
-
-
-export const submitAnswers = (submissionCode: string, answers: Record<string, any>) => {
-  // 构建fallback：模拟成功提交并创建submission记录
-  const timestamp = new Date().toISOString();
-
-  // 尝试添加到MOCK_SUBMISSIONS（如果是mock环境）
-  try {
-    // 生成一个新的submission记录
-    const newSubmission: Submission = {
-      id: MOCK_SUBMISSIONS.length + 1,
-      code: submissionCode,
-      candidate_name: answers.candidate_name || '测试候选人',
-      candidate_phone: answers.candidate_phone || '13800138000',
-      questionnaire_name: '测试问卷',
-      questionnaire_type: 'CUSTOM',
-      total_score: undefined,
-      grade: undefined,
-      status: 'completed',
-      started_at: new Date(Date.now() - 30 * 60 * 1000).toISOString(),
-      submitted_at: timestamp,
-      result_details: {
-        custom_type: 'non_scored',
-        answers: Object.entries(answers)
-          .filter(([key]) => !['candidate_name', 'candidate_phone'].includes(key))
-          .map(([questionId, answer], index) => ({
-            question_id: questionId,
-            question_title: `问题 ${index + 1}`,
-            question_type: typeof answer === 'number' ? 'scale' : 'short_text',
-            answer: typeof answer === 'number' ? { value: answer } : { value: String(answer) },
-            scoring: null
-          }))
-      }
-    };
-
-    // 添加到mock数组（仅在mock模式下）
-    MOCK_SUBMISSIONS.push(newSubmission);
-    console.log('✅ Mock提交成功，已添加到MOCK_SUBMISSIONS:', newSubmission);
-  } catch (e) {
-    console.log('Mock提交处理:', e);
-  }
-
-  // ⚠️ 重要：提交操作不使用fallback，确保失败时能正确抛出错误
-  return apiRequestWithBody<{ success: boolean; submission_code: string; submitted_at: string }>({
-    path: `/api/public/assessment/submission/${submissionCode}/submit`,
-    method: "POST",
-    body: { submission_code: submissionCode, answers },
-    // 不提供fallback，确保API失败时抛出错误
-    auth: false,
-  });
-};
-
-
-// ========== V43: 问卷导入 ==========
-
-export interface QuestionnaireImportResponse {
-  success: boolean;
-  message: string;
-  metadata: {
-    name?: string;
-    description?: string;
-    estimated_minutes?: number;
-  };
-  questions: Array<{
-    id: string;
-    text: string;
-    type: string;
-    options: Array<{
-      id: string;
-      text: string;
-      score: number;
-    }>;
-    required: boolean;
-    score?: number;
-  }>;
-}
-
-/**
- * 导入问卷文件
- * 支持格式：JSON、Excel、Word、纯文本
- *
- * V45: 支持AI智能解析
- * @param file 问卷文件
- * @param useAI 是否使用AI智能解析（默认true）
- */
-export const importQuestionnaire = async (
-  file: File,
-  useAI: boolean = true
-): Promise<QuestionnaireImportResponse> => {
-  const formData = new FormData();
-  formData.append('file', file);
-
-  // V45: 添加use_ai参数
-  const url = `/api/assessments/questionnaires/import?use_ai=${useAI}`;
-
-  const response = await fetch(url, {
-    method: 'POST',
-    body: formData,
-  });
-
-  if (!response.ok) {
-    const error = await response.json().catch(() => ({ detail: '导入失败' }));
-    throw new Error(error.detail || '导入失败');
-  }
-
-  return response.json();
-};
+export { importQuestionnaire } from './questionnaireImport';

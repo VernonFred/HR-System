@@ -13,6 +13,7 @@ import { ref, computed, onMounted, watch } from 'vue'
 import { useAuthStore } from '../stores/auth'
 import CandidatePreviewPanel from './CandidatePreviewPanel.vue'
 import QuestionEditDialog, { type EditorQuestion } from './QuestionEditDialog.vue'
+import { createDefaultQuestionnaireForm, mapImportedQuestionType, questionControls } from './questionnaireEditorConfig'
 import {
   createQuestionnaire,
   updateQuestionnaire,
@@ -35,17 +36,6 @@ const emit = defineEmits<{
   (e: 'save'): void
 }>()
 
-// 控件库配置
-const questionControls = [
-  { type: 'radio', label: '单选题', icon: 'ri-radio-button-line' },
-  { type: 'checkbox', label: '多选题', icon: 'ri-checkbox-line' },
-  { type: 'text', label: '单行文本', icon: 'ri-input-field' },
-  { type: 'textarea', label: '多行文本', icon: 'ri-text' },
-  { type: 'scale', label: '量表题', icon: 'ri-equalizer-line' },
-  { type: 'yesno', label: '是非题', icon: 'ri-question-answer-line' },
-  { type: 'choice', label: '二选一', icon: 'ri-arrow-left-right-line' },
-]
-
 // ===== 状态 =====
 const isEdit = computed(() => !!props.questionnaire)
 const loading = ref(false)
@@ -53,27 +43,7 @@ const editorStep = ref<'info' | 'questions'>('info')
 const authStore = useAuthStore()
 const questionsMeta = ref<Record<string, any>>({})
 
-// 表单数据
-const form = ref({
-  name: '',
-  creator: '',
-  type: 'CUSTOM',
-  category: 'scored',
-  description: '',
-  estimated_minutes: 10,
-  purpose: 'assessment' as 'survey' | 'assessment',
-  // 评分配置
-  simpleScoring: {
-    totalScore: 100,
-    passingScore: 60,
-  },
-  gradeConfig: [
-    { grade: 'A', label: '优秀', minScore: 90, maxScore: 100 },
-    { grade: 'B', label: '良好', minScore: 75, maxScore: 89 },
-    { grade: 'C', label: '中等', minScore: 60, maxScore: 74 },
-    { grade: 'D', label: '待提升', minScore: 0, maxScore: 59 },
-  ],
-})
+const form = ref(createDefaultQuestionnaireForm())
 
 const scoringEnabled = ref(true)
 
@@ -213,7 +183,8 @@ const generateId = () => {
 }
 
 // 从控件添加题目
-const addQuestionFromDrag = (type: EditorQuestion['type']) => {
+const addQuestionFromDrag = (rawType: string) => {
+  const type = rawType as EditorQuestion['type']
   const question: EditorQuestion = {
     id: generateId(),
     type,
@@ -502,18 +473,6 @@ onMounted(async () => {
   }
 })
 
-// V43: 映射导入的题目类型到编辑器类型
-const mapImportedQuestionType = (importType: string): string => {
-  const typeMap: Record<string, string> = {
-    'single': 'radio',
-    'multiple': 'checkbox',
-    'text': 'text',
-    'textarea': 'textarea',
-    'rating': 'scale',
-  }
-  return typeMap[importType] || 'radio'
-}
-
 // 监听预览索引变化，重置预览状态
 watch(previewIndex, () => {
   previewAnswer.value = ''
@@ -524,364 +483,7 @@ watch(previewIndex, () => {
 })
 </script>
 
-<template>
-  <div class="modal-overlay" @click="close">
-    <div class="modal-dialog modal-editor" @click.stop>
-      <!-- 头部 -->
-      <div class="modal-header editor-header">
-        <div class="editor-header-left">
-          <h3><i class="ri-file-edit-line"></i> {{ isEdit ? '编辑问卷' : '创建问卷' }}</h3>
-          <div class="editor-steps">
-            <span :class="['step-item', { active: editorStep === 'info' }]" @click="goToInfoStep">
-              <i class="ri-information-line"></i> 基本信息
-            </span>
-            <i class="ri-arrow-right-s-line step-arrow"></i>
-            <span :class="['step-item', { active: editorStep === 'questions' }]">
-              <i class="ri-list-check-2"></i> 题目编辑
-            </span>
-          </div>
-        </div>
-        <button class="btn-close" @click="close">
-          <i class="ri-close-line"></i>
-        </button>
-      </div>
-
-      <!-- 主体 -->
-      <div class="modal-body editor-body">
-        <!-- Step 1: 基本信息 -->
-        <div v-if="editorStep === 'info'" class="editor-step-content">
-          <div class="create-form">
-            <div class="form-group">
-              <label class="form-label">问卷名称 <span class="required">*</span></label>
-              <input
-                type="text"
-                class="form-input"
-                v-model="form.name"
-                placeholder="请输入问卷名称"
-              />
-            </div>
-
-            <div class="form-group">
-              <label class="form-label">问卷创建人</label>
-              <input
-                type="text"
-                class="form-input"
-                v-model="form.creator"
-                placeholder="请输入创建人（选填）"
-              />
-            </div>
-
-              <div class="form-group">
-                <label class="form-label">预计时长</label>
-                <div class="input-with-suffix">
-                  <input
-                    type="number"
-                    class="form-input"
-                    v-model.number="form.estimated_minutes"
-                    min="1"
-                    max="120"
-                    placeholder="10"
-                  />
-                  <span class="input-suffix">分钟</span>
-              </div>
-            </div>
-
-            <div class="form-group">
-              <label class="form-label">问卷描述</label>
-              <textarea
-                class="form-textarea"
-                rows="3"
-                v-model="form.description"
-                placeholder="请输入问卷描述（选填）"
-              ></textarea>
-            </div>
-
-            <!-- 评分配置 -->
-            <div class="scoring-config-section">
-              <div class="config-section-header">
-                <h4><i class="ri-settings-4-line"></i> 评分配置</h4>
-                <div class="scoring-toggle">
-                  <button
-                    type="button"
-                    class="toggle-btn"
-                    :class="{ active: scoringEnabled }"
-                    @click="setScoringEnabled(true)"
-                  >
-                    开启
-                  </button>
-                  <button
-                    type="button"
-                    class="toggle-btn"
-                    :class="{ active: !scoringEnabled }"
-                    @click="setScoringEnabled(false)"
-                  >
-                    不开启
-                  </button>
-                </div>
-              </div>
-
-              <div v-if="scoringEnabled" class="scoring-config-card">
-                <div class="config-row">
-                  <div class="form-group">
-                    <label class="form-label">满分</label>
-                    <div class="input-with-suffix">
-                      <input
-                        type="number"
-                        class="form-input"
-                        v-model.number="form.simpleScoring.totalScore"
-                        min="1"
-                        max="1000"
-                      />
-                      <span class="input-suffix">分</span>
-                    </div>
-                  </div>
-                  <div class="form-group">
-                    <label class="form-label">及格分</label>
-                    <div class="input-with-suffix">
-                      <input
-                        type="number"
-                        class="form-input"
-                        v-model.number="form.simpleScoring.passingScore"
-                        min="0"
-                        :max="form.simpleScoring.totalScore"
-                      />
-                      <span class="input-suffix">分</span>
-                    </div>
-                  </div>
-                </div>
-
-                <!-- 等级配置 -->
-                <div class="grade-config">
-                  <label class="form-label">等级配置</label>
-                  <div class="grade-table">
-                    <div class="grade-row header">
-                      <span class="grade-col grade">等级</span>
-                      <span class="grade-col label">标签</span>
-                      <span class="grade-col range">分数范围</span>
-                    </div>
-                    <div
-                      v-for="(g, idx) in form.gradeConfig"
-                      :key="idx"
-                      class="grade-row"
-                      :class="`grade-${g.grade.toLowerCase()}`"
-                    >
-                      <span class="grade-col grade">
-                        <span class="grade-badge" :class="`grade-${g.grade.toLowerCase()}`">{{ g.grade }}</span>
-                      </span>
-                      <span class="grade-col label">
-                        <input type="text" v-model="g.label" class="grade-input" />
-                      </span>
-                      <span class="grade-col range">
-                        <input type="number" v-model.number="g.minScore" class="grade-input small" min="0" />
-                        <span class="range-sep">~</span>
-                        <input type="number" v-model.number="g.maxScore" class="grade-input small" :max="form.simpleScoring.totalScore" />
-                        <span class="range-unit">分</span>
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-              <div v-else class="scoring-config-disabled">
-                已关闭评分配置，本问卷将按调查问卷处理。
-              </div>
-            </div>
-          </div>
-
-          <!-- 提示 -->
-          <div class="custom-tip">
-            <i class="ri-lightbulb-line"></i>
-            <span>{{ scoringEnabled ? '请在下一步中添加题目并配置评分' : '请在下一步中添加题目' }}</span>
-          </div>
-        </div>
-
-        <!-- Step 2: 题目编辑 -->
-        <div v-if="editorStep === 'questions'" class="editor-step-content questions-editor">
-          <div class="editor-layout-3col">
-            <!-- 左侧：控件库 -->
-            <div class="controls-library-panel">
-              <div class="panel-header">
-                <h4><i class="ri-apps-line"></i> 控件库</h4>
-              </div>
-              <div class="controls-list">
-                <div
-                  v-for="ctrl in questionControls"
-                  :key="ctrl.type"
-                  class="control-item"
-                  draggable="true"
-                  @click="addQuestionFromDrag(ctrl.type as EditorQuestion['type'])"
-                  @dragstart="handleControlDragStart($event, ctrl.type)"
-                  @dragend="handleControlDragEnd"
-                  :title="`点击或拖拽添加${ctrl.label}`"
-                >
-                  <i :class="ctrl.icon"></i>
-                  <span>{{ ctrl.label }}</span>
-                </div>
-              </div>
-            </div>
-
-            <!-- 中间：题目列表 -->
-            <div
-              class="questions-list-panel"
-              @dragover.prevent="handleListDragOver"
-              @drop="handleListDrop"
-              @dragleave="isDragOver = false"
-              :class="{ 'drag-over': isDragOver }"
-            >
-              <div class="panel-header">
-                <h4><i class="ri-list-ordered"></i> 题目列表</h4>
-                <span class="question-count">{{ editorQuestions.length }} 道题</span>
-              </div>
-
-              <div class="questions-list-scroll">
-                <div v-if="editorQuestions.length === 0" class="empty-questions">
-                  <i class="ri-file-add-line"></i>
-                  <p>暂无题目</p>
-                  <p class="text-muted">从左侧拖拽控件添加题目</p>
-                </div>
-
-                <div
-                  v-for="(q, localIndex) in paginatedQuestions"
-                  :key="q.id"
-                  class="question-list-item"
-                >
-                  <div class="question-drag-handle">
-                    <i class="ri-draggable"></i>
-                  </div>
-                  <div class="question-item-content">
-                    <div class="question-item-header">
-                      <span class="question-number">{{ (questionsCurrentPage - 1) * questionsPageSize + localIndex + 1 }}</span>
-                      <span class="question-type-badge" :class="q.type">{{ getQuestionTypeName(q.type) }}</span>
-                      <span v-if="q.required" class="required-badge">必答</span>
-                    </div>
-                    <p class="question-text-preview">{{ q.text || '未填写题目内容' }}</p>
-                  </div>
-                  <div class="question-item-actions">
-                    <button class="btn-icon-small" @click="moveQuestion(getGlobalIndex(localIndex), 'up')" :disabled="getGlobalIndex(localIndex) === 0" title="上移">
-                      <i class="ri-arrow-up-s-line"></i>
-                    </button>
-                    <button class="btn-icon-small" @click="moveQuestion(getGlobalIndex(localIndex), 'down')" :disabled="getGlobalIndex(localIndex) === editorQuestions.length - 1" title="下移">
-                      <i class="ri-arrow-down-s-line"></i>
-                    </button>
-                    <button class="btn-icon-small" @click="openEditQuestionModal(getGlobalIndex(localIndex))" title="编辑">
-                      <i class="ri-edit-line"></i>
-                    </button>
-                    <button class="btn-icon-small btn-danger" @click="openDeleteQuestionModal(getGlobalIndex(localIndex))" title="删除">
-                      <i class="ri-delete-bin-line"></i>
-                    </button>
-                  </div>
-                </div>
-              </div>
-
-              <!-- 分页控件 -->
-              <div v-if="editorQuestions.length > questionsPageSize" class="questions-pagination">
-                <button
-                  class="pagination-btn"
-                  :disabled="questionsCurrentPage === 1"
-                  @click="questionsCurrentPage--"
-                >
-                  <i class="ri-arrow-left-s-line"></i>
-                </button>
-
-                <div class="pagination-pages">
-                  <template v-for="(page, idx) in visiblePages" :key="idx">
-                    <span v-if="page === '...'" class="pagination-ellipsis">...</span>
-                    <button
-                      v-else
-                      class="pagination-page-btn"
-                      :class="{ active: questionsCurrentPage === page }"
-                      @click="goToPage(page as number)"
-                    >
-                      {{ page }}
-                    </button>
-                  </template>
-                </div>
-
-                <button
-                  class="pagination-btn"
-                  :disabled="questionsCurrentPage >= totalPages"
-                  @click="questionsCurrentPage++"
-                >
-                  <i class="ri-arrow-right-s-line"></i>
-                </button>
-
-                <span class="pagination-info">共 {{ editorQuestions.length }} 题</span>
-              </div>
-
-              <button class="btn-add-question" @click="openAddQuestionModal">
-                <i class="ri-add-line"></i>
-                添加题目
-              </button>
-            </div>
-
-            <!-- 右侧：候选人视角预览 -->
-            <CandidatePreviewPanel :questions="editorQuestions" />
-          </div>
-        </div>
-      </div>
-
-      <!-- 底部 -->
-      <div class="modal-footer editor-footer">
-        <div class="footer-left">
-          <span v-if="editorStep === 'questions'" class="questions-summary">
-            <i class="ri-file-list-3-line"></i>
-            共 {{ editorQuestions.length }} 道题目
-          </span>
-        </div>
-        <div class="footer-right">
-          <button v-if="editorStep === 'info'" class="btn-cancel" @click="close">取消</button>
-          <button v-if="editorStep === 'questions'" class="btn-secondary" @click="goToInfoStep">
-            <i class="ri-arrow-left-line"></i>
-            上一步
-          </button>
-          <button v-if="editorStep === 'info'" class="btn-primary" @click="goToQuestionsStep" :disabled="!canGoNext">
-            下一步
-            <i class="ri-arrow-right-line"></i>
-          </button>
-          <button v-if="editorStep === 'questions'" class="btn-primary" @click="save" :disabled="loading || !form.name.trim()">
-            <i v-if="loading" class="ri-loader-4-line animate-spin"></i>
-            <i v-else class="ri-check-line"></i>
-            {{ loading ? (isEdit ? '保存中...' : '创建中...') : (isEdit ? '保存问卷' : '创建问卷') }}
-          </button>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- 添加/编辑题目弹窗 -->
-  <QuestionEditDialog
-    v-if="showAddQuestionModal"
-    :question="editingQuestion"
-    :is-edit="editingQuestionIndex !== null"
-    @close="showAddQuestionModal = false"
-    @save="handleSaveQuestion"
-  />
-
-  <!-- 删除题目确认弹窗 -->
-  <div v-if="showDeleteQuestionModal" class="modal-overlay delete-confirm-overlay" @click="cancelDeleteQuestion">
-    <div class="modal-dialog modal-confirm" @click.stop>
-      <div class="modal-header confirm-header">
-        <div class="confirm-icon danger">
-          <i class="ri-delete-bin-line"></i>
-        </div>
-        <h3>确认删除</h3>
-      </div>
-      <div class="modal-body confirm-body">
-        <p>确定要删除第 <strong>{{ deleteQuestionIndex !== null ? deleteQuestionIndex + 1 : '' }}</strong> 道题目吗？</p>
-        <p class="confirm-warning">
-          <i class="ri-error-warning-line"></i>
-          此操作不可恢复
-        </p>
-      </div>
-      <div class="modal-footer confirm-footer">
-        <button class="btn-cancel" @click="cancelDeleteQuestion">取消</button>
-        <button class="btn-danger" @click="confirmDeleteQuestion">
-          <i class="ri-delete-bin-line"></i>
-          确认删除
-        </button>
-      </div>
-    </div>
-  </div>
-</template>
+<template src="./QuestionnaireEditorModal.template.html"></template>
 
 <style scoped>
 @import './styles/questionnaire-editor-modal.css';

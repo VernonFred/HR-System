@@ -1,0 +1,74 @@
+
+.preview-scroll {
+  flex: 1;
+  overflow-y: auto;
+  padding: 1.5rem;
+}
+
+
+.preview-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  text-align: center;
+  color: #9ca3af;
+}
+
+
+.preview-empty i {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+}
+
+
+.preview-empty p {
+  margin: 0;
+  font-size: 0.9375rem;
+}
+
+
+/* ===== 编辑器底部 ===== */
+
+.editor-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 1.5rem;
+  border-top: 1px solid #e5e7eb;
+  background: white;
+}
+
+
+.footer-left {
+  display: flex;
+  gap: 0.75rem;
+}
+
+
+.footer-right {
+  display: flex;
+  gap: 0.75rem;
+}
+
+
+.btn-outline {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.625rem 1.25rem;
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  color: #374151;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+
+.btn-outline:hover {
+  background: #f9fafb;
+  border-color: #d1d5db;
+}

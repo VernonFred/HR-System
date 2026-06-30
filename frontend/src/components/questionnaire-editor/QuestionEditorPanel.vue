@@ -53,6 +53,10 @@ const getQuestionTypeName = (type: string) => {
   return ctrl?.label || type
 }
 
+const emitAddQuestion = (type: string) => {
+  emit('add-question', type as EditorQuestion['type'])
+}
+
 // 拖拽处理
 const handleControlDragStart = (e: DragEvent, type: string) => {
   if (e.dataTransfer) {
@@ -95,7 +99,7 @@ defineExpose({ questionControls })
           :key="ctrl.type"
           class="control-item"
           draggable="true"
-          @click="emit('add-question', ctrl.type as EditorQuestion['type'])"
+          @click="emitAddQuestion(ctrl.type)"
           @dragstart="handleControlDragStart($event, ctrl.type)"
           @dragend="handleControlDragEnd"
           :title="`点击或拖拽添加${ctrl.label}`"
@@ -423,4 +427,3 @@ defineExpose({ questionControls })
   box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
 }
 </style>
-

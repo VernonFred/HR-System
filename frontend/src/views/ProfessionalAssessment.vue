@@ -9,7 +9,7 @@
  * 4. 测评报告查看
  * 5. 数据导出
  */
-import { onMounted, ref, computed, defineAsyncComponent, watch } from 'vue'
+import { onMounted, ref, defineAsyncComponent, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import QuestionnaireCard from '../components/QuestionnaireCard.vue'
 import SubmissionRecordsTab from '../components/SubmissionRecordsTab.vue'
@@ -22,7 +22,6 @@ import {
   fetchQuestionnaires,
   fetchAssessments,
   fetchSubmissions,
-  fetchQuestionnaireDetail,
   deleteSubmission,
   deleteQuestionnaire,
   updateQuestionnaire,
@@ -30,7 +29,8 @@ import {
   type Assessment,
   type Submission,
 } from '../api/assessments'
-import { PRESET_QUESTIONS, type PresetQuestion } from '../data/preset-questions'
+import { loadProfessionalQuestionnaireQuestions } from './professional/questionnaireQuestionLoader'
+import { useProfessionalQuestionEditor } from './professional/useProfessionalQuestionEditor'
 
 // ===== 路由 =====
 const route = useRoute()
@@ -74,157 +74,29 @@ const editQuestionnaireForm = ref({
   estimated_minutes: 0,
 })
 
-// ===== 题目编辑 =====
-const editorQuestions = ref<EditorQuestion[]>([])
-const showQuestionEditDialog = ref(false)
-const editingQuestionIndex = ref<number | null>(null)
-const editingQuestion = ref<EditorQuestion | null>(null)
-const questionsLoading = ref(false)
-const editStep = ref<'info' | 'questions'>('info')
-
-// 控件库配置
-const questionControls: Array<{ type: EditorQuestion['type']; label: string; icon: string }> = [
-  { type: 'radio', label: '单选题', icon: 'ri-radio-button-line' },
-  { type: 'checkbox', label: '多选题', icon: 'ri-checkbox-line' },
-  { type: 'text', label: '单行文本', icon: 'ri-input-field' },
-  { type: 'textarea', label: '多行文本', icon: 'ri-text' },
-  { type: 'scale', label: '量表题', icon: 'ri-equalizer-line' },
-  { type: 'yesno', label: '是非题', icon: 'ri-question-answer-line' },
-  { type: 'choice', label: '二选一', icon: 'ri-arrow-left-right-line' },
-]
-
-// 分页状态
-const questionsPageSize = ref(6)
-const questionsCurrentPage = ref(1)
-
-// 拖拽状态
-const isDragOver = ref(false)
-
-// 分页计算
-const paginatedQuestions = computed(() => {
-  const start = (questionsCurrentPage.value - 1) * questionsPageSize.value
-  const end = start + questionsPageSize.value
-  return editorQuestions.value.slice(start, end)
-})
-
-const totalPages = computed(() => {
-  return Math.ceil(editorQuestions.value.length / questionsPageSize.value) || 1
-})
-
-// 智能分页
-const visiblePages = computed(() => {
-  const total = totalPages.value
-  const current = questionsCurrentPage.value
-
-  if (total <= 7) {
-    return Array.from({ length: total }, (_, i) => i + 1)
-  }
-
-  const pages: (number | string)[] = []
-  pages.push(1)
-
-  if (current > 3) {
-    pages.push('...')
-  }
-
-  const start = Math.max(2, current - 1)
-  const end = Math.min(total - 1, current + 1)
-
-  for (let i = start; i <= end; i++) {
-    if (!pages.includes(i)) {
-      pages.push(i)
-    }
-  }
-
-  if (current < total - 2) {
-    pages.push('...')
-  }
-
-  if (!pages.includes(total)) {
-    pages.push(total)
-  }
-
-  return pages
-})
-
-// 分页操作
-const goToPage = (page: number) => {
-  if (page >= 1 && page <= totalPages.value) {
-    questionsCurrentPage.value = page
-  }
-}
-
-const goToVisiblePage = (page: number | string) => {
-  if (typeof page === 'number') {
-    goToPage(page)
-  }
-}
-
-// 获取全局索引
-const getGlobalIndex = (localIndex: number) => {
-  return (questionsCurrentPage.value - 1) * questionsPageSize.value + localIndex
-}
-
-// 获取题型名称
-const getQuestionTypeName = (type: string) => {
-  const ctrl = questionControls.find(c => c.type === type)
-  return ctrl?.label || type
-}
-
-const editAssessmentType = computed<'MBTI' | 'DISC' | 'EPQ' | null>(() => {
-  const type = editQuestionnaireForm.value.type?.toUpperCase()
-  return type === 'MBTI' || type === 'DISC' || type === 'EPQ' ? type : null
-})
-
-// 生成唯一ID
-const generateQuestionId = () => {
-  return `q_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
-}
-
-// 从控件添加题目
-const addQuestionFromControl = (type: EditorQuestion['type']) => {
-  const question: EditorQuestion = {
-    id: generateQuestionId(),
-    type,
-    text: `请输入${getQuestionTypeName(type)}内容`,
-    required: true,
-  }
-
-  if (type === 'radio' || type === 'checkbox') {
-    question.options = [
-      { label: '选项1', score: 0 },
-      { label: '选项2', score: 0 },
-    ]
-  } else if (type === 'choice') {
-    question.optionA = '选项A'
-    question.optionB = '选项B'
-  }
-
-  editorQuestions.value.push(question)
-  // 跳转到最后一页
-  questionsCurrentPage.value = totalPages.value
-}
-
-// 拖拽处理
-const handleControlDragStart = (event: DragEvent, type: string) => {
-  event.dataTransfer?.setData('questionType', type)
-}
-
-const handleControlDragEnd = () => {
-  isDragOver.value = false
-}
-
-const handleListDragOver = () => {
-  isDragOver.value = true
-}
-
-const handleListDrop = (event: DragEvent) => {
-  isDragOver.value = false
-  const type = event.dataTransfer?.getData('questionType')
-  if (type) {
-    addQuestionFromControl(type as EditorQuestion['type'])
-  }
-}
+const {
+  editorQuestions,
+  showQuestionEditDialog,
+  editingQuestionIndex,
+  editingQuestion,
+  questionsLoading,
+  editStep,
+  questionControls,
+  questionsCurrentPage,
+  isDragOver,
+  paginatedQuestions,
+  totalPages,
+  visiblePages,
+  goToVisiblePage,
+  getGlobalIndex,
+  getQuestionTypeName,
+  editAssessmentType,
+  addQuestionFromControl,
+  handleControlDragStart,
+  handleControlDragEnd,
+  handleListDragOver,
+  handleListDrop,
+} = useProfessionalQuestionEditor(editQuestionnaireForm)
 
 // ===== 删除问卷确认 =====
 const showDeleteQuestionnaireModal = ref(false)
@@ -370,90 +242,7 @@ const handleEditQuestionnaire = async (q: Questionnaire) => {
 const loadQuestionnaireQuestions = async (id: number) => {
   questionsLoading.value = true
   try {
-    // 首先判断是否是内置的专业测评问卷
-    const questionnaire = selectedQuestionnaire.value
-    if (questionnaire) {
-      // 根据问卷类型或名称判断是哪种专业测评
-      const qName = questionnaire.name.toUpperCase()
-      const qType = questionnaire.type?.toUpperCase() || ''
-
-      let presetKey: string | null = null
-      if (qName.includes('EPQ') || qType.includes('EPQ')) {
-        presetKey = 'EPQ'
-      } else if (qName.includes('DISC') || qType.includes('DISC')) {
-        presetKey = 'DISC'
-      } else if (qName.includes('MBTI') || qType.includes('MBTI')) {
-        presetKey = 'MBTI'
-      }
-
-      // 如果是内置专业测评，从预设题目加载
-      if (presetKey && PRESET_QUESTIONS[presetKey]) {
-        const presetQuestions = PRESET_QUESTIONS[presetKey]
-        editorQuestions.value = presetQuestions.map((pq: PresetQuestion, idx: number) => {
-          // 根据题目类型构建选项
-          let options: { label: string; value: string; score: number }[] = []
-
-          if (pq.type === 'yesno') {
-            // 是非题：是/否 选项
-            options = [
-              { label: '是', value: 'yes', score: pq.positive ? 1 : 0 },
-              { label: '否', value: 'no', score: pq.positive ? 0 : 1 },
-            ]
-          } else if (pq.type === 'choice' && pq.optionA && pq.optionB) {
-            // 二选一题（MBTI 风格）
-            options = [
-              { label: pq.optionA, value: 'A', score: 1 },
-              { label: pq.optionB, value: 'B', score: 0 },
-            ]
-          } else if (pq.options) {
-            // 普通选择题
-            options = pq.options.map(opt => ({
-              label: opt.label,
-              value: opt.value,
-              score: 0,
-            }))
-          }
-
-          return {
-            id: pq.id,
-            type: pq.type === 'yesno' ? 'yesno' : (pq.type === 'choice' ? 'radio' : pq.type),
-            text: pq.text,
-            required: pq.required,
-            options,
-            dimension: pq.dimension,
-            positive: pq.positive,
-            scale: pq.scale,
-            optionA: pq.optionA,
-            optionB: pq.optionB,
-            scoreA: pq.optionA ? 1 : undefined,
-            scoreB: pq.optionB ? 0 : undefined,
-          }
-        })
-        questionsLoading.value = false
-        return
-      }
-    }
-
-    // 非内置问卷，尝试从 API 加载
-    const detail = await fetchQuestionnaireDetail(id)
-    if (detail.questions_data?.questions) {
-      editorQuestions.value = detail.questions_data.questions.map((q: any, idx: number) => ({
-        id: q.id || `q_${idx}`,
-        type: q.type || 'radio',
-        text: q.text || q.question || '',
-        required: q.required !== false,
-        options: q.options?.map((opt: any) => ({
-          label: typeof opt === 'string' ? opt : opt.label,
-          value: typeof opt === 'string' ? opt : opt.value,
-          score: opt.score || opt.dimension_value || 0,
-        })) || [],
-        scale: q.scale,
-        optionA: q.optionA,
-        optionB: q.optionB,
-        scoreA: q.scoreA,
-        scoreB: q.scoreB,
-      }))
-    }
+    editorQuestions.value = await loadProfessionalQuestionnaireQuestions(id, selectedQuestionnaire.value)
   } catch (error) {
     console.error('加载题目失败:', error)
   } finally {

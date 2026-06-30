@@ -80,6 +80,10 @@ function updateSearchQuery(value: string) {
   emit('update:searchQuery', value)
 }
 
+function getInputValue(event: Event): string {
+  return (event.target as HTMLInputElement | null)?.value || ''
+}
+
 // 清空搜索
 function clearSearch() {
   emit('update:searchQuery', '')
@@ -109,7 +113,7 @@ function isExpanded(group: GroupedSubmission): boolean {
       <i class="ri-search-line"></i>
       <input 
         :value="searchQuery"
-        @input="updateSearchQuery(($event.target as HTMLInputElement).value)"
+        @input="updateSearchQuery(getInputValue($event))"
         type="text" 
         placeholder="搜索姓名/电话..." 
         class="search-input"

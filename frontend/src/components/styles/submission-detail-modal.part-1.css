@@ -1,0 +1,394 @@
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+
+.modal-dialog {
+  background: white;
+  border-radius: 20px;
+  width: 100%;
+  max-width: 720px;
+  max-height: 90vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+}
+
+
+/* 头部 */
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 24px;
+  border-bottom: 1px solid #e2e8f0;
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+}
+
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+
+.detail-code {
+  font-size: 14px;
+  font-weight: 600;
+  color: #64748b;
+  font-family: monospace;
+}
+
+
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+
+.status-badge.completed {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+
+.status-badge.progress {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+
+.btn-action {
+  width: 36px;
+  height: 36px;
+  border: none;
+  background: white;
+  border-radius: 10px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #64748b;
+  font-size: 18px;
+  transition: all 0.2s;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+
+.btn-action:hover {
+  background: #f1f5f9;
+  color: #334155;
+}
+
+
+.btn-action.delete:hover {
+  background: #fee2e2;
+  color: #ef4444;
+}
+
+
+.btn-close {
+  width: 36px;
+  height: 36px;
+  border: none;
+  background: #f1f5f9;
+  border-radius: 10px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #64748b;
+  font-size: 20px;
+  transition: all 0.2s;
+}
+
+
+.btn-close:hover {
+  background: #fee2e2;
+  color: #ef4444;
+}
+
+
+/* 内容 */
+
+.modal-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 24px;
+}
+
+
+/* 候选人卡片 */
+
+.candidate-card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 20px;
+  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+  border-radius: 16px;
+  margin-bottom: 24px;
+  color: white;
+}
+
+
+.candidate-avatar {
+  width: 56px;
+  height: 56px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  font-weight: 600;
+}
+
+
+.candidate-info {
+  flex: 1;
+}
+
+
+.candidate-info h3 {
+  font-size: 20px;
+  font-weight: 600;
+  margin: 0 0 6px;
+}
+
+
+.candidate-info .info-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  opacity: 0.9;
+}
+
+
+.score-badge {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+  padding: 8px 16px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 12px;
+}
+
+
+.score-value {
+  font-size: 28px;
+  font-weight: 700;
+}
+
+
+.score-label {
+  font-size: 14px;
+  opacity: 0.8;
+}
+
+
+.grade-badge {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  font-weight: 700;
+  background: rgba(255, 255, 255, 0.2);
+}
+
+
+.grade-badge.grade-a { background: #10b981; }
+
+.grade-badge.grade-b { background: #3b82f6; }
+
+.grade-badge.grade-c { background: #f59e0b; }
+
+.grade-badge.grade-d { background: #ef4444; }
+
+
+/* 详情区块 */
+
+.detail-section {
+  background: #f8fafc;
+  border-radius: 16px;
+  padding: 20px;
+  margin-bottom: 20px;
+}
+
+
+.section-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 16px;
+  font-weight: 600;
+  color: #334155;
+  margin: 0 0 16px;
+}
+
+
+.section-title i {
+  font-size: 20px;
+  color: #6366f1;
+}
+
+
+/* 信息网格 */
+
+.info-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+}
+
+
+.info-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+
+.info-item label {
+  font-size: 12px;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+
+.info-item span {
+  font-size: 14px;
+  font-weight: 500;
+  color: #1e293b;
+}
+
+
+.type-badge {
+  display: inline-block;
+  padding: 4px 10px;
+  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  color: white;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+
+/* 人格卡片 */
+
+.personality-card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 20px;
+  border-radius: 14px;
+  margin-bottom: 20px;
+}
+
+
+.personality-card.mbti {
+  background: linear-gradient(135deg, #dbeafe 0%, #e0e7ff 100%);
+}
+
+
+.personality-card.disc {
+  background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+}
+
+
+.personality-card.epq {
+  background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
+}
+
+
+.personality-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 14px;
+  background: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28px;
+}
+
+
+.personality-card.mbti .personality-icon { color: #3b82f6; }
+
+.personality-card.disc .personality-icon { color: #f59e0b; }
+
+.personality-card.epq .personality-icon { color: #10b981; }
+
+
+.personality-info h3 {
+  font-size: 28px;
+  font-weight: 700;
+  margin: 0 0 4px;
+  color: #1e293b;
+}
+
+
+.personality-info p {
+  font-size: 14px;
+  color: #64748b;
+  margin: 0;
+}
+
+
+/* 维度网格 */
+
+.dimensions-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+}
+
+
+.dimension-item {
+  background: white;
+  border-radius: 12px;
+  padding: 16px;
+}
+
+
+.dimension-header {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+
+.dimension-key {
+  font-size: 13px;
+  font-weight: 600;
+  color: #475569;
+}

@@ -1,30 +1,9 @@
 <script setup lang="ts">
 import { onMounted, ref, computed } from "vue";
 import * as jobProfilesAPI from "@/api/jobProfiles";
-import { analyzeResumeForProfile, analyzeMultipleResumesForProfile, analyzeJDForProfile, aiConfigureDimensions } from "@/api/jobProfiles";
-
-interface JobProfile {
-  id: number;
-  name: string;
-  department?: string;
-  tags?: string[];
-  dimensionCount?: number;
-  updatedAt: string;
-}
-
-interface Dimension {
-  name: string;
-  weight: number;
-  description: string;
-}
-
-interface JobProfileForm {
-  name: string;
-  department: string;
-  tags: string[];
-  description: string;
-  dimensions: Dimension[];
-}
+import { aiConfigureDimensions } from "@/api/jobProfiles";
+import type { JobProfile, JobProfileForm } from "./job-profiles/types";
+import { useJobProfileAiGeneration } from "./job-profiles/useJobProfileAiGeneration";
 
 // 状态
 const loading = ref(false);
@@ -33,20 +12,11 @@ const profiles = ref<JobProfile[]>([]);
 const showImportResumeDialog = ref(false);
 const showImportJDDialog = ref(false);
 const showEditorDialog = ref(false);
-const selectedResumes = ref<File[]>([]);
-const selectedJD = ref<File | null>(null);
-const aiGenerating = ref(false);
 const aiConfiguring = ref(false);
-const resumeInput = ref<HTMLInputElement | null>(null);
-const jdInput = ref<HTMLInputElement | null>(null);
 const newTag = ref("");
 const isAIGenerated = ref(false);
 const isNew = ref(true);
 const editingProfileId = ref<number | null>(null);
-
-// 上传进度状态
-const uploadProgress = ref(0);
-const isUploading = ref(false);
 
 // 确认/提示模态框
 const showConfirmDialog = ref(false);
@@ -122,6 +92,31 @@ const showConfirm = (
   };
   showConfirmDialog.value = true;
 };
+const {
+  selectedResumes,
+  selectedJD,
+  aiGenerating,
+  resumeInput,
+  jdInput,
+  uploadProgress,
+  isUploading,
+  triggerResumeInput,
+  handleResumeSelect,
+  removeResume,
+  generateFromResumes,
+  triggerJDInput,
+  handleJDSelect,
+  generateFromJD,
+} = useJobProfileAiGeneration({
+  formData,
+  isNew,
+  isAIGenerated,
+  showImportResumeDialog,
+  showImportJDDialog,
+  showEditorDialog,
+  showMessage,
+});
+
 
 // 方法
 const loadProfiles = async () => {
@@ -258,196 +253,6 @@ const deleteCurrentProfile = async () => {
     await deleteProfile(profile);
     closeEditor();
   }
-};
-
-const triggerResumeInput = () => {
-  resumeInput.value?.click();
-};
-
-const handleResumeSelect = (event: Event) => {
-  const target = event.target as HTMLInputElement;
-  if (target.files) {
-    // ⭐ V50: 追加文件而不是覆盖，支持多次选择
-    const newFiles = Array.from(target.files);
-    selectedResumes.value = [...selectedResumes.value, ...newFiles];
-    // 重置 input 以便同一文件可以再次选择
-    target.value = '';
-  }
-};
-
-const removeResume = (idx: number) => {
-  selectedResumes.value.splice(idx, 1);
-};
-
-const generateFromResumes = async () => {
-  if (selectedResumes.value.length === 0 || aiGenerating.value) return;
-
-  aiGenerating.value = true;
-  isUploading.value = true;
-  uploadProgress.value = 0;
-
-  try {
-    const files = selectedResumes.value;
-    const fileCount = files.length;
-
-    // 从第一个文件名提取岗位信息
-    const fileName = files[0].name.replace(/\.(pdf|docx?|txt)$/i, '');
-    const jobTitle = fileName.split(/[_\-]/)[0] || "未命名岗位";
-
-    // 模拟上传进度
-    const progressInterval = setInterval(() => {
-      if (uploadProgress.value < 30) {
-        uploadProgress.value += 10;
-      }
-    }, 200);
-
-    uploadProgress.value = 40;
-    clearInterval(progressInterval);
-
-    // AI分析进度模拟
-    const analysisInterval = setInterval(() => {
-      if (uploadProgress.value < 90) {
-        uploadProgress.value += 5;
-      }
-    }, 500);
-
-    // 根据简历数量选择API
-    let result;
-    if (fileCount === 1) {
-      // 单份简历使用原有API
-      result = await analyzeResumeForProfile(files[0], jobTitle);
-    } else {
-      // 多份简历使用新API（提取共性特征）
-      result = await analyzeMultipleResumesForProfile(files, jobTitle);
-    }
-
-    clearInterval(analysisInterval);
-    uploadProgress.value = 100;
-
-    // 使用AI返回的建议
-    formData.value = {
-      name: result.name,
-      department: result.department || "未知部门",
-      tags: result.tags || [],
-      description: result.description || "",
-      dimensions: result.dimensions.map(d => ({
-        name: d.name,
-        weight: d.weight,
-        description: d.description || ""
-      }))
-    };
-
-    isNew.value = true;
-    isAIGenerated.value = true;
-    showImportResumeDialog.value = false;
-    showEditorDialog.value = true;
-    selectedResumes.value = [];
-
-    const msg = fileCount > 1
-      ? `AI分析完成，已从${fileCount}份简历中提取共性特征`
-      : "AI分析完成，已生成岗位画像建议";
-    showMessage(msg, "success");
-  } catch (error: any) {
-    console.error("AI生成失败:", error);
-    // ⭐ V50: 提取友好的错误消息，避免显示代码
-    const errorMsg = error?.message || error?.detail || '服务暂时不可用，请稍后重试';
-    showMessage(`AI生成失败：${errorMsg}`, "error");
-  } finally {
-    aiGenerating.value = false;
-    isUploading.value = false;
-    uploadProgress.value = 0;
-  }
-};
-
-const triggerJDInput = () => {
-  jdInput.value?.click();
-};
-
-const handleJDSelect = (event: Event) => {
-  const target = event.target as HTMLInputElement;
-  if (target.files && target.files[0]) {
-    selectedJD.value = target.files[0];
-  }
-};
-
-const generateFromJD = async () => {
-  if (!selectedJD.value || aiGenerating.value) return;
-
-  aiGenerating.value = true;
-  isUploading.value = true;
-  uploadProgress.value = 0;
-
-  try {
-    // ⭐ Phase 5: 调用真实AI分析API
-    const file = selectedJD.value;
-
-    // 提取文件名作为岗位名称（去掉扩展名）
-    const fileName = file.name.replace(/\.(pdf|docx?|txt)$/i, '');
-    const jobTitle = fileName.split(/[_\-]/)[0] || "未命名岗位";
-
-    // 模拟上传进度
-    uploadProgress.value = 20;
-
-    // 读取文件内容
-    const jdText = await readFileAsText(file);
-    uploadProgress.value = 40;
-
-    // AI分析进度模拟
-    const analysisInterval = setInterval(() => {
-      if (uploadProgress.value < 90) {
-        uploadProgress.value += 5;
-      }
-    }, 500);
-
-    // 调用AI分析API
-    const result = await analyzeJDForProfile(jdText, jobTitle);
-
-    clearInterval(analysisInterval);
-    uploadProgress.value = 100;
-
-    // 使用AI返回的建议
-    formData.value = {
-      name: result.name,
-      department: result.department || "未知部门",
-      tags: result.tags || [],
-      description: result.description || "",
-      dimensions: result.dimensions.map(d => ({
-        name: d.name,
-        weight: d.weight,
-        description: d.description || ""
-      }))
-    };
-
-    isNew.value = true;
-    isAIGenerated.value = true;
-    showImportJDDialog.value = false;
-    showEditorDialog.value = true;
-    selectedJD.value = null;
-
-    showMessage("AI分析完成，已生成岗位画像建议", "success");
-  } catch (error: any) {
-    console.error("AI生成失败:", error);
-    // ⭐ V50: 提取友好的错误消息，避免显示代码
-    const errorMsg = error?.message || error?.detail || '服务暂时不可用，请稍后重试';
-    showMessage(`AI生成失败：${errorMsg}`, "error");
-  } finally {
-    aiGenerating.value = false;
-    isUploading.value = false;
-    uploadProgress.value = 0;
-  }
-};
-
-// 读取文件内容为文本
-const readFileAsText = (file: File): Promise<string> => {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const text = e.target?.result as string;
-      resolve(text || '');
-    };
-    reader.onerror = () => reject(new Error('文件读取失败'));
-    reader.readAsText(file);
-  });
 };
 
 const addTag = () => {

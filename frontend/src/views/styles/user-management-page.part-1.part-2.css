@@ -1,0 +1,333 @@
+
+.btn-batch.active:hover {
+  background: #dc2626;
+  border-color: #dc2626;
+}
+
+
+/* V44: 批量操作栏 */
+
+.batch-bar {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.75rem 1rem;
+  background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
+  border: 1px solid #fecaca;
+  border-radius: 10px;
+  margin-bottom: 16px;
+}
+
+
+.select-all {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  font-size: 0.875rem;
+  color: #64748b;
+}
+
+
+.select-all input {
+  accent-color: #ef4444;
+}
+
+
+.selected-count {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #ef4444;
+}
+
+
+.btn-delete-batch {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+
+.btn-delete-batch:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+}
+
+
+.btn-delete-batch:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+
+/* 统计摘要 */
+
+.stats-summary {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 2.5rem;
+  padding: 1.25rem 1.5rem;
+  background: white;
+  border-radius: 16px;
+  margin-bottom: 16px;
+  flex-wrap: nowrap;
+}
+
+
+.summary-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-direction: row;
+  white-space: nowrap;
+}
+
+
+.summary-item i {
+  font-size: 1.125rem;
+  flex-shrink: 0;
+}
+
+
+.summary-item .summary-value {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #111827;
+  line-height: 1;
+}
+
+
+.summary-item .summary-label {
+  font-size: 0.875rem;
+  color: #6b7280;
+  line-height: 1;
+}
+
+
+.summary-item.active i {
+  color: #f59e0b;
+}
+
+
+.summary-item.completed i {
+  color: #10b981;
+}
+
+
+.summary-item.total i {
+  color: #6366f1;
+}
+
+
+/* 内容卡片 */
+
+.content-card {
+  background: white;
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+
+/* 表格 - 列表视图 */
+
+.table-wrapper {
+  overflow-x: auto;
+}
+
+
+.persons-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+
+.persons-table thead {
+  background: #f9fafb;
+}
+
+
+.persons-table th {
+  padding: 0.875rem 1rem;
+  text-align: left;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+
+.persons-table td {
+  padding: 1rem;
+  border-bottom: 1px solid #f3f4f6;
+  font-size: 0.875rem;
+  color: #374151;
+}
+
+
+.person-row:hover {
+  background: #faf5ff;
+}
+
+
+.person-row.selected {
+  background: rgba(124, 58, 237, 0.05);
+}
+
+
+/* 分页控件样式 */
+
+.pagination-bar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 16px;
+  margin-top: 16px;
+  background: rgba(124, 58, 237, 0.05);
+  border-radius: 12px;
+  border: 1px solid rgba(124, 58, 237, 0.1);
+}
+
+
+.page-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border: 1px solid rgba(124, 58, 237, 0.2);
+  border-radius: 8px;
+  background: white;
+  color: #7c3aed;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+
+.page-btn:hover:not(:disabled) {
+  background: #7c3aed;
+  color: white;
+  border-color: #7c3aed;
+}
+
+
+.page-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+
+.page-info {
+  font-size: 14px;
+  font-weight: 500;
+  color: #6b7280;
+  min-width: 120px;
+  text-align: center;
+}
+
+
+/* V44: 复选框列 */
+
+.cell-checkbox {
+  width: 40px;
+  text-align: center;
+}
+
+
+.cell-checkbox input {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+  accent-color: #7c3aed;
+}
+
+
+/* V44: 操作列 */
+
+.cell-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+
+.btn-action-delete {
+  padding: 0.5rem;
+  background: #f3f4f6;
+  border: none;
+  border-radius: 8px;
+  color: #6b7280;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+
+.btn-action-delete:hover {
+  background: #ef4444;
+  color: white;
+}
+
+
+/* 单元格样式 */
+
+.cell-name {
+  min-width: 180px;
+}
+
+
+.person-info {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+
+.person-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #7c3aed 0%, #a855f7 100%);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+
+.person-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+
+.person-detail .name {
+  font-weight: 500;
+  color: #1f2937;
+}
+
+
+.person-detail .email {
+  font-size: 0.75rem;
+  color: #9ca3af;
+}
+
+
+.cell-phone {
+  color: #6b7280;
+}

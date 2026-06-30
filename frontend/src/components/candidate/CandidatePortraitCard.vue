@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { computed, ref, onMounted, watch } from 'vue';
 import type { CandidateProfile } from '../../types/candidate';
-import domtoimage from 'dom-to-image-more';
-import jsPDF from 'jspdf';
+import { mockCandidateProfile } from './portraitMockData';
+import { usePortraitExport } from './usePortraitExport';
 import ResumeModal from '../resume/ResumeModal.vue';
 import AssessmentAccordion from './AssessmentAccordion.vue';
 import CompetencySection from './CompetencySection.vue';
@@ -23,10 +23,6 @@ const props = withDefaults(defineProps<{
 const emit = defineEmits<{
   'portrait-regenerated': [level: 'pro' | 'expert', forceRefresh: boolean];
 }>();
-
-// 导出状态
-const isExporting = ref(false);
-const showExportMenu = ref(false);
 
 // 简历状态
 const showResumeModal = ref(false);
@@ -54,42 +50,12 @@ const showMessageToast = (message: string, type: 'success' | 'error' | 'info' = 
 const radarAnimated = ref(false);
 const animatedRadarPoints = ref<string>('200,200 200,200 200,200 200,200');
 
-// 默认模拟数据
-const mockData: CandidateProfile = {
-  id: '1',
-  name: '张三',
-  appliedPosition: '产品经理',
-  updatedAt: '2025-11-29',
-  overallMatchScore: 86,
-  tags: ['结构化思维', '跨部门协作', '产品规划'],
-  personalityDimensions: [
-    { key: 'extraversion', label: '外向性 E', score: 88 },
-    { key: 'emotionalStability', label: '情绪稳定性 N', score: 66 },
-    { key: 'openness', label: '精神质 P', score: 75 },
-    { key: 'conscientiousness', label: '掩饰性 L', score: 80 },
-  ],
-  competencies: [
-    { key: 'planning', label: '产品规划能力', score: 82 },
-    { key: 'insight', label: '用户洞察力', score: 82 },
-    { key: 'communication', label: '跨部门沟通', score: 78 },
-    { key: 'negotiation', label: '谈判沟通力', score: 74 },
-    { key: 'analysis', label: '洞察力', score: 80 },
-    { key: 'data', label: '数据敏感度', score: 78 },
-    { key: 'organization', label: '组织能力', score: 75 },
-    { key: 'decision', label: '决策能力', score: 70 },
-  ],
-  aiAnalysisText:
-    '候选人在结构化分析和规划能力上表现突出，画像风格能够带给团队积极影响，可在不确定场景下保持良好的判断力，适合承担相对重要和复杂的项目管理。',
-  highlights: ['结构化分析能力强', '规划视野成熟', '善于跨部门协调'],
-  risks: ['高压多任务下可能焦虑', '对低效流程容忍度低'],
-  suitablePositions: ['ToB 产品经理', '产品策略', '用户增长产品', '跨部门项目负责人'],
-  unsuitablePositions: ['高度重复事务岗', '纯情绪劳动岗位', '纯销售类岗位'],
-  developmentSuggestions: ['强化情绪管理技巧', '培养同理心沟通', '提升团队协作意识'],
-  interviewFocus: ['如何处理多任务压力', '团队协作具体案例', '失败经历与反思'],
-};
-
 // 使用实际数据或模拟数据
-const displayData = computed(() => props.profile || mockData);
+const displayData = computed(() => props.profile || mockCandidateProfile);
+const { isExporting, showExportMenu, exportAsPNG, exportAsPDF, exportAsWord } = usePortraitExport(
+  computed(() => props.profile),
+  displayData,
+);
 
 const normalizeList = (value: string[] | string | undefined): string[] => {
   if (!value) return [];
@@ -384,161 +350,8 @@ const discColors = {
   C: '#3b82f6'  // 蓝色
 };
 
-// 导出功能（使用 dom-to-image-more）
-const exportAsPNG = async () => {
-  if (!props.profile) return;
-
-  isExporting.value = true;
-  showExportMenu.value = false;
-
-  try {
-    // 等待DOM和动画完成
-    await new Promise(resolve => setTimeout(resolve, 500));
-
-    const element = document.querySelector('.portrait-card') as HTMLElement;
-    if (!element) {
-      console.error('找不到 .portrait-card 元素');
-      alert('导出失败：找不到画像元素');
-      return;
-    }
-
-    console.log('开始导出PNG（使用 dom-to-image-more），元素尺寸:', element.offsetWidth, 'x', element.offsetHeight);
-
-    // 使用 dom-to-image-more 替代 html2canvas
-    const dataUrl = await domtoimage.toPng(element, {
-      width: element.offsetWidth,
-      height: element.offsetHeight,
-      style: {
-        transform: 'scale(1)',
-        transformOrigin: 'top left'
-      },
-      quality: 1.0,
-      bgcolor: '#f8fafc'
-    });
-
-    console.log('图片生成成功');
-
-    const link = document.createElement('a');
-    const levelLabel = 'AI画像';
-    link.download = `候选人画像-${displayData.value.name}-${levelLabel}-${Date.now()}.png`;
-    link.href = dataUrl;
-    link.click();
-
-    console.log(`PNG导出成功 (${levelLabel})`);
-  } catch (error) {
-    console.error('导出PNG失败:', error);
-    alert('导出失败，请重试。错误信息：' + (error as Error).message);
-  } finally {
-    isExporting.value = false;
-  }
-};
-
-const exportAsPDF = async () => {
-  if (!props.profile) return;
-
-  isExporting.value = true;
-  showExportMenu.value = false;
-
-  try {
-    // 等待DOM和动画完成
-    await new Promise(resolve => setTimeout(resolve, 500));
-
-    const element = document.querySelector('.portrait-card') as HTMLElement;
-    if (!element) {
-      console.error('找不到 .portrait-card 元素');
-      alert('导出失败：找不到画像元素');
-      return;
-    }
-
-    console.log('开始导出PDF（使用 dom-to-image-more），元素尺寸:', element.offsetWidth, 'x', element.offsetHeight);
-
-    // 使用 dom-to-image-more 生成图片
-    const imgData = await domtoimage.toPng(element, {
-      width: element.offsetWidth,
-      height: element.offsetHeight,
-      style: {
-        transform: 'scale(1)',
-        transformOrigin: 'top left'
-      },
-      quality: 1.0,
-      bgcolor: '#f8fafc'
-    });
-
-    console.log('PDF 图片生成成功');
-
-    // 创建临时图片以获取尺寸
-    const tempImg = new Image();
-    tempImg.src = imgData;
-    await new Promise((resolve) => {
-      tempImg.onload = resolve;
-    });
-
-    const imgWidth = tempImg.width;
-    const imgHeight = tempImg.height;
-
-    // A4 尺寸：210mm x 297mm
-    const pageWidth = 210;
-    const pageHeight = 297;
-    const margin = 5; // 页边距
-    const contentWidth = pageWidth - 2 * margin;
-
-    // 计算图片在PDF中的尺寸（基于实际图片尺寸）
-    const pdfImgWidth = contentWidth;
-    const pdfImgHeight = (imgHeight * pdfImgWidth) / imgWidth;
-
-    // 创建PDF，根据内容高度决定是否需要多页
-    const pdf = new jsPDF({
-      orientation: 'portrait',
-      unit: 'mm',
-      format: 'a4',
-    });
-
-    // 如果内容超过一页，需要分页处理
-    const contentHeight = pageHeight - 2 * margin;
-    if (pdfImgHeight <= contentHeight) {
-      // 内容可以放在一页
-      pdf.addImage(imgData, 'PNG', margin, margin, pdfImgWidth, pdfImgHeight);
-    } else {
-      // 需要多页 - 使用简化的分页方式
-      const totalPages = Math.ceil(pdfImgHeight / contentHeight);
-      console.log(`PDF需要 ${totalPages} 页，每页高度 ${contentHeight}mm，总高度 ${pdfImgHeight}mm`);
-
-      for (let pageNum = 0; pageNum < totalPages; pageNum++) {
-        if (pageNum > 0) {
-          pdf.addPage();
-        }
-
-        // 计算当前页应该截取的高度
-        const remainingImgHeight = pdfImgHeight - (pageNum * contentHeight);
-        const heightOnPage = Math.min(contentHeight, remainingImgHeight);
-
-        console.log(`第 ${pageNum + 1} 页: heightOnPage=${heightOnPage}`);
-
-        // 使用图片偏移的方式添加到PDF（简化分页）
-        const yOffset = -(pageNum * contentHeight);
-        pdf.addImage(imgData, 'PNG', margin, margin + yOffset, pdfImgWidth, pdfImgHeight);
-      }
-    }
-
-    const levelLabel = 'AI画像';
-    pdf.save(`候选人画像-${displayData.value.name}-${levelLabel}-${Date.now()}.pdf`);
-    console.log(`PDF导出成功 (${levelLabel})`);
-  } catch (error) {
-    console.error('导出PDF失败:', error);
-    alert('导出失败，请重试。错误信息：' + (error as Error).message);
-  } finally {
-    isExporting.value = false;
-  }
-};
-
-const exportAsWord = () => {
-  if (!props.profile) return;
-
-  showExportMenu.value = false;
-  alert('Word导出功能开发中，敬请期待！\n建议使用 PDF 格式导出。');
-};
-
 // ========== 简历相关函数 ==========
+
 
 const hasResume = computed(() => {
   return resumeInfo.value?.has_resume || false;

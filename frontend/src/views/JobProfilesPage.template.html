@@ -1,5 +1,4 @@
   <div class="job-profiles-page">
-    <!-- 渐变头部 -->
     <div class="page-header">
       <div class="header-content">
         <div class="header-left">
@@ -27,26 +26,16 @@
         </div>
       </div>
     </div>
-
-    <!-- 搜索栏 -->
     <div class="search-section">
       <div class="search-bar">
         <i class="ri-search-line"></i>
-        <input
-          v-model="searchQuery"
-          type="search"
-          placeholder="搜索岗位名称或部门..."
-          class="search-input"
-        />
+        <input v-model="searchQuery" type="search" placeholder="搜索岗位名称或部门..." class="search-input" />
       </div>
     </div>
-
-    <!-- 岗位卡片网格 -->
     <div v-if="loading" class="loading-state">
       <i class="ri-loader-4-line animate-spin"></i>
       <p>加载中...</p>
     </div>
-
     <div v-else-if="filteredProfiles.length === 0" class="empty-state">
       <i class="ri-inbox-line"></i>
       <p>暂无岗位画像</p>
@@ -55,14 +44,8 @@
         创建岗位画像
       </button>
     </div>
-
     <div v-else class="profiles-grid">
-      <div
-        v-for="profile in filteredProfiles"
-        :key="profile.id"
-        class="profile-card"
-        @click="editProfile(profile)"
-      >
+      <div v-for="profile in filteredProfiles" :key="profile.id" class="profile-card" @click="editProfile(profile)" >
         <div class="card-header">
           <div class="job-icon">
             <i class="ri-briefcase-line"></i>
@@ -71,18 +54,12 @@
             <button class="action-btn" @click="editProfile(profile)" title="编辑">
               <i class="ri-edit-line"></i>
             </button>
-            <button
-              class="action-btn delete"
-              @click="deleteProfile(profile)"
-              title="删除"
-            >
+            <button class="action-btn delete" @click="deleteProfile(profile)" title="删除" >
               <i class="ri-delete-bin-line"></i>
             </button>
           </div>
         </div>
-
         <h3 class="job-name">{{ profile.name }}</h3>
-
         <div class="job-info">
           <div class="info-item">
             <i class="ri-building-line"></i>
@@ -93,13 +70,11 @@
             <span>{{ profile.dimensionCount || 0 }} 个能力维度</span>
           </div>
         </div>
-
         <div class="job-tags" v-if="profile.tags && profile.tags.length > 0">
           <span v-for="tag in profile.tags.slice(0, 3)" :key="tag" class="tag">
             {{ tag }}
           </span>
         </div>
-
         <div class="card-footer">
           <span class="update-time">
             <i class="ri-time-line"></i>
@@ -108,14 +83,8 @@
         </div>
       </div>
     </div>
-
-    <!-- 导入简历对话框 -->
     <Transition name="modal">
-      <div
-        v-if="showImportResumeDialog"
-        class="modal-overlay"
-        @click.self="showImportResumeDialog = false"
-      >
+      <div v-if="showImportResumeDialog" class="modal-overlay" @click.self="showImportResumeDialog = false" >
         <div class="modal-dialog import-modal">
           <div class="modal-header">
             <div class="modal-title-wrapper">
@@ -137,14 +106,7 @@
               <i class="ri-upload-cloud-line"></i>
               <p>点击上传简历文件</p>
               <span class="upload-hint-text">支持 PDF、Word 格式，可多选</span>
-              <input
-                ref="resumeInput"
-                type="file"
-                multiple
-                accept=".pdf,.doc,.docx"
-                @change="handleResumeSelect"
-                style="display: none"
-              />
+              <input ref="resumeInput" type="file" multiple accept=".pdf,.doc,.docx" @change="handleResumeSelect" style="display: none" />
             </div>
             <div v-if="selectedResumes.length > 0" class="file-list">
               <div v-for="(file, idx) in selectedResumes" :key="idx" class="file-item">
@@ -155,7 +117,6 @@
                 </button>
               </div>
             </div>
-            <!-- 上传/分析进度条 -->
             <div v-if="isUploading" class="upload-progress">
               <div class="progress-info">
                 <span class="progress-label">{{ uploadProgress < 40 ? '上传中...' : 'AI分析中...' }}</span>
@@ -170,11 +131,7 @@
             <button class="btn-secondary" @click="showImportResumeDialog = false" :disabled="aiGenerating">
               取消
             </button>
-            <button
-              class="btn-primary"
-              @click="generateFromResumes"
-              :disabled="selectedResumes.length === 0 || aiGenerating"
-            >
+            <button class="btn-primary" @click="generateFromResumes" :disabled="selectedResumes.length === 0 || aiGenerating" >
               <i v-if="aiGenerating" class="ri-loader-4-line animate-spin"></i>
               <i v-else class="ri-sparkle-line"></i>
               {{ aiGenerating ? "AI分析中..." : "AI生成岗位画像" }}
@@ -183,14 +140,8 @@
         </div>
       </div>
     </Transition>
-
-    <!-- 导入JD对话框 -->
     <Transition name="modal">
-      <div
-        v-if="showImportJDDialog"
-        class="modal-overlay"
-        @click.self="showImportJDDialog = false"
-      >
+      <div v-if="showImportJDDialog" class="modal-overlay" @click.self="showImportJDDialog = false" >
         <div class="modal-dialog import-modal">
           <div class="modal-header">
             <div class="modal-title-wrapper">
@@ -210,13 +161,7 @@
               <i class="ri-upload-cloud-line"></i>
               <p>点击上传JD文件</p>
               <span class="upload-hint-text">支持 PDF、Word、TXT 格式</span>
-              <input
-                ref="jdInput"
-                type="file"
-                accept=".pdf,.doc,.docx,.txt"
-                @change="handleJDSelect"
-                style="display: none"
-              />
+              <input ref="jdInput" type="file" accept=".pdf,.doc,.docx,.txt" @change="handleJDSelect" style="display: none" />
             </div>
             <div v-if="selectedJD" class="file-list">
               <div class="file-item">
@@ -227,7 +172,6 @@
                 </button>
               </div>
             </div>
-            <!-- 上传/分析进度条 -->
             <div v-if="isUploading" class="upload-progress">
               <div class="progress-info">
                 <span class="progress-label">{{ uploadProgress < 40 ? '读取文件...' : 'AI分析中...' }}</span>
@@ -242,11 +186,7 @@
             <button class="btn-secondary" @click="showImportJDDialog = false" :disabled="aiGenerating">
               取消
             </button>
-            <button
-              class="btn-primary"
-              @click="generateFromJD"
-              :disabled="!selectedJD || aiGenerating"
-            >
+            <button class="btn-primary" @click="generateFromJD" :disabled="!selectedJD || aiGenerating" >
               <i v-if="aiGenerating" class="ri-loader-4-line animate-spin"></i>
               <i v-else class="ri-sparkle-line"></i>
               {{ aiGenerating ? "AI分析中..." : "AI生成岗位画像" }}
@@ -255,14 +195,8 @@
         </div>
       </div>
     </Transition>
-
-    <!-- 编辑/创建岗位画像弹窗 -->
     <Transition name="modal">
-      <div
-        v-if="showEditorDialog"
-        class="modal-overlay"
-        @click.self="closeEditor"
-      >
+      <div v-if="showEditorDialog" class="modal-overlay" @click.self="closeEditor" >
         <div class="modal-dialog editor-modal">
           <div class="modal-header">
             <div class="modal-title-wrapper">
@@ -273,8 +207,6 @@
               <i class="ri-close-line"></i>
             </button>
           </div>
-
-          <!-- AI提示 -->
           <div v-if="isAIGenerated" class="ai-hint-banner">
             <i class="ri-sparkle-line"></i>
             <p>
@@ -283,9 +215,7 @@
               自动生成的岗位能力模型，请根据实际情况调整后保存
             </p>
           </div>
-
           <div class="modal-body editor-body">
-            <!-- 基本信息 -->
             <div class="editor-section">
               <h3 class="section-title">
                 <i class="ri-information-line"></i>
@@ -294,63 +224,32 @@
               <div class="form-grid">
                 <div class="form-group required">
                   <label>岗位名称</label>
-                  <input
-                    v-model="formData.name"
-                    type="text"
-                    placeholder="例如：产品经理"
-                    class="form-input"
-                  />
+                  <input v-model="formData.name" type="text" placeholder="例如：产品经理" class="form-input" />
                 </div>
                 <div class="form-group">
                   <label>所属部门</label>
-                  <input
-                    v-model="formData.department"
-                    type="text"
-                    placeholder="例如：产品部"
-                    class="form-input"
-                  />
+                  <input v-model="formData.department" type="text" placeholder="例如：产品部" class="form-input" />
                 </div>
               </div>
               <div class="form-group">
                 <label>岗位标签</label>
                 <div class="tags-input">
-                  <span
-                    v-for="(tag, idx) in formData.tags"
-                    :key="idx"
-                    class="tag-item"
-                  >
+                  <span v-for="(tag, idx) in formData.tags" :key="idx" class="tag-item" >
                     {{ tag }}
                     <button class="tag-remove" @click="removeTag(idx)">
                       <i class="ri-close-line"></i>
                     </button>
                   </span>
-                  <input
-                    v-model="newTag"
-                    type="text"
-                    placeholder="输入标签后按回车"
-                    class="tag-input"
-                    @keydown.enter.prevent="addTag"
-                  />
+                  <input v-model="newTag" type="text" placeholder="输入标签后按回车" class="tag-input" @keydown.enter.prevent="addTag" />
                 </div>
               </div>
               <div class="form-group">
                 <label>岗位说明</label>
-                <textarea
-                  v-model="formData.description"
-                  placeholder="简要说明岗位职责和要求"
-                  class="form-textarea"
-                  rows="2"
-                ></textarea>
+                <textarea v-model="formData.description" placeholder="简要说明岗位职责和要求" class="form-textarea" rows="2" ></textarea>
               </div>
             </div>
-
-            <!-- AI一键配置按钮 -->
             <div class="ai-config-section">
-              <button
-                class="btn-ai-config"
-                @click="aiAutoConfig"
-                :disabled="!formData.name || aiConfiguring"
-              >
+              <button class="btn-ai-config" @click="aiAutoConfig" :disabled="!formData.name || aiConfiguring" >
                 <i v-if="aiConfiguring" class="ri-loader-4-line animate-spin"></i>
                 <i v-else class="ri-magic-line"></i>
                 {{ aiConfiguring ? "AI配置中..." : "AI一键配置能力维度" }}
@@ -359,8 +258,6 @@
                 根据岗位基本信息智能生成能力维度和权重，或根据已填写的描述自动分配权重
               </p>
             </div>
-
-            <!-- 能力维度配置 -->
             <div class="editor-section">
               <div class="section-header">
                 <h3 class="section-title">
@@ -372,25 +269,12 @@
                   添加维度
                 </button>
               </div>
-
               <div class="dimensions-list">
-                <div
-                  v-for="(dim, idx) in formData.dimensions"
-                  :key="idx"
-                  class="dimension-item"
-                >
+                <div v-for="(dim, idx) in formData.dimensions" :key="idx" class="dimension-item" >
                   <div class="dimension-header">
                     <span class="dimension-index">{{ idx + 1 }}</span>
-                    <input
-                      v-model="dim.name"
-                      type="text"
-                      placeholder="例如：产品规划能力"
-                      class="dimension-name-input"
-                    />
-                    <button
-                      class="btn-icon-small delete"
-                      @click="removeDimension(idx)"
-                    >
+                    <input v-model="dim.name" type="text" placeholder="例如：产品规划能力" class="dimension-name-input" />
+                    <button class="btn-icon-small delete" @click="removeDimension(idx)" >
                       <i class="ri-delete-bin-line"></i>
                     </button>
                   </div>
@@ -398,44 +282,19 @@
                     <div class="weight-control">
                       <label>权重</label>
                       <div class="weight-input-group">
-                        <input
-                          v-model.number="dim.weight"
-                          type="range"
-                          min="0"
-                          max="100"
-                          class="weight-slider"
-                          @input="validateWeights"
-                        />
-                        <input
-                          v-model.number="dim.weight"
-                          type="number"
-                          min="0"
-                          max="100"
-                          class="weight-number-input"
-                          @input="validateWeights"
-                        />
+                        <input v-model.number="dim.weight" type="range" min="0" max="100" class="weight-slider" @input="validateWeights" />
+                        <input v-model.number="dim.weight" type="number" min="0" max="100" class="weight-number-input" @input="validateWeights" />
                         <span class="weight-unit">%</span>
                       </div>
                     </div>
                   </div>
                   <div class="dimension-description">
                     <label>描述</label>
-                    <textarea
-                      v-model="dim.description"
-                      placeholder="说明该维度的具体要求"
-                      class="description-textarea"
-                      rows="2"
-                    ></textarea>
+                    <textarea v-model="dim.description" placeholder="说明该维度的具体要求" class="description-textarea" rows="2" ></textarea>
                   </div>
                 </div>
               </div>
-
-              <!-- 权重验证 -->
-              <div
-                class="weight-validation"
-                :class="{
-                  error: !isWeightValid,
-                  success: isWeightValid && formData.dimensions.length > 0,
+              <div class="weight-validation" :class="{ error: !isWeightValid, success: isWeightValid && formData.dimensions.length > 0,
                 }"
               >
                 <div class="validation-content">
@@ -443,15 +302,13 @@
                     <span class="label">权重总和：</span>
                     <span class="value">{{ totalWeight }}%</span>
                   </div>
-                  <div
-                    v-if="!isWeightValid && formData.dimensions.length > 0"
+                  <div v-if="!isWeightValid && formData.dimensions.length > 0"
                     class="validation-message error"
                   >
                     <i class="ri-error-warning-line"></i>
                     权重总和必须等于 100%
                   </div>
-                  <div
-                    v-else-if="isWeightValid && formData.dimensions.length > 0"
+                  <div v-else-if="isWeightValid && formData.dimensions.length > 0"
                     class="validation-message success"
                   >
                     <i class="ri-checkbox-circle-line"></i>
@@ -460,8 +317,6 @@
                 </div>
               </div>
             </div>
-
-            <!-- 模型预览 -->
             <div class="editor-section preview-section">
               <h3 class="section-title">
                 <i class="ri-eye-line"></i>
@@ -475,11 +330,7 @@
                   </span>
                 </div>
                 <div class="preview-dimensions">
-                  <div
-                    v-for="(dim, idx) in formData.dimensions"
-                    :key="idx"
-                    class="preview-dimension"
-                  >
+                  <div v-for="(dim, idx) in formData.dimensions" :key="idx" class="preview-dimension" >
                     <div class="dimension-info">
                       <span class="dimension-name">{{
                         dim.name || `维度${idx + 1}`
@@ -487,10 +338,7 @@
                       <span class="dimension-weight">{{ dim.weight }}%</span>
                     </div>
                     <div class="dimension-bar">
-                      <div
-                        class="bar-fill"
-                        :style="{ width: dim.weight + '%' }"
-                      ></div>
+                      <div class="bar-fill" :style="{ width: dim.weight + '%' }" ></div>
                     </div>
                   </div>
                 </div>
@@ -501,23 +349,14 @@
               </div>
             </div>
           </div>
-
           <div class="modal-footer">
-            <button
-              v-if="!isNew"
-              class="btn-delete"
-              @click="deleteCurrentProfile"
-            >
+            <button v-if="!isNew" class="btn-delete" @click="deleteCurrentProfile" >
               <i class="ri-delete-bin-line"></i>
               删除画像
             </button>
             <div class="footer-actions">
               <button class="btn-secondary" @click="closeEditor">取消</button>
-              <button
-                class="btn-primary"
-                @click="saveProfile"
-                :disabled="!canSave"
-              >
+              <button class="btn-primary" @click="saveProfile" :disabled="!canSave" >
                 <i class="ri-save-line"></i>
                 保存画像
               </button>
@@ -526,25 +365,12 @@
         </div>
       </div>
     </Transition>
-
-    <!-- 确认/提示对话框 -->
     <Transition name="modal">
-      <div
-        v-if="showConfirmDialog"
-        class="modal-overlay"
-        @click.self="showConfirmDialog = false"
-      >
+      <div v-if="showConfirmDialog" class="modal-overlay" @click.self="showConfirmDialog = false" >
         <div class="modal-dialog confirm-modal">
           <div class="modal-header" :class="`type-${confirmDialogData.type}`">
             <div class="modal-title-wrapper">
-              <i
-                :class="{
-                  'ri-information-line': confirmDialogData.type === 'info',
-                  'ri-error-warning-line': confirmDialogData.type === 'warning',
-                  'ri-checkbox-circle-line': confirmDialogData.type === 'success',
-                  'ri-close-circle-line': confirmDialogData.type === 'error',
-                }"
-              ></i>
+              <i :class="{ 'ri-information-line': confirmDialogData.type === 'info', 'ri-error-warning-line': confirmDialogData.type === 'warning', 'ri-checkbox-circle-line': confirmDialogData.type === 'success', 'ri-close-circle-line': confirmDialogData.type === 'error', }" ></i>
               <h2>{{ confirmDialogData.title }}</h2>
             </div>
           </div>
@@ -552,11 +378,7 @@
             <p class="confirm-message">{{ confirmDialogData.message }}</p>
           </div>
           <div class="modal-footer">
-            <button
-              v-if="confirmDialogData.type === 'warning'"
-              class="btn-secondary"
-              @click="showConfirmDialog = false"
-            >
+            <button v-if="confirmDialogData.type === 'warning'" class="btn-secondary" @click="showConfirmDialog = false" >
               取消
             </button>
             <button class="btn-primary" @click="confirmDialogData.onConfirm()">

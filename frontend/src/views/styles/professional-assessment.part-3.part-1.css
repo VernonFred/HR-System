@@ -1,0 +1,392 @@
+
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+
+.form-hint {
+  display: block;
+  font-size: 12px;
+  color: #94a3b8;
+  margin-top: 4px;
+}
+
+
+.input-with-suffix {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+
+.input-with-suffix .form-input {
+  flex: 1;
+}
+
+
+.input-suffix {
+  font-size: 14px;
+  color: #64748b;
+}
+
+
+.edit-notice {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  border-radius: 8px;
+  font-size: 13px;
+}
+
+
+.edit-notice.info {
+  background: #eff6ff;
+  color: #1d4ed8;
+}
+
+
+.edit-notice i {
+  font-size: 16px;
+}
+
+
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 20px;
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+
+.btn-primary:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+}
+
+
+.btn-primary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+
+.confirm-modal .modal-header {
+  padding: 20px 24px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+
+.confirm-modal .modal-header h3 {
+  margin: 0;
+  font-size: 18px;
+  color: #1e293b;
+}
+
+
+.confirm-body {
+  padding: 24px;
+}
+
+
+.confirm-body p {
+  margin: 0 0 12px 0;
+  color: #475569;
+}
+
+
+.confirm-warning {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #ef4444 !important;
+  font-size: 13px;
+}
+
+
+.confirm-warning.success {
+  color: #22c55e !important;
+}
+
+
+.modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 16px 24px;
+  border-top: 1px solid #e2e8f0;
+}
+
+
+.modal-footer.centered {
+  justify-content: center;
+  border-top: none;
+}
+
+
+/* 状态切换确认弹窗样式 */
+
+.confirm-modal .modal-icon {
+  width: 64px;
+  height: 64px;
+  margin: 0 auto 1rem;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+
+.confirm-modal .modal-icon.warning {
+  background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+  color: #f59e0b;
+}
+
+
+.confirm-modal .modal-icon.success {
+  background: linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%);
+  color: #22c55e;
+}
+
+
+.confirm-modal .modal-icon i {
+  font-size: 2rem;
+}
+
+
+.confirm-modal > h3 {
+  margin: 0 0 0.75rem;
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #1f2937;
+  text-align: center;
+  padding: 0 24px;
+}
+
+
+.confirm-modal > p {
+  margin: 0;
+  font-size: 0.9375rem;
+  color: #4b5563;
+  text-align: center;
+  padding: 0 24px 1rem;
+}
+
+
+.btn-warning {
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+
+.btn-warning:hover {
+  background: linear-gradient(135deg, #d97706, #b45309);
+  transform: translateY(-1px);
+}
+
+
+.btn-cancel {
+  padding: 10px 20px;
+  background: #f1f5f9;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  color: #64748b;
+  cursor: pointer;
+}
+
+
+.btn-danger {
+  padding: 10px 20px;
+  background: #ef4444;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  color: white;
+  cursor: pointer;
+}
+
+
+.btn-danger:hover {
+  background: #dc2626;
+}
+
+
+/* ===== 响应式 ===== */
+
+@media (max-width: 1024px) {
+  .records-filter-bar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .filter-left,
+  .filter-right {
+    flex-wrap: wrap;
+  }
+}
+
+
+@media (max-width: 640px) {
+  .page-header {
+    flex-direction: column;
+    text-align: center;
+  }
+}
+
+
+/* ===== 编辑问卷弹窗 - 三列布局样式 ===== */
+
+.editor-modal-overlay {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+
+.editor-modal-dialog {
+  width: 95vw;
+  max-width: 1400px;
+  height: 90vh;
+  max-height: 900px;
+  background: white;
+  border-radius: 16px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+}
+
+
+.editor-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 24px;
+  background: linear-gradient(135deg, #f5f3ff 0%, #ede9fe 100%);
+  border-bottom: 1px solid #e5e7eb;
+}
+
+
+.editor-header-left {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+}
+
+
+.editor-header-left h3 {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: #1f2937;
+}
+
+
+.editor-header-left h3 i {
+  color: #7c3aed;
+}
+
+
+.editor-step-tabs {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+
+.step-tab {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #6b7280;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+
+
+.step-tab:hover {
+  background: #f9fafb;
+}
+
+
+.step-tab.active {
+  background: linear-gradient(135deg, #7c3aed, #a855f7);
+  border-color: transparent;
+  color: white;
+}
+
+
+.step-arrow {
+  color: #d1d5db;
+}
+
+
+.btn-close-editor {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  color: #6b7280;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+
+.btn-close-editor:hover {
+  background: #f3f4f6;
+  color: #1f2937;
+}
+
+
+.btn-close-editor i {
+  font-size: 20px;
+}
+
+
+/* 基本信息步骤 */
+
+.editor-step-content {
+  flex: 1;
+  overflow: hidden;
+}
+
+
+.info-step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  padding: 32px;
+  overflow-y: auto;
+}

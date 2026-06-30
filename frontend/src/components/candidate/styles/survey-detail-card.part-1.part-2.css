@@ -1,0 +1,333 @@
+.accordion-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 1.25rem;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+
+.accordion-header:hover {
+  background: rgba(6, 182, 212, 0.03);
+}
+
+
+.submission-accordion.expanded .accordion-header {
+  background: linear-gradient(135deg, rgba(6, 182, 212, 0.06) 0%, rgba(34, 211, 238, 0.03) 100%);
+  border-bottom: 1px solid rgba(6, 182, 212, 0.1);
+}
+
+
+.accordion-left {
+  display: flex;
+  align-items: center;
+  gap: 0.875rem;
+}
+
+
+.accordion-right {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+}
+
+
+.accordion-arrow {
+  font-size: 1.25rem;
+  color: #06b6d4;
+  transition: transform 0.3s ease;
+}
+
+
+.submission-accordion.expanded .accordion-arrow {
+  transform: rotate(180deg);
+}
+
+
+/* 小导出按钮 */
+
+.export-btn-small {
+  width: 32px;
+  height: 32px;
+  border: 1px solid rgba(6, 182, 212, 0.2);
+  background: white;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  color: #06b6d4;
+}
+
+
+.export-btn-small:hover {
+  background: #06b6d4;
+  border-color: #06b6d4;
+  color: white;
+}
+
+
+.export-btn-small i {
+  font-size: 1rem;
+}
+
+
+/* 折叠内容区域 */
+
+.accordion-content {
+  padding: 1rem 1.25rem 1.25rem;
+  background: rgba(248, 250, 252, 0.5);
+  animation: slideDown 0.3s ease;
+}
+
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+
+/* 内联评分区域 */
+
+.score-section-inline {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 1rem;
+  padding: 0.75rem 1rem;
+  background: white;
+  border-radius: 12px;
+  border: 1px solid rgba(6, 182, 212, 0.1);
+}
+
+
+.score-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+
+.score-item .score-label {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+
+.score-item .score-value {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #06b6d4;
+}
+
+
+.score-item.grade .score-value {
+  color: #8b5cf6;
+}
+
+
+/* 内联答题列表 */
+
+.answers-inline {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+
+.answer-item-inline {
+  display: flex;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  background: white;
+  border-radius: 10px;
+  border: 1px solid rgba(6, 182, 212, 0.08);
+}
+
+
+.answer-item-inline:hover {
+  border-color: rgba(6, 182, 212, 0.15);
+}
+
+
+/* 内联分页 */
+
+.pagination-inline {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid rgba(6, 182, 212, 0.1);
+}
+
+
+/* ⭐ 问卷记录列表分页 */
+
+.submissions-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-top: 1rem;
+  padding: 0.75rem;
+  background: rgba(6, 182, 212, 0.04);
+  border-radius: 12px;
+}
+
+
+.submissions-pagination .page-btn {
+  width: 32px;
+  height: 32px;
+  border: 1px solid rgba(6, 182, 212, 0.2);
+  background: white;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  color: #06b6d4;
+}
+
+
+.submissions-pagination .page-btn:hover:not(:disabled) {
+  background: #06b6d4;
+  border-color: #06b6d4;
+  color: white;
+}
+
+
+.submissions-pagination .page-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+
+.submissions-pagination .page-numbers {
+  display: flex;
+  gap: 0.25rem;
+}
+
+
+.submissions-pagination .page-num {
+  min-width: 28px;
+  height: 28px;
+  border: none;
+  background: transparent;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  transition: all 0.2s ease;
+}
+
+
+.submissions-pagination .page-num:hover {
+  background: rgba(6, 182, 212, 0.1);
+  color: #06b6d4;
+}
+
+
+.submissions-pagination .page-num.active {
+  background: #06b6d4;
+  color: white;
+}
+
+
+.submissions-pagination .page-info {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  margin-left: 0.5rem;
+}
+
+
+/* 旧的问卷卡片样式（保留兼容） */
+
+.submission-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.875rem 1rem;
+  background: white;
+  border: 1px solid rgba(6, 182, 212, 0.12);
+  border-radius: 14px;
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+
+.submission-card:hover {
+  border-color: rgba(6, 182, 212, 0.3);
+  background: rgba(6, 182, 212, 0.02);
+  transform: translateX(4px);
+  box-shadow: 0 4px 16px rgba(6, 182, 212, 0.1);
+}
+
+
+.submission-card.active {
+  border-color: #06b6d4;
+  background: linear-gradient(135deg, rgba(6, 182, 212, 0.08) 0%, rgba(34, 211, 238, 0.04) 100%);
+  box-shadow: 0 4px 20px rgba(6, 182, 212, 0.15);
+}
+
+
+.submission-card-left {
+  display: flex;
+  align-items: center;
+  gap: 0.875rem;
+}
+
+
+.submission-icon {
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.25rem;
+  flex-shrink: 0;
+}
+
+
+.submission-icon.status-completed {
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.15), rgba(16, 185, 129, 0.08));
+  color: #059669;
+}
+
+
+.submission-icon.status-progress {
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.15), rgba(245, 158, 11, 0.08));
+  color: #d97706;
+}
+
+
+.submission-icon.status-pending {
+  background: linear-gradient(135deg, rgba(107, 114, 128, 0.15), rgba(107, 114, 128, 0.08));
+  color: #6b7280;
+}
+
+
+.submission-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+
+.submission-name {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  letter-spacing: -0.01em;
+}

@@ -1,0 +1,315 @@
+
+.btn-batch-delete:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+
+/* 表格复选框列 */
+
+.cell-checkbox {
+  width: 40px;
+  text-align: center;
+}
+
+
+.cell-checkbox input {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+  accent-color: #7c3aed;
+}
+
+
+.record-row.selected {
+  background: rgba(124, 58, 237, 0.05);
+}
+
+
+/* ⭐ V44: 批量删除弹窗样式（优化版） */
+
+.batch-delete-overlay {
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
+}
+
+
+.batch-delete-dialog {
+  background: white;
+  border-radius: 20px;
+  padding: 2rem;
+  width: 90%;
+  max-width: 420px;
+  text-align: center;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  animation: batchDeleteSlideIn 0.3s ease-out;
+}
+
+
+@keyframes batchDeleteSlideIn {
+  from {
+    opacity: 0;
+    transform: scale(0.9) translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+
+.batch-delete-icon {
+  width: 72px;
+  height: 72px;
+  margin: 0 auto 1.5rem;
+  background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+
+.batch-delete-icon i {
+  font-size: 2rem;
+  color: #ef4444;
+}
+
+
+.batch-delete-title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #1f2937;
+  margin: 0 0 0.5rem;
+  /* V45: 确保标题颜色正确 */
+  background: transparent;
+}
+
+
+.batch-delete-count {
+  font-size: 0.9375rem;
+  color: #64748b;
+  margin: 0 0 1.25rem;
+}
+
+
+.batch-delete-count strong {
+  color: #ef4444;
+  font-weight: 700;
+  font-size: 1.125rem;
+}
+
+
+.batch-delete-preview {
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 0.75rem;
+  margin-bottom: 1rem;
+  max-height: 180px;
+  overflow-y: auto;
+}
+
+
+.preview-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.625rem;
+  background: white;
+  border-radius: 8px;
+  margin-bottom: 0.5rem;
+  transition: all 0.2s;
+}
+
+
+.preview-item:last-child {
+  margin-bottom: 0;
+}
+
+
+.preview-item:hover {
+  background: #fef2f2;
+}
+
+
+.preview-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+
+.preview-info {
+  flex: 1;
+  text-align: left;
+  min-width: 0;
+}
+
+
+.preview-name {
+  display: block;
+  font-weight: 600;
+  color: #1e293b;
+  font-size: 0.875rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+
+.preview-questionnaire {
+  display: block;
+  font-size: 0.75rem;
+  color: #94a3b8;
+  margin-top: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+
+.preview-more {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.625rem;
+  color: #64748b;
+  font-size: 0.8125rem;
+  background: rgba(239, 68, 68, 0.05);
+  border-radius: 8px;
+  margin-top: 0.5rem;
+}
+
+
+.preview-more i {
+  font-size: 1rem;
+}
+
+
+.batch-delete-warning {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.75rem;
+  background: #fef2f2;
+  border-radius: 8px;
+  margin-bottom: 1.5rem;
+  font-size: 0.8125rem;
+  color: #b91c1c;
+}
+
+
+.batch-delete-warning i {
+  font-size: 1rem;
+  color: #ef4444;
+}
+
+
+.batch-delete-actions {
+  display: flex;
+  gap: 0.75rem;
+}
+
+
+.btn-batch-cancel {
+  flex: 1;
+  padding: 0.75rem 1.5rem;
+  background: #f1f5f9;
+  border: none;
+  border-radius: 10px;
+  font-size: 0.9375rem;
+  font-weight: 500;
+  color: #64748b;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+
+.btn-batch-cancel:hover {
+  background: #e2e8f0;
+  color: #475569;
+}
+
+
+.btn-batch-confirm {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+  border: none;
+  border-radius: 10px;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: white;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+
+.btn-batch-confirm:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.4);
+}
+
+
+.btn-batch-confirm i {
+  font-size: 1rem;
+}
+
+
+/* ===== 统计摘要 ===== */
+
+.records-summary {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 2.5rem;
+  padding: 1.25rem 1.5rem;
+  background: white;
+  border-bottom: 1px solid #e5e7eb;
+  flex-wrap: nowrap;
+}
+
+
+.summary-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-direction: row;
+  white-space: nowrap;
+}
+
+
+.summary-item i {
+  font-size: 1.125rem;
+  flex-shrink: 0;
+}
+
+
+.summary-item .summary-value {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #111827;
+  line-height: 1;
+}
+
+
+.summary-item .summary-label {
+  font-size: 0.875rem;
+  color: #6b7280;
+  line-height: 1;
+}

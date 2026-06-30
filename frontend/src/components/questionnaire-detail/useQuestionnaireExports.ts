@@ -1,15 +1,12 @@
 import { nextTick, ref, type ComputedRef, type Ref } from 'vue'
-import { init, type ECharts, type EChartsOption, type SetOptionOpts } from 'echarts/core'
-import * as XLSX from 'xlsx'
+import { type EChartsOption, type SetOptionOpts } from 'echarts/core'
 import type { Questionnaire, QuestionStat, Submission } from '../../api/assessments'
-import { fetchQuestionnaireAnswerExport, type QuestionnaireQuestionStats } from '../../api/assessments'
+import { type QuestionnaireQuestionStats } from '../../api/assessments'
 import { isTextQuestionType as isTextQuestion } from '../../utils/questionnaireQuestionTypes'
-import {
-  buildAnswerDetailRows,
-  buildOptionPersonRows,
-  buildQuestionStatsRows,
-  buildSubmissionRows,
-} from '../../utils/questionnaireSubmissionExport'
+import { exportQuestionnaireSubmissions } from './questionnaireSubmissionExportRunner'
+import { exportStatsAsExcel } from './questionnaireStatsExcelExport'
+import { delay, downloadBlob, downloadHref, pad2, sanitizeFileName } from './questionnaireExportFiles'
+import { renderQuestionChartImage } from './questionnaireChartImageExport'
 
 type GradeDistribution = { A: number; B: number; C: number; D: number }
 
@@ -81,15 +78,6 @@ export function useQuestionnaireExports(options: UseQuestionnaireExportsOptions)
   const statsExportToastMessage = ref('')
   const statsExportToastType = ref<'success' | 'error'>('success')
 
-  const disposeChartSafely = (chart: ECharts | null) => {
-    if (!chart) return
-    try {
-      chart.dispose()
-    } catch (error) {
-      console.warn('销毁统计导出图表失败:', error)
-    }
-  }
-
   const openExportModal = () => {
     if (submissions.value.length === 0) {
       showExportSuccessToast.value = true
@@ -107,93 +95,22 @@ export function useQuestionnaireExports(options: UseQuestionnaireExportsOptions)
     exportLoading.value = true
 
     try {
-      // 确保导出时拿到最新题目统计
       if (!questionStats.value && questionnaire.value?.id) {
         await loadQuestionStats()
       }
 
-      const data = buildSubmissionRows(submissions.value, questionnaire.value, formatDate, getStatusLabel)
+      await exportQuestionnaireSubmissions({
+        format: exportFormat.value,
+        questionnaire: questionnaire.value,
+        submissions: submissions.value,
+        questionStats: questionStats.value,
+        formatDate,
+        getStatusLabel,
+      })
 
-      const headers = Object.keys(data[0] || {})
-      const questionStatsRows = buildQuestionStatsRows(questionStats.value)
-      const questionStatsHeaders = Object.keys(questionStatsRows[0] || {})
-      const dateStr = new Date().toISOString().slice(0, 10)
-      const fileName = `${questionnaire.value?.name || '问卷'}_提交记录_${dateStr}`
-
-      if (exportFormat.value === 'csv') {
-        // CSV导出
-        const lines = [
-          headers.join(','),
-          ...data.map(row => headers.map(h => `"${(row as any)[h] || ''}"`).join(','))
-        ]
-
-        if (questionStatsRows.length > 0) {
-          lines.push('')
-          lines.push('题目统计数据')
-          lines.push(questionStatsHeaders.join(','))
-          lines.push(
-            ...questionStatsRows.map(row => questionStatsHeaders.map(h => `"${(row as any)[h] || ''}"`).join(','))
-          )
-        }
-
-        const csvContent = lines.join('\n')
-
-        const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' })
-        const link = document.createElement('a')
-        link.href = URL.createObjectURL(blob)
-        link.download = `${fileName}.csv`
-        link.click()
-      } else {
-        // 真正的 .xlsx 导出，避免移动端/WPS将内容识别为源码
-        const workbook = XLSX.utils.book_new()
-        const detailSheet = XLSX.utils.json_to_sheet(data)
-        XLSX.utils.book_append_sheet(workbook, detailSheet, '提交明细')
-
-        if (questionStatsRows.length > 0) {
-          const statsSheet = XLSX.utils.json_to_sheet(questionStatsRows)
-          XLSX.utils.book_append_sheet(workbook, statsSheet, '题目统计')
-        }
-
-        if (questionnaire.value?.id) {
-          const answerExportData = await fetchQuestionnaireAnswerExport(questionnaire.value.id)
-          const answerDetailRows = buildAnswerDetailRows(answerExportData, formatDate, getStatusLabel)
-          const optionPersonRows = buildOptionPersonRows(answerExportData, formatDate)
-
-          if (answerDetailRows.length > 0) {
-            XLSX.utils.book_append_sheet(
-              workbook,
-              XLSX.utils.json_to_sheet(answerDetailRows),
-              '答题明细'
-            )
-          }
-
-          if (optionPersonRows.length > 0) {
-            XLSX.utils.book_append_sheet(
-              workbook,
-              XLSX.utils.json_to_sheet(optionPersonRows),
-              '选项人员明细'
-            )
-          }
-        }
-
-        const excelBuffer = XLSX.write(workbook, {
-          bookType: 'xlsx',
-          type: 'array'
-        })
-        const blob = new Blob([excelBuffer], {
-          type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-        })
-        const link = document.createElement('a')
-        link.href = URL.createObjectURL(blob)
-        link.download = `${fileName}.xlsx`
-        link.click()
-      }
-
-      // 关闭弹窗并显示成功提示
       showExportModal.value = false
       showExportSuccessToast.value = true
       setTimeout(() => { showExportSuccessToast.value = false }, 3000)
-
     } catch (error) {
       console.error('导出失败:', error)
       alert('导出失败，请检查网络连接或稍后重试')
@@ -236,9 +153,6 @@ export function useQuestionnaireExports(options: UseQuestionnaireExportsOptions)
     showStatsExportModal.value = true
   }
 
-  const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms))
-  const pad2 = (value: number | string) => String(value).padStart(2, '0')
-
   const getExportDateText = () => {
     return new Date().toLocaleString('zh-CN', {
       year: 'numeric',
@@ -252,10 +166,6 @@ export function useQuestionnaireExports(options: UseQuestionnaireExportsOptions)
   const getExportDateKey = () => {
     const date = new Date()
     return `${date.getFullYear()}${pad2(date.getMonth() + 1)}${pad2(date.getDate())}`
-  }
-
-  const sanitizeFileName = (name: string) => {
-    return name.replace(/[\\/:*?"<>|]/g, '_').replace(/\s+/g, '_').slice(0, 80)
   }
 
   const getStatsExportBaseName = () => {
@@ -277,151 +187,25 @@ export function useQuestionnaireExports(options: UseQuestionnaireExportsOptions)
     setTimeout(() => URL.revokeObjectURL(url), 1000)
   }
 
-  const getStatsOverviewRows = () => {
-    return [
-      { '指标': '问卷名称', '数值': questionnaire.value?.name || questionStats.value?.questionnaire_name || '' },
-      { '指标': '导出时间', '数值': getExportDateText() },
-      { '指标': '参与人数', '数值': actualSubmissionCount.value },
-      { '指标': '完成率', '数值': `${actualSubmissionCount.value > 0 ? (questionStats.value?.completion_rate ?? 100) : 0}%` },
-      { '指标': '题目数', '数值': questionStats.value?.questions.length || 0 },
-      { '指标': '平均分', '数值': (questionStats.value?.average_score ?? averageScore.value) || '' },
-      { '指标': '平均用时', '数值': questionStats.value?.average_duration_minutes ? `${questionStats.value.average_duration_minutes}分钟` : '' },
-      { '指标': '趋势范围', '数值': trendRangeLabel.value },
-    ]
-  }
-
-  const getStatsTrendRows = () => {
-    return trendSeries.value.map(day => ({
-      '日期': day.date,
-      '显示日期': formatTrendDate(day.date),
-      '提交数': day.count
-    }))
-  }
-
-  const getStatsGradeRows = () => {
-    return [
-      { grade: 'A', label: '优秀' },
-      { grade: 'B', label: '良好' },
-      { grade: 'C', label: '及格' },
-      { grade: 'D', label: '待提升' }
-    ].map(item => {
-      const count = gradeDistribution.value[item.grade as keyof typeof gradeDistribution] || 0
-      const percentage = completedSubmissions.value.length > 0
-        ? Math.round(count / completedSubmissions.value.length * 100)
-        : 0
-      return {
-        '等级': item.grade,
-        '说明': item.label,
-        '人数': count,
-        '占比': `${percentage}%`
-      }
+  const runStatsExcelExport = () => {
+    exportStatsAsExcel({
+      questionnaire: questionnaire.value,
+      questionStats: questionStats.value,
+      exportDateText: getExportDateText(),
+      actualSubmissionCount: actualSubmissionCount.value,
+      averageScore: averageScore.value,
+      gradeDistribution: gradeDistribution.value,
+      completedSubmissions: completedSubmissions.value,
+      isScored: isScored.value,
+      trendRangeLabel: trendRangeLabel.value,
+      trendSeries: trendSeries.value,
+      formatTrendDate,
+      getTextTags,
+      getTextLongAnswers,
+      getTextEmptyCount,
+      baseName: getStatsExportBaseName(),
+      downloadBlob,
     })
-  }
-
-  const getStatsTextRows = () => {
-    const rows: Array<Record<string, string | number>> = []
-    questionStats.value?.questions
-      .filter(q => isTextQuestion(q.type))
-      .forEach(q => {
-        getTextTags(q).forEach(item => {
-          rows.push({
-            '题号': `Q${q.index}`,
-            '题目': q.text || '',
-            '类型': '关键词标签',
-            '内容': item.text || '',
-            '次数': item.count || 0
-          })
-        })
-        if (getTextEmptyCount(q) > 0) {
-          rows.push({
-            '题号': `Q${q.index}`,
-            '题目': q.text || '',
-            '类型': '无/没有意见',
-            '内容': '无/没有意见',
-            '次数': getTextEmptyCount(q)
-          })
-        }
-        getTextLongAnswers(q).forEach(item => {
-          rows.push({
-            '题号': `Q${q.index}`,
-            '题目': q.text || '',
-            '类型': '代表性回答',
-            '内容': item.text || '',
-            '次数': item.count || 0
-          })
-        })
-      })
-    return rows
-  }
-
-  const exportStatsAsExcel = () => {
-    const workbook = XLSX.utils.book_new()
-    XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(getStatsOverviewRows()), '统计概览')
-    XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(getStatsTrendRows()), '提交趋势')
-
-    if (isScored.value) {
-      XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(getStatsGradeRows()), '得分分布')
-    }
-
-    const questionRows = buildQuestionStatsRows(questionStats.value)
-    if (questionRows.length > 0) {
-      XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(questionRows), '题目统计')
-    }
-
-    const textRows = getStatsTextRows()
-    if (textRows.length > 0) {
-      XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(textRows), '文本题汇总')
-    }
-
-    const excelBuffer = XLSX.write(workbook, {
-      bookType: 'xlsx',
-      type: 'array'
-    })
-    downloadBlob(
-      new Blob([excelBuffer], {
-        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-      }),
-      `${getStatsExportBaseName()}.xlsx`
-    )
-  }
-
-  const renderQuestionChartImage = async (question: QuestionStat) => {
-    if (!question.options.length) return ''
-
-    const width = 460
-    const height = Math.max(220, getQuestionChartHeight(question))
-    const host = document.createElement('div')
-    host.style.position = 'fixed'
-    host.style.left = '-12000px'
-    host.style.top = '0'
-    host.style.width = `${width}px`
-    host.style.height = `${height}px`
-    host.style.pointerEvents = 'none'
-    host.style.contain = 'layout paint style'
-    host.style.background = '#ffffff'
-    document.body.appendChild(host)
-
-    let chart: ECharts | null = null
-    try {
-      chart = init(host, 'light', {
-        renderer: 'canvas',
-        width,
-        height,
-      })
-      chart.setOption({
-        ...getQuestionVisualOption(question),
-        animation: false,
-      } as EChartsOption, questionChartSetOptionOpts)
-      await delay(80)
-      return chart.getDataURL({
-        type: 'png',
-        pixelRatio: 2,
-        backgroundColor: '#ffffff',
-      })
-    } finally {
-      disposeChartSafely(chart)
-      host.remove()
-    }
   }
 
   const prepareStatsExportChartImages = async () => {
@@ -432,7 +216,11 @@ export function useQuestionnaireExports(options: UseQuestionnaireExportsOptions)
       if (isTextQuestion(question.type) || question.options.length === 0) continue
       const key = getQuestionExportChartKey(question)
       try {
-        imageMap[key] = await renderQuestionChartImage(question)
+        imageMap[key] = await renderQuestionChartImage(question, {
+          questionChartSetOptionOpts,
+          getQuestionChartHeight,
+          getQuestionVisualOption,
+        })
       } catch (error) {
         console.warn(`生成题目 Q${question.index} 导出图表失败:`, error)
       }
@@ -651,7 +439,7 @@ export function useQuestionnaireExports(options: UseQuestionnaireExportsOptions)
       }
 
       if (statsExportFormat.value === 'excel') {
-        exportStatsAsExcel()
+        runStatsExcelExport()
       } else if (statsExportFormat.value === 'png') {
         await exportStatsAsPng()
       } else {

@@ -1,0 +1,341 @@
+
+.stat-icon.participants {
+  background: linear-gradient(135deg, #dbeafe, #bfdbfe);
+  color: #2563eb;
+}
+
+
+.stat-icon.score {
+  background: linear-gradient(135deg, #d1fae5, #a7f3d0);
+  color: #059669;
+}
+
+
+.stat-icon.completion {
+  background: linear-gradient(135deg, #fef3c7, #fde68a);
+  color: #d97706;
+}
+
+
+/* V43: 新增指标图标样式 */
+
+.stat-icon.highlight {
+  background: linear-gradient(135deg, #fce7f3, #fbcfe8);
+  color: #db2777;
+}
+
+
+.stat-icon.questions {
+  background: linear-gradient(135deg, #e0e7ff, #c7d2fe);
+  color: #4f46e5;
+}
+
+
+.stat-icon.duration {
+  background: linear-gradient(135deg, #ccfbf1, #99f6e4);
+  color: #0d9488;
+}
+
+
+.stat-value small {
+  font-size: 14px;
+  font-weight: 500;
+  color: #64748b;
+  margin-left: 2px;
+}
+
+
+.stat-data {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+
+.stat-value {
+  font-size: 28px;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+
+.stat-label {
+  font-size: 14px;
+  color: #64748b;
+}
+
+
+/* 等级分布 */
+
+.grade-distribution {
+  background: white;
+  border-radius: 14px;
+  padding: 24px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  margin-bottom: 24px;
+}
+
+
+.grade-distribution h4 {
+  font-size: 16px;
+  font-weight: 600;
+  color: #334155;
+  margin: 0 0 20px;
+}
+
+
+.grade-bars {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+
+.grade-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+
+/* V43: 优化得分分布标签布局 */
+
+.grade-label-wrap {
+  width: 70px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+
+.grade-letter {
+  font-size: 16px;
+  font-weight: 700;
+}
+
+
+.grade-text {
+  font-size: 12px;
+  font-weight: 500;
+  opacity: 0.85;
+  white-space: nowrap;
+}
+
+
+.grade-track {
+  flex: 1;
+  height: 24px;
+  background: #e2e8f0;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+
+.grade-fill {
+  height: 100%;
+  border-radius: 12px;
+  transition: width 0.5s ease;
+}
+
+
+.grade-fill.grade-a { background: linear-gradient(90deg, #10b981, #059669); }
+
+.grade-fill.grade-b { background: linear-gradient(90deg, #3b82f6, #2563eb); }
+
+.grade-fill.grade-c { background: linear-gradient(90deg, #f59e0b, #d97706); }
+
+.grade-fill.grade-d { background: linear-gradient(90deg, #ef4444, #dc2626); }
+
+
+.grade-count {
+  width: 90px;
+  text-align: right;
+  font-size: 13px;
+  color: #475569;
+  font-weight: 500;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+
+/* V43: 移除旧的 grade-label 样式，使用 grade-label-wrap */
+
+
+/* V42: 加载状态 */
+
+.stats-loading,
+
+.stats-error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  color: #64748b;
+  gap: 12px;
+}
+
+
+.stats-loading i {
+  font-size: 32px;
+  color: #7c3aed;
+}
+
+
+.stats-error i {
+  font-size: 32px;
+  color: #ef4444;
+}
+
+
+.stats-error button {
+  margin-top: 8px;
+  padding: 8px 16px;
+  background: #7c3aed;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+
+/* V45: 空状态样式 */
+
+.stats-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  text-align: center;
+}
+
+
+.stats-empty-state .empty-icon {
+  width: 80px;
+  height: 80px;
+  background: linear-gradient(135deg, #f1f5f9, #e2e8f0);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 20px;
+}
+
+
+.stats-empty-state .empty-icon i {
+  font-size: 36px;
+  color: #94a3b8;
+}
+
+
+.stats-empty-state h4 {
+  font-size: 16px;
+  font-weight: 600;
+  color: #475569;
+  margin: 0 0 8px;
+}
+
+
+.stats-empty-state p {
+  font-size: 14px;
+  color: #94a3b8;
+  margin: 0;
+}
+
+
+/* V42: 平均用时图标 */
+
+.stat-icon.duration {
+  background: linear-gradient(135deg, #e0e7ff, #c7d2fe);
+  color: #6366f1;
+}
+
+
+/* V42: 提交趋势图表 */
+
+.submission-trend {
+  background: white;
+  border-radius: 14px;
+  padding: 24px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  margin-bottom: 24px;
+}
+
+
+.submission-trend h4 {
+  font-size: 16px;
+  font-weight: 600;
+  color: #334155;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+
+.submission-trend h4 i {
+  color: #7c3aed;
+}
+
+
+.trend-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+
+.trend-range {
+  display: flex;
+  gap: 8px;
+  background: #f8fafc;
+  padding: 4px;
+  border-radius: 999px;
+}
+
+
+.range-btn {
+  border: none;
+  background: transparent;
+  color: #64748b;
+  font-size: 12px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  cursor: pointer;
+}
+
+
+.range-btn.active {
+  background: #7c3aed;
+  color: #ffffff;
+}
+
+
+/* V43: 新的趋势图样式（折线图） */
+
+.trend-chart-v43 {
+  margin-top: 16px;
+}
+
+
+.trend-line-container {
+  position: relative;
+  height: 150px;
+  width: 100%;
+}
+
+
+.trend-grid {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 32px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}

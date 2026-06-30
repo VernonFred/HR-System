@@ -1,7 +1,5 @@
   <div class="records-tab">
-    <!-- V45: 现代化筛选工具栏 - 飞书/Notion风格 -->
     <div class="toolbar">
-      <!-- 搜索框 -->
       <div class="toolbar-search">
           <i class="ri-search-line"></i>
           <input
@@ -10,8 +8,6 @@
             placeholder="搜索候选人姓名或编号..."
           />
         </div>
-
-      <!-- 筛选器组 -->
       <div class="toolbar-filters">
         <div class="filter-chip" :class="{ active: filterYear !== null }">
           <i class="ri-calendar-line"></i>
@@ -43,8 +39,6 @@
           </select>
         </div>
       </div>
-
-        <!-- 视图切换 -->
       <div class="toolbar-view">
           <button
           :class="['view-btn', { active: !groupByCandidate }]"
@@ -61,8 +55,6 @@
           <i class="ri-layout-grid-line"></i>
           </button>
         </div>
-
-      <!-- 操作按钮 -->
       <div class="toolbar-actions">
         <button class="action-btn primary" @click="openExportModal">
           <i class="ri-download-line"></i>
@@ -78,8 +70,6 @@
         </button>
       </div>
     </div>
-
-    <!-- ⭐ V44: 批量操作栏 - 列表模式显示 -->
     <div v-if="isSelectMode && !groupByCandidate" class="batch-action-bar">
       <div class="batch-left">
         <label class="select-all-checkbox">
@@ -104,8 +94,6 @@
         </button>
       </div>
     </div>
-
-    <!-- 统计信息 -->
     <div class="records-summary">
       <div class="summary-item">
         <span class="summary-value">{{ actualFilteredCount }}</span>
@@ -127,8 +115,6 @@
         <span class="summary-label">进行中</span>
       </div>
     </div>
-
-    <!-- 列表视图 -->
     <div v-if="!groupByCandidate" class="table-wrapper">
       <table class="records-table">
         <thead>
@@ -213,8 +199,6 @@
           </tr>
         </tbody>
       </table>
-
-      <!-- 分页控件 -->
       <div v-if="displayFilteredCount > pageSize" class="pagination-bar">
         <button class="page-btn" :disabled="currentPage === 1" @click="changePage(currentPage - 1)" title="上一页">
           <i class="ri-arrow-left-s-line"></i>
@@ -225,10 +209,7 @@
         </button>
       </div>
     </div>
-
-    <!-- 分组视图 -->
     <div v-else class="grouped-view">
-      <!-- V45: 分组模式控制栏 -->
       <div class="grouped-controls">
         <button class="btn-toggle-all" @click="toggleAllCandidates">
           <i :class="areVisibleGroupsExpanded ? 'ri-contract-up-down-line' : 'ri-expand-up-down-line'"></i>
@@ -246,8 +227,6 @@
           {{ isSelectMode ? '取消选择' : '批量删除' }}
         </button>
       </div>
-
-      <!-- V45: 批量操作栏 - 选择模式下显示 -->
       <div v-if="isSelectMode" class="batch-action-bar">
         <div class="batch-left">
           <label class="select-all-checkbox">
@@ -271,8 +250,6 @@
           </button>
         </div>
       </div>
-
-      <!-- 候选人分组卡片 -->
       <div class="candidate-groups">
         <div
           v-for="group in paginatedGroupedSubmissions"
@@ -280,7 +257,6 @@
           class="candidate-group-card"
           :class="{ expanded: expandedCandidates.has(getGroupKey(group)) }"
         >
-          <!-- 分组头部 -->
           <div
             class="group-header"
             @click="toggleCandidateExpand(getGroupKey(group))"
@@ -314,8 +290,6 @@
             </div>
             <i :class="['expand-icon', expandedCandidates.has(getGroupKey(group)) ? 'ri-arrow-up-s-line' : 'ri-arrow-down-s-line']"></i>
           </div>
-
-          <!-- 展开的测评列表 -->
           <div v-if="expandedCandidates.has(getGroupKey(group))" class="group-submissions">
             <div v-if="group.submissions.length === 0" class="submission-item empty-submissions">
               <span class="submission-questionnaire">匿名提交已汇总</span>
@@ -326,7 +300,6 @@
               class="submission-item"
               :class="{ selected: selectedSubmissions.has(sub.id) }"
             >
-              <!-- V45: 分组模式下也显示复选框 -->
               <input
                 v-if="isSelectMode"
                 type="checkbox"
@@ -379,8 +352,6 @@
             </div>
           </div>
         </div>
-
-        <!-- 空状态 -->
         <div v-if="groupedSubmissionsAll.length === 0" class="empty-grouped">
           <i class="ri-inbox-line"></i>
           <span>暂无提交记录</span>
@@ -396,8 +367,6 @@
         </div>
       </div>
     </div>
-
-    <!-- 删除确认弹窗 -->
     <div v-if="showDeleteConfirmModal" class="modal-overlay" @click="showDeleteConfirmModal = false">
       <div class="modal-dialog confirm-modal" @click.stop>
         <div class="modal-header">
@@ -416,24 +385,15 @@
         </div>
       </div>
     </div>
-
-    <!-- ⭐ V44: 批量删除确认弹窗（优化样式） -->
     <div v-if="showBatchDeleteModal" class="modal-overlay batch-delete-overlay" @click="showBatchDeleteModal = false">
       <div class="batch-delete-dialog" @click.stop>
-        <!-- 顶部警告图标 -->
         <div class="batch-delete-icon">
           <i class="ri-delete-bin-line"></i>
         </div>
-
-        <!-- 标题 -->
         <h3 class="batch-delete-title">批量删除确认</h3>
-
-        <!-- 删除数量提示 -->
         <p class="batch-delete-count">
           即将删除 <strong>{{ selectedSubmissions.size }}</strong> 条提交记录
         </p>
-
-        <!-- 预览列表 -->
           <div class="batch-delete-preview">
             <div v-for="sub in filteredSubmissions.filter(s => selectedSubmissions.has(s.id)).slice(0, 5)" :key="sub.id" class="preview-item">
             <div class="preview-avatar">{{ sub.candidate_name?.charAt(0) || '?' }}</div>
@@ -447,14 +407,10 @@
             还有 {{ selectedSubmissions.size - 5 }} 条记录
             </div>
           </div>
-
-        <!-- 警告提示 -->
         <div class="batch-delete-warning">
             <i class="ri-error-warning-line"></i>
           <span>此操作不可恢复，请谨慎操作</span>
         </div>
-
-        <!-- 操作按钮 -->
         <div class="batch-delete-actions">
           <button class="btn-batch-cancel" @click="showBatchDeleteModal = false">
             取消
@@ -466,8 +422,6 @@
         </div>
       </div>
     </div>
-
-    <!-- 导出弹窗 -->
     <div v-if="showExportModal" class="modal-overlay" @click="closeExportModal">
       <div class="modal-dialog export-modal" @click.stop>
         <div class="modal-header">
@@ -509,16 +463,12 @@
         </div>
       </div>
     </div>
-
-    <!-- 导出成功提示 -->
     <Transition name="toast">
       <div v-if="showExportSuccessToast" class="toast-success">
         <i class="ri-checkbox-circle-fill"></i>
         <span>{{ filteredSubmissions.length > 0 ? '导出成功！文件已下载' : '暂无数据可导出' }}</span>
       </div>
     </Transition>
-
-    <!-- 提交详情弹窗 -->
     <SubmissionDetailModal
       v-if="showSubmissionDetailModal"
       :submission="selectedSubmission"

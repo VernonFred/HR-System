@@ -1,19 +1,13 @@
   <div class="portrait-wrapper">
-    <!-- 空状态 -->
     <div v-if="!profile" class="empty-state">
       <i class="ri-user-search-line"></i>
       <h3>请选择候选人查看画像</h3>
       <p>包含人格分布、岗位胜任力、画像总结、亮点/风险分析</p>
     </div>
-
-    <!-- 有数据时显示导出按钮和画像 -->
     <div v-else class="portrait-container">
-      <!-- 画像卡片 -->
       <div class="portrait-card">
-        <!-- 顶部工具栏 -->
         <div v-if="!hideToolbar" class="portrait-toolbar">
           <div class="toolbar-actions">
-            <!-- 简历按钮 -->
             <button
               class="toolbar-btn resume-btn"
               @click="openResumeModal"
@@ -24,8 +18,6 @@
               <span>简历</span>
               <span v-if="hasResume" class="resume-badge"></span>
             </button>
-
-            <!-- 导出按钮 -->
             <button
               class="toolbar-btn export-btn"
               @click="showExportMenu = !showExportMenu"
@@ -35,8 +27,6 @@
               <i class="ri-download-cloud-line"></i>
               <span>导出</span>
             </button>
-
-            <!-- 导出菜单 -->
             <transition name="fade-slide">
               <div v-if="showExportMenu" class="export-dropdown">
                 <button class="dropdown-item" @click="exportAsPNG">
@@ -55,17 +45,13 @@
             </transition>
           </div>
         </div>
-
-        <!-- 精致渐变头部 -->
         <div class="header-gradient">
           <div class="header-content">
-          <!-- 左侧信息 -->
           <div class="candidate-info">
             <div class="avatar-badge">{{ displayData.name.charAt(0) }}</div>
             <div class="info-text">
               <div class="name-row">
                 <h1 class="name">{{ displayData.name }}</h1>
-                <!-- 人格类型徽章 - 完整格式：问卷类型 · 人格类型 描述 -->
                 <div v-if="isMBTI" class="personality-badge mbti" :title="mbtiTypeInfo?.description || 'MBTI人格类型'">
                   <span class="badge-prefix">MBTI</span>
                   <span class="badge-divider">·</span>
@@ -100,8 +86,6 @@
                   {{ tag }}
                 </span>
               </div>
-
-              <!-- 单模型模式：画像自动生成，仅保留评分详情入口 -->
               <div class="analysis-level-switch">
                 <button
                   class="level-btn score-detail-header-btn"
@@ -123,8 +107,6 @@
               </div>
             </div>
           </div>
-
-          <!-- 右侧分数圈 -->
           <div class="score-circle-wrapper">
             <svg class="score-svg" viewBox="0 0 136 136">
               <defs>
@@ -170,7 +152,6 @@
                 class="progress-circle"
                 filter="url(#glow)"
               />
-              <!-- 文字直接在SVG内，确保导出时居中 -->
               <text x="68" y="62" text-anchor="middle" dominant-baseline="middle"
                     fill="white" font-size="36" font-weight="700" class="score-svg-value">
                 {{ displayData.overallMatchScore }}
@@ -180,7 +161,6 @@
                 综合匹配度
               </text>
             </svg>
-            <!-- 保留DOM文字用于页面显示（导出时隐藏） -->
             <div class="score-text score-text-dom">
               <div class="score-value">{{ displayData.overallMatchScore }}</div>
               <div class="score-label">综合匹配度</div>
@@ -188,19 +168,13 @@
           </div>
         </div>
       </div>
-
-      <!-- 测评记录折叠列表 -->
       <AssessmentAccordion
         v-if="!hideAssessmentList && displayData.assessments && displayData.assessments.length > 0"
         :assessments="displayData.assessments"
         :profile="displayData"
       />
-
-      <!-- 主内容区 -->
       <div class="main-content">
-        <!-- 双栏布局：雷达图 + 胜任力 -->
         <div class="two-column-grid">
-          <!-- 左栏：人格雷达图 -->
           <div class="card-section radar-section">
             <div class="section-header">
               <div class="header-icon">
@@ -211,10 +185,7 @@
                 <p class="section-subtitle">PERSONALITY TRAIT DISTRIBUTION</p>
               </div>
             </div>
-
-            <!-- MBTI 四象限展示（替代雷达图） -->
             <div v-if="isMBTI" class="mbti-quadrant-container">
-              <!-- 四个维度的进度条展示 -->
               <div v-for="dim in displayData.personalityDimensions" :key="dim.key" class="mbti-dimension">
                 <div class="mbti-dimension-header">
                   <span class="dimension-label">{{ dim.label }} ({{ dim.key }})</span>
@@ -234,11 +205,8 @@
                 </div>
               </div>
             </div>
-
-            <!-- DISC 四色象限图展示 -->
             <div v-else-if="isDISC" class="disc-quadrant-container">
               <div class="disc-quadrant">
-                <!-- D - 支配型 (红色) -->
                 <div class="disc-item disc-d" :class="{ active: getDISCScore('D') > 50 }">
                   <div class="disc-icon">
                     <i class="ri-fire-line"></i>
@@ -250,8 +218,6 @@
                   </div>
                   <div class="disc-traits">结果导向、决断力强</div>
                 </div>
-
-                <!-- I - 影响型 (黄色) -->
                 <div class="disc-item disc-i" :class="{ active: getDISCScore('I') > 50 }">
                   <div class="disc-icon">
                     <i class="ri-sun-line"></i>
@@ -263,8 +229,6 @@
                   </div>
                   <div class="disc-traits">热情开朗、善于社交</div>
                 </div>
-
-                <!-- S - 稳健型 (绿色) -->
                 <div class="disc-item disc-s" :class="{ active: getDISCScore('S') > 50 }">
                   <div class="disc-icon">
                     <i class="ri-leaf-line"></i>
@@ -276,8 +240,6 @@
                   </div>
                   <div class="disc-traits">耐心稳重、团队协作</div>
                 </div>
-
-                <!-- C - 谨慎型 (蓝色) -->
                 <div class="disc-item disc-c" :class="{ active: getDISCScore('C') > 50 }">
                   <div class="disc-icon">
                     <i class="ri-shield-check-line"></i>
@@ -291,8 +253,6 @@
                 </div>
               </div>
             </div>
-
-            <!-- EPQ 圆环图展示 -->
             <div v-else class="epq-rings-container">
               <div v-for="(dim, index) in displayData.personalityDimensions"
                    :key="dim.key"
@@ -305,7 +265,6 @@
                         <stop offset="100%" :stop-color="getRingColor(index)" stop-opacity="0.6" />
                       </linearGradient>
                 </defs>
-                    <!-- 背景圆环 -->
                 <circle
                       cx="60"
                       cy="60"
@@ -314,7 +273,6 @@
                   stroke="#e5e7eb"
                       stroke-width="10"
                 />
-                    <!-- 进度圆环 -->
                 <circle
                       cx="60"
                       cy="60"
@@ -327,13 +285,11 @@
                       transform="rotate(-90 60 60)"
                       class="ring-progress"
                     />
-                    <!-- 分数直接在SVG内，确保导出时居中 -->
                     <text x="60" y="68" text-anchor="middle" dominant-baseline="middle"
                           fill="#374151" font-size="24" font-weight="700" class="ring-svg-score">
                       {{ dim.score }}
                     </text>
               </svg>
-                  <!-- 中心内容（导出时隐藏，只用SVG文字） -->
                   <div class="ring-center ring-center-dom">
                     <div class="ring-icon" :style="{ color: getRingColor(index) }">
                       <i :class="getRingIcon(dim.key)"></i>
@@ -341,18 +297,13 @@
                     <div class="ring-score">{{ dim.score }}</div>
                   </div>
                 </div>
-                <!-- 标签和描述 -->
                 <div class="ring-label">{{ dim.label }}</div>
                 <div class="ring-desc">{{ dim.description || getDefaultDescription(dim.key) }}</div>
               </div>
             </div>
           </div>
-
-          <!-- 右栏：胜任力 - 使用重构后的组件 🟢 -->
           <CompetencySection :competencies="displayData.competencies" />
         </div>
-
-        <!-- 亮点与风险 -->
         <div class="insights-grid">
           <div class="insight-card highlight-card">
             <div class="insight-header">
@@ -372,7 +323,6 @@
               </li>
             </ul>
           </div>
-
           <div class="insight-card risk-card">
             <div class="insight-header">
               <div class="icon-badge risk-badge">
@@ -392,8 +342,6 @@
             </ul>
           </div>
         </div>
-
-        <!-- 新增：岗位推荐模块 -->
         <div class="position-recommendation-section">
           <div class="section-header-block">
             <div class="header-icon-large">
@@ -404,9 +352,7 @@
               <p class="section-subtitle">POSITION MATCH ANALYSIS</p>
             </div>
           </div>
-
           <div class="position-grid">
-            <!-- 推荐岗位 -->
             <div class="position-card suitable-card">
               <div class="position-header">
                 <i class="ri-thumb-up-line"></i>
@@ -423,8 +369,6 @@
                 </span>
               </div>
             </div>
-
-            <!-- 不推荐岗位 -->
             <div class="position-card unsuitable-card">
               <div class="position-header">
                 <i class="ri-close-circle-line"></i>
@@ -443,10 +387,7 @@
             </div>
           </div>
         </div>
-
-        <!-- 新增：发展建议与面试焦点 -->
         <div class="action-grid" v-if="developmentSuggestionsList.length || interviewFocusList.length">
-          <!-- 发展建议 -->
           <div class="action-card development-card" v-if="developmentSuggestionsList.length">
             <div class="action-header">
               <div class="icon-badge development-badge">
@@ -465,8 +406,6 @@
               </li>
             </ul>
           </div>
-
-          <!-- 面试关注点 -->
           <div class="action-card interview-card" v-if="interviewFocusList.length">
             <div class="action-header">
               <div class="icon-badge interview-badge">
@@ -486,8 +425,6 @@
             </ul>
           </div>
         </div>
-
-        <!-- 🌟 综合评价 - 使用重构后的组件 🟢 + P1-2 降级提示 -->
         <SummaryCard
           :ai-analysis-text="displayData.aiAnalysisText"
           :is-fallback="displayData.isFallbackAnalysis"
@@ -498,8 +435,6 @@
     </div><!-- 结束 portrait-card -->
   </div><!-- 结束 portrait-container -->
 </div><!-- 结束 portrait-wrapper -->
-
-<!-- 简历模态框 -->
 <ResumeModal
   :visible="showResumeModal"
   :candidate-id="profile?.id ? Number(profile.id) : undefined"
@@ -515,8 +450,6 @@
   @parse="handleParseResume"
   @parse-complete="handleParseComplete"
 />
-
-<!-- 删除简历确认弹窗 -->
 <Transition name="modal">
   <div v-if="showDeleteResumeConfirm" class="delete-confirm-overlay" @click.self="cancelDeleteResume">
     <div class="delete-confirm-modal">
@@ -532,16 +465,12 @@
     </div>
   </div>
 </Transition>
-
-<!-- 消息提示 Toast -->
 <Transition name="toast">
   <div v-if="showToast" :class="['toast-message', toastType]">
     <i :class="toastType === 'success' ? 'ri-check-line' : toastType === 'error' ? 'ri-close-circle-line' : 'ri-information-line'"></i>
     <span>{{ toastMessage }}</span>
   </div>
 </Transition>
-
-<!-- 🟢 P0+P1: 评分详情弹窗 -->
 <ScoreBreakdownModal
   v-model:visible="showScoreBreakdown"
   :overall-score="displayData.overallMatchScore"

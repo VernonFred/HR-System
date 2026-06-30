@@ -1,0 +1,324 @@
+
+.btn-add-option {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 10px;
+  background: #f8fafc;
+  border: 1px dashed #cbd5e1;
+  border-radius: 8px;
+  font-size: 14px;
+  color: #64748b;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+
+.btn-add-option:hover {
+  background: #f1f5f9;
+  border-color: #6366f1;
+  color: #6366f1;
+}
+
+
+/* 🟢 新增："添加其他选项"按钮 */
+
+.btn-add-other-option {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 10px;
+  background: linear-gradient(135deg, #eef2ff, #e0e7ff);
+  border: 1px dashed #a5b4fc;
+  border-radius: 8px;
+  font-size: 14px;
+  color: #6366f1;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+
+.btn-add-other-option:hover {
+  background: linear-gradient(135deg, #e0e7ff, #ddd6fe);
+  border-color: #6366f1;
+  border-style: solid;
+}
+
+
+/* 量表设置 */
+
+.scale-settings {
+  background: #f8fafc;
+  padding: 16px;
+  border-radius: 10px;
+}
+
+
+.scale-range {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+
+.range-item {
+  flex: 1;
+}
+
+
+.range-item label {
+  display: block;
+  font-size: 12px;
+  color: #64748b;
+  margin-bottom: 6px;
+}
+
+
+.range-item input {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  font-size: 14px;
+  text-align: center;
+}
+
+
+.range-arrow {
+  color: #94a3b8;
+  font-size: 16px;
+  margin-top: 20px;
+}
+
+
+.scale-labels-edit {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+
+.label-item label {
+  display: block;
+  font-size: 12px;
+  color: #64748b;
+  margin-bottom: 6px;
+}
+
+
+.label-item input {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  font-size: 14px;
+}
+
+
+/* 专业测评维度设置 */
+
+.dimension-editor .form-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+
+.dimension-editor .form-label i {
+  color: #7c3aed;
+}
+
+
+.dimension-settings {
+  display: flex;
+  gap: 24px;
+  padding: 16px;
+  background: linear-gradient(135deg, #f5f3ff 0%, #ede9fe 100%);
+  border-radius: 12px;
+  border: 1px solid #ddd6fe;
+}
+
+
+.dimension-select-group,
+
+.direction-toggle-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+
+.dimension-select-group label,
+
+.direction-toggle-group label {
+  font-size: 12px;
+  font-weight: 500;
+  color: #6b7280;
+}
+
+
+.dimension-select {
+  padding: 10px 14px;
+  border: 1px solid #c4b5fd;
+  border-radius: 8px;
+  font-size: 14px;
+  background: white;
+  color: #374151;
+  min-width: 180px;
+  cursor: pointer;
+}
+
+
+.dimension-select:focus {
+  outline: none;
+  border-color: #7c3aed;
+  box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.15);
+}
+
+
+.direction-toggle {
+  display: flex;
+  gap: 8px;
+}
+
+
+.direction-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 16px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  background: white;
+  font-size: 13px;
+  font-weight: 500;
+  color: #6b7280;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+
+.direction-btn:hover {
+  border-color: #c4b5fd;
+  background: #f5f3ff;
+}
+
+
+.direction-btn.active {
+  border-color: #7c3aed;
+  background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%);
+  color: white;
+}
+
+
+.direction-btn i {
+  font-size: 16px;
+}
+
+
+.dimension-tip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+  padding: 10px 14px;
+  background: #fef3c7;
+  border-radius: 8px;
+  font-size: 12px;
+  color: #92400e;
+}
+
+
+.dimension-tip i {
+  color: #f59e0b;
+  font-size: 14px;
+}
+
+
+/* 是非题设置 */
+
+.yesno-options {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+
+.yesno-option-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  background: #f8fafc;
+  border-radius: 10px;
+}
+
+
+.yesno-badge {
+  width: 40px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  font-size: 14px;
+  border-radius: 6px;
+}
+
+
+.yesno-badge.yes {
+  background: linear-gradient(135deg, #22c55e, #16a34a);
+  color: white;
+}
+
+
+.yesno-badge.no {
+  background: linear-gradient(135deg, #ef4444, #dc2626);
+  color: white;
+}
+
+
+.yesno-score-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+}
+
+
+.yesno-score-group label {
+  font-size: 12px;
+  color: #64748b;
+  white-space: nowrap;
+}
+
+
+.yesno-score-input {
+  width: 60px;
+  padding: 8px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 14px;
+  text-align: center;
+  transition: all 0.2s;
+}
+
+
+.yesno-score-input:focus {
+  outline: none;
+  border-color: #6366f1;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+}
+
+
+.yesno-score-input::-webkit-inner-spin-button,
+
+.yesno-score-input::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}

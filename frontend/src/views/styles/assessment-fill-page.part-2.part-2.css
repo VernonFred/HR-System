@@ -1,0 +1,302 @@
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.8125rem;
+  color: #6b7280;
+}
+
+
+.legend-dot {
+  width: 16px;
+  height: 16px;
+  border-radius: 4px;
+  border: 2px solid #e5e7eb;
+  background: white;
+}
+
+
+.legend-dot.answered {
+  background: linear-gradient(135deg, #7c3aed, #a855f7);
+  border-color: #7c3aed;
+}
+
+
+.legend-dot.required {
+  background: #fef2f2;
+  border-color: #fecaca;
+}
+
+
+.panel-footer {
+  padding: 1.25rem 1.5rem;
+  border-top: 1px solid #e5e7eb;
+}
+
+
+.btn-submit-panel {
+  width: 100%;
+  padding: 0.875rem;
+  background: linear-gradient(135deg, #10b981, #059669);
+  color: white;
+  border: none;
+  border-radius: 12px;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  transition: all 0.2s;
+}
+
+
+.btn-submit-panel:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+}
+
+
+.btn-submit-panel:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+
+/* 动画 */
+
+.animate-spin {
+  animation: spin 1s linear infinite;
+}
+
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+
+/* 响应式 */
+
+@media (max-width: 768px) {
+  .header-content {
+    padding: 0.875rem 1rem;
+  }
+
+  .logo {
+    width: 36px;
+    height: 36px;
+    font-size: 1.25rem;
+  }
+
+  .assessment-title h1 {
+    font-size: 1rem;
+  }
+
+  .progress-wrapper {
+    padding: 0 1rem 0.875rem;
+  }
+
+  .fill-main {
+    padding: 1rem;
+    align-items: flex-start;
+  }
+
+  .question-card {
+    padding: 1.5rem;
+    border-radius: 20px;
+  }
+
+  .question-text {
+    font-size: 1.125rem;
+  }
+
+  .checkbox-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .scale-buttons {
+    gap: 0.5rem;
+  }
+
+  .scale-btn {
+    width: 48px;
+    height: 48px;
+    font-size: 1.125rem;
+  }
+
+  /* 人格测试移动端适配 */
+  .yesno-buttons {
+    gap: 1.5rem;
+  }
+
+  .yesno-btn {
+    width: 110px;
+    height: 110px;
+  }
+
+  .yesno-btn i {
+    font-size: 2rem;
+  }
+
+  .yesno-btn span {
+    font-size: 1rem;
+  }
+
+  .choice-card {
+    padding: 1.25rem;
+  }
+
+  .choice-letter {
+    width: 36px;
+    height: 36px;
+    font-size: 1rem;
+  }
+
+  .choice-text {
+    font-size: 0.9375rem;
+  }
+
+  .question-nav {
+    flex-wrap: wrap;
+    gap: 1rem;
+  }
+
+  .nav-dots {
+    order: 3;
+    width: 100%;
+    justify-content: center;
+  }
+
+  .btn-prev,
+  .btn-next,
+  .btn-submit {
+    flex: 1;
+    justify-content: center;
+  }
+
+  .answer-card-panel {
+    width: 100%;
+  }
+}
+
+
+/* ⭐ 确认弹窗样式 */
+
+.confirm-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  padding: 20px;
+}
+
+
+.confirm-box {
+  background: white;
+  border-radius: 16px;
+  padding: 32px 28px;
+  max-width: 400px;
+  width: 100%;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  text-align: center;
+}
+
+
+.confirm-icon {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: rgba(59, 130, 246, 0.1);
+  color: #3b82f6;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 20px;
+  font-size: 32px;
+}
+
+
+.confirm-title {
+  font-size: 20px;
+  font-weight: 600;
+  color: #1f2937;
+  margin: 0 0 12px;
+}
+
+
+.confirm-message {
+  font-size: 15px;
+  color: #6b7280;
+  line-height: 1.6;
+  margin: 0 0 24px;
+}
+
+
+.confirm-actions {
+  display: flex;
+  gap: 12px;
+}
+
+
+.btn-cancel {
+  flex: 1;
+  padding: 12px 24px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  font-size: 15px;
+  font-weight: 500;
+  color: #6b7280;
+  background: white;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+
+.btn-cancel:hover {
+  background: #f3f4f6;
+}
+
+
+.btn-ok {
+  flex: 1;
+  padding: 12px 24px;
+  border: none;
+  border-radius: 8px;
+  font-size: 15px;
+  font-weight: 500;
+  color: white;
+  background: #3b82f6;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+
+.btn-ok:hover {
+  background: #2563eb;
+}
+
+
+/* 确认弹窗动画 */
+
+.confirm-fade-enter-active,
+
+.confirm-fade-leave-active {
+  transition: opacity 0.3s;
+}
+
+
+.confirm-fade-enter-from,
+
+.confirm-fade-leave-to {
+  opacity: 0;
+}

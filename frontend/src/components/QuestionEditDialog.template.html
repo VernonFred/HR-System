@@ -1,0 +1,243 @@
+  <div
+    class="modal-overlay"
+    @mousedown.stop="handleOverlayPressStart"
+    @touchstart.stop="handleOverlayPressStart"
+    @click.stop="handleOverlayClick"
+  >
+    <div
+      class="modal-dialog"
+      @mousedown.stop="resetBackdropPointerDown"
+      @touchstart.stop="resetBackdropPointerDown"
+      @click.stop
+    >
+      <div class="modal-header">
+        <h3>
+          <i :class="isEdit ? 'ri-edit-line' : 'ri-add-circle-line'"></i>
+          {{ isEdit ? '编辑题目' : '添加题目' }}
+        </h3>
+        <button class="btn-close" @click="close">
+          <i class="ri-close-line"></i>
+        </button>
+      </div>
+
+      <div class="modal-body">
+        <!-- 题目类型选择 -->
+        <div class="form-group">
+          <label class="form-label">题目类型</label>
+          <div class="question-type-selector">
+            <button
+              v-for="qType in questionControls"
+              :key="qType.type"
+              :class="['type-btn', { active: newQuestion.type === qType.type }]"
+              @click="setQuestionType(qType.type)"
+            >
+              <i :class="qType.icon"></i>
+              <span>{{ qType.label }}</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- 题目内容 -->
+        <div class="form-group">
+          <label class="form-label">题目内容 <span class="required">*</span></label>
+          <textarea
+            class="form-textarea"
+            rows="2"
+            v-model="newQuestion.text"
+            placeholder="请输入题目内容，如：您对目前的工作满意度如何？"
+          ></textarea>
+        </div>
+
+        <!-- 是否必答 -->
+        <div class="form-group checkbox-group">
+          <label class="checkbox-label">
+            <input type="checkbox" v-model="newQuestion.required" />
+            <span class="checkbox-custom"></span>
+            <span>设为必答题</span>
+          </label>
+        </div>
+
+        <!-- 选项编辑（单选/多选） -->
+        <div v-if="newQuestion.type === 'radio' || newQuestion.type === 'checkbox'" class="form-group options-editor">
+          <label class="form-label">选项设置</label>
+          <div class="options-list">
+            <div class="options-header">
+              <span class="col-indicator"></span>
+              <span class="col-label">选项内容</span>
+              <span v-if="!isProfessionalMode" class="col-score">分值</span>
+              <span class="col-custom">自定义</span>
+              <span class="col-action"></span>
+            </div>
+            <div v-for="(opt, index) in newQuestion.options" :key="index" class="option-edit-item">
+              <span class="option-indicator">{{ newQuestion.type === 'radio' ? '○' : '☐' }}</span>
+              <input
+                type="text"
+                class="option-input"
+                v-model="opt.label"
+                :placeholder="`选项${index + 1}`"
+              />
+              <input
+                v-if="!isProfessionalMode"
+                type="number"
+                class="score-input"
+                v-model.number="opt.score"
+                placeholder="0"
+                min="0"
+                max="100"
+              />
+              <!-- 🟢 新增：允许自定义输入开关 -->
+              <button
+                type="button"
+                :class="['btn-toggle-custom', { active: opt.allowCustom }]"
+                @click="opt.allowCustom = !opt.allowCustom"
+                :title="opt.allowCustom ? '取消自定义输入' : '允许用户自定义输入'"
+              >
+                <i :class="opt.allowCustom ? 'ri-edit-fill' : 'ri-edit-line'"></i>
+              </button>
+              <button
+                class="btn-remove-option"
+                @click="removeQuestionOption(index)"
+                :disabled="(newQuestion.options?.length || 0) <= 2"
+                title="删除选项"
+              >
+                <i class="ri-close-line"></i>
+              </button>
+            </div>
+          </div>
+          <div class="option-buttons">
+            <button class="btn-add-option" @click="addQuestionOption">
+              <i class="ri-add-line"></i>
+              添加选项
+            </button>
+            <button class="btn-add-other-option" @click="addOtherOption">
+              <i class="ri-edit-box-line"></i>
+              添加"其他"选项
+            </button>
+          </div>
+        </div>
+
+        <!-- 量表设置 -->
+        <div v-if="newQuestion.type === 'scale'" class="form-group scale-editor">
+          <label class="form-label">量表设置</label>
+          <div class="scale-settings">
+            <div class="scale-range">
+              <div class="range-item">
+                <label>最小值</label>
+                <input type="number" v-model.number="scaleConfig.min" min="1" max="10" />
+              </div>
+              <span class="range-arrow">→</span>
+              <div class="range-item">
+                <label>最大值</label>
+                <input type="number" v-model.number="scaleConfig.max" min="1" max="10" />
+              </div>
+            </div>
+            <div class="scale-labels-edit">
+              <div class="label-item">
+                <label>最小值标签</label>
+                <input type="text" v-model="scaleConfig.minLabel" placeholder="非常不满意" />
+              </div>
+              <div class="label-item">
+                <label>最大值标签</label>
+                <input type="text" v-model="scaleConfig.maxLabel" placeholder="非常满意" />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 专业测评维度设置 -->
+        <div v-if="isProfessionalMode" class="form-group dimension-editor">
+          <label class="form-label">
+            <i class="ri-pie-chart-line"></i>
+            维度设置
+          </label>
+          <div class="dimension-settings">
+            <div class="dimension-select-group">
+              <label>所属维度</label>
+              <select v-model="newQuestion.dimension" class="dimension-select">
+                <option v-for="dim in currentDimensions" :key="dim.value" :value="dim.value">
+                  {{ dim.label }}
+                </option>
+              </select>
+            </div>
+            <div class="direction-toggle-group">
+              <label>计分方向</label>
+              <div class="direction-toggle">
+                <button
+                  type="button"
+                  :class="['direction-btn', { active: newQuestion.positive === true }]"
+                  @click="newQuestion.positive = true"
+                >
+                  <i class="ri-arrow-up-line"></i>
+                  正向
+                </button>
+                <button
+                  type="button"
+                  :class="['direction-btn', { active: newQuestion.positive === false }]"
+                  @click="newQuestion.positive = false"
+                >
+                  <i class="ri-arrow-down-line"></i>
+                  反向
+                </button>
+              </div>
+            </div>
+          </div>
+          <p class="dimension-tip">
+            <i class="ri-information-line"></i>
+            {{ newQuestion.positive ? '正向计分：选择"是"或"A"时计入该维度' : '反向计分：选择"否"或"B"时计入该维度' }}
+          </p>
+        </div>
+
+        <!-- 是非题设置 -->
+        <div v-if="newQuestion.type === 'yesno'" class="form-group yesno-editor">
+          <label class="form-label">选项设置</label>
+          <div class="yesno-options">
+            <div class="yesno-option-item">
+              <span class="yesno-badge yes">是</span>
+              <div v-if="!isProfessionalMode" class="yesno-score-group">
+                <label>分值</label>
+                <input type="number" v-model.number="newQuestion.scoreA" placeholder="0" min="0" max="100" class="yesno-score-input" />
+              </div>
+            </div>
+            <div class="yesno-option-item">
+              <span class="yesno-badge no">否</span>
+              <div v-if="!isProfessionalMode" class="yesno-score-group">
+                <label>分值</label>
+                <input type="number" v-model.number="newQuestion.scoreB" placeholder="0" min="0" max="100" class="yesno-score-input" />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 二选一设置 -->
+        <div v-if="newQuestion.type === 'choice'" class="form-group choice-editor">
+          <label class="form-label">选项设置</label>
+          <div class="choice-options">
+            <div class="choice-option-item">
+              <span class="choice-letter-badge">A</span>
+              <input type="text" v-model="newQuestion.optionA" placeholder="选项A内容" class="choice-text-input" />
+              <div v-if="!isProfessionalMode" class="choice-score-group">
+                <label>分值</label>
+                <input type="number" v-model.number="newQuestion.scoreA" placeholder="0" min="0" max="100" class="choice-score-input" />
+              </div>
+            </div>
+            <div class="choice-option-item">
+              <span class="choice-letter-badge">B</span>
+              <input type="text" v-model="newQuestion.optionB" placeholder="选项B内容" class="choice-text-input" />
+              <div v-if="!isProfessionalMode" class="choice-score-group">
+                <label>分值</label>
+                <input type="number" v-model.number="newQuestion.scoreB" placeholder="0" min="0" max="100" class="choice-score-input" />
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn-cancel" @click="close">取消</button>
+        <button class="btn-primary" @click="saveQuestion" :disabled="!canSave">
+          <i class="ri-check-line"></i>
+          {{ isEdit ? '保存修改' : '添加题目' }}
+        </button>
+      </div>
+    </div>
+  </div>

@@ -1,0 +1,320 @@
+
+@keyframes checkIn {
+  0% { opacity: 0; transform: scale(0); }
+  50% { transform: scale(1.2); }
+  100% { opacity: 1; transform: scale(1); }
+}
+
+
+/* 🟢 选项包装器 */
+
+.option-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+
+/* 🟢 自定义输入框样式 */
+
+.custom-input-field {
+  width: 100%;
+  padding: 0.875rem 1rem;
+  border: 2px solid #e9d5ff;
+  border-radius: 10px;
+  font-size: 0.9375rem;
+  color: #374151;
+  background: #fefbff;
+  transition: all 0.2s ease;
+  animation: slideDown 0.3s ease;
+}
+
+
+.custom-input-field:focus {
+  outline: none;
+  border-color: #7c3aed;
+  box-shadow: 0 0 0 4px rgba(124, 58, 237, 0.1);
+  background: white;
+}
+
+
+.custom-input-field::placeholder {
+  color: #9ca3af;
+  font-style: italic;
+}
+
+
+@keyframes slideDown {
+  0% {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+
+/* 多选题 */
+
+.checkbox-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.875rem;
+}
+
+
+.checkbox-card {
+  padding: 1rem;
+}
+
+
+.checkbox-indicator {
+  width: 22px;
+  height: 22px;
+  border: 2px solid #d1d5db;
+  border-radius: 6px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  color: transparent;
+}
+
+
+.checkbox-card.selected .checkbox-indicator {
+  border-color: #7c3aed;
+  background: #7c3aed;
+  color: white;
+}
+
+
+/* 量表题 */
+
+.scale-container {
+  padding: 1rem 0;
+}
+
+
+.scale-labels {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+}
+
+
+.scale-label-min,
+
+.scale-label-max {
+  font-size: 0.875rem;
+  color: #6b7280;
+}
+
+
+.scale-buttons {
+  display: flex;
+  gap: 0.75rem;
+  justify-content: center;
+}
+
+
+.scale-btn {
+  width: 56px;
+  height: 56px;
+  border: 2px solid #e5e7eb;
+  background: white;
+  border-radius: 14px;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #6b7280;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+
+.scale-btn:hover {
+  border-color: #c4b5fd;
+  background: #f5f3ff;
+}
+
+
+.scale-btn.selected {
+  border-color: #7c3aed;
+  background: linear-gradient(135deg, #7c3aed, #a855f7);
+  color: white;
+  transform: scale(1.1);
+  box-shadow: 0 4px 12px rgba(124, 58, 237, 0.3);
+}
+
+
+.scale-btn.before-selected {
+  border-color: #c4b5fd;
+  background: #f5f3ff;
+  color: #7c3aed;
+}
+
+
+.scale-value {
+  text-align: center;
+  margin-top: 1.5rem;
+  font-size: 0.9375rem;
+  color: #6b7280;
+}
+
+
+.scale-value strong {
+  color: #7c3aed;
+  font-size: 1.125rem;
+}
+
+
+/* 文本题 */
+
+.text-container {
+  position: relative;
+}
+
+
+.text-input {
+  width: 100%;
+  padding: 1.25rem;
+  border: 2px solid #e5e7eb;
+  border-radius: 14px;
+  font-size: 1rem;
+  line-height: 1.6;
+  transition: all 0.2s;
+  font-family: inherit;
+  background: white;
+}
+
+
+/* 单行文本 */
+
+.text-input.single-line {
+  min-height: auto;
+  height: 56px;
+  resize: none;
+}
+
+
+/* 多行文本 */
+
+.text-input.multi-line {
+  min-height: 180px;
+  resize: vertical;
+}
+
+
+.text-input:focus {
+  outline: none;
+  border-color: #7c3aed;
+  box-shadow: 0 0 0 4px rgba(124, 58, 237, 0.1);
+}
+
+
+.text-input::placeholder {
+  color: #9ca3af;
+}
+
+
+.text-counter {
+  position: absolute;
+  bottom: 1rem;
+  right: 1rem;
+  font-size: 0.75rem;
+  color: #9ca3af;
+}
+
+
+/* 人格测试标签 */
+
+.tag-personality {
+  background: linear-gradient(135deg, #8b5cf6, #d946ef);
+  color: white;
+}
+
+
+/* 是/否题 (EPQ/DISC) */
+
+.yesno-container {
+  padding: 2rem 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2rem;
+}
+
+
+.yesno-buttons {
+  display: flex;
+  gap: 2rem;
+}
+
+
+.yesno-btn {
+  width: 140px;
+  height: 140px;
+  border-radius: 50%;
+  border: 3px solid #e5e7eb;
+  background: white;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+
+.yesno-btn i {
+  font-size: 2.5rem;
+  color: #9ca3af;
+  transition: all 0.3s;
+}
+
+
+.yesno-btn span {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #6b7280;
+  transition: all 0.3s;
+}
+
+
+.yesno-btn:hover {
+  transform: scale(1.05);
+  border-color: #c4b5fd;
+}
+
+
+.yes-btn.selected {
+  border-color: #10b981;
+  background: linear-gradient(135deg, #d1fae5, #a7f3d0);
+  box-shadow: 0 8px 24px rgba(16, 185, 129, 0.25);
+}
+
+
+.yes-btn.selected i {
+  color: #059669;
+}
+
+
+.yes-btn.selected span {
+  color: #047857;
+}
+
+
+.no-btn.selected {
+  border-color: #f87171;
+  background: linear-gradient(135deg, #fee2e2, #fecaca);
+  box-shadow: 0 8px 24px rgba(248, 113, 113, 0.25);
+}
+
+
+.no-btn.selected i {
+  color: #dc2626;
+}

@@ -1,0 +1,316 @@
+
+.header-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 9px;
+  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 1.125rem;
+  flex-shrink: 0;
+}
+
+
+.section-title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0;
+  line-height: 1.3;
+  letter-spacing: -0.01em;
+}
+
+
+.section-subtitle {
+  font-size: 0.6875rem;
+  color: #94a3b8;
+  margin: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-weight: 600;
+}
+
+
+/* MBTI 四象限展示 */
+
+.mbti-quadrant-container {
+  width: 100%;
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.75rem;
+}
+
+
+.mbti-dimension {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+
+.mbti-dimension-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+
+.dimension-label {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: #334155;
+}
+
+
+.dimension-score {
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: #6366f1;
+  background: linear-gradient(135deg, #eef2ff, #e0e7ff);
+  padding: 0.25rem 0.75rem;
+  border-radius: 12px;
+}
+
+
+.mbti-bar-container {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+
+.mbti-bar-track {
+  position: relative;
+  height: 32px;
+  background: linear-gradient(90deg, #fef3c7 0%, #f0f9ff 100%);
+  border-radius: 16px;
+  overflow: visible;
+  border: 2px solid #e0e7ff;
+}
+
+
+.mbti-bar-fill {
+  position: absolute;
+  left: 0;
+  top: 0;
+  height: 100%;
+  background: linear-gradient(90deg, #6366f1, #8b5cf6);
+  border-radius: 14px;
+  transition: width 1s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.3);
+  overflow: hidden;
+}
+
+
+.mbti-bar-glow {
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+  animation: shimmer 2s infinite;
+}
+
+
+@keyframes shimmer {
+  0% {
+    left: -100%;
+  }
+  100% {
+    left: 100%;
+  }
+}
+
+
+.mbti-center-marker {
+  position: absolute;
+  left: 50%;
+  top: -4px;
+  bottom: -4px;
+  width: 2px;
+  background: #94a3b8;
+  transform: translateX(-50%);
+}
+
+
+.mbti-center-marker::before,
+
+.mbti-center-marker::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  width: 8px;
+  height: 8px;
+  background: #94a3b8;
+  border-radius: 50%;
+  transform: translateX(-50%);
+}
+
+
+.mbti-center-marker::before {
+  top: -4px;
+}
+
+
+.mbti-center-marker::after {
+  bottom: -4px;
+}
+
+
+.mbti-bar-labels {
+  display: flex;
+  justify-content: space-between;
+  padding: 0 0.5rem;
+}
+
+
+.bar-label-left,
+
+.bar-label-right {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: #64748b;
+}
+
+
+.bar-label-left {
+  color: #f59e0b;
+}
+
+
+.bar-label-right {
+  color: #3b82f6;
+}
+
+
+/* DISC 四色象限图 */
+
+.disc-quadrant-container {
+  padding: 1.5rem;
+}
+
+
+.disc-quadrant {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1.25rem;
+}
+
+
+.disc-item {
+  background: #f8fafc;
+  border-radius: 12px;
+  padding: 1.25rem;
+  text-align: center;
+  transition: all 0.3s ease;
+  border: 2px solid transparent;
+}
+
+
+.disc-item.active {
+  transform: scale(1.02);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+
+/* D - 支配型 (红色) */
+
+.disc-item.disc-d {
+  background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
+  border-color: #fca5a5;
+}
+
+.disc-item.disc-d.active {
+  border-color: #ef4444;
+  box-shadow: 0 4px 16px rgba(239, 68, 68, 0.2);
+}
+
+.disc-item.disc-d .disc-icon { color: #ef4444; }
+
+.disc-item.disc-d .disc-bar-fill { background: linear-gradient(90deg, #ef4444, #f87171); }
+
+
+/* I - 影响型 (黄色) */
+
+.disc-item.disc-i {
+  background: linear-gradient(135deg, #fefce8 0%, #fef9c3 100%);
+  border-color: #fcd34d;
+}
+
+.disc-item.disc-i.active {
+  border-color: #f59e0b;
+  box-shadow: 0 4px 16px rgba(245, 158, 11, 0.2);
+}
+
+.disc-item.disc-i .disc-icon { color: #f59e0b; }
+
+.disc-item.disc-i .disc-bar-fill { background: linear-gradient(90deg, #f59e0b, #fbbf24); }
+
+
+/* S - 稳健型 (绿色) */
+
+.disc-item.disc-s {
+  background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+  border-color: #86efac;
+}
+
+.disc-item.disc-s.active {
+  border-color: #22c55e;
+  box-shadow: 0 4px 16px rgba(34, 197, 94, 0.2);
+}
+
+.disc-item.disc-s .disc-icon { color: #22c55e; }
+
+.disc-item.disc-s .disc-bar-fill { background: linear-gradient(90deg, #22c55e, #4ade80); }
+
+
+/* C - 谨慎型 (蓝色) */
+
+.disc-item.disc-c {
+  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+  border-color: #93c5fd;
+}
+
+.disc-item.disc-c.active {
+  border-color: #3b82f6;
+  box-shadow: 0 4px 16px rgba(59, 130, 246, 0.2);
+}
+
+.disc-item.disc-c .disc-icon { color: #3b82f6; }
+
+.disc-item.disc-c .disc-bar-fill { background: linear-gradient(90deg, #3b82f6, #60a5fa); }
+
+
+.disc-icon {
+  font-size: 2rem;
+  margin-bottom: 0.5rem;
+}
+
+
+.disc-label {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #334155;
+  margin-bottom: 0.25rem;
+}
+
+
+.disc-score {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: #1e293b;
+  margin-bottom: 0.5rem;
+}
+
+
+.disc-bar {
+  height: 6px;
+  background: rgba(0, 0, 0, 0.1);
+  border-radius: 3px;
+  overflow: hidden;
+  margin-bottom: 0.5rem;
+}

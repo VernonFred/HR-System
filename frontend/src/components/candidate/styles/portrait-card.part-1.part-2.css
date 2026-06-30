@@ -1,0 +1,338 @@
+
+.personality-badge .badge-type {
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+
+
+.personality-badge .badge-desc {
+  font-weight: 500;
+  margin-left: 0.25rem;
+  opacity: 0.9;
+}
+
+
+/* 兼容旧的mbti-badge类名 */
+
+.mbti-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.375rem 0.75rem;
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.9), rgba(99, 102, 241, 0.9));
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: white;
+  letter-spacing: 0.5px;
+  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.3);
+  border: 1.5px solid rgba(255, 255, 255, 0.4);
+  cursor: help;
+  transition: all 0.3s ease;
+}
+
+
+.mbti-badge i {
+  font-size: 0.875rem;
+}
+
+
+.mbti-badge:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.5);
+}
+
+
+@keyframes badgePulse {
+  0%, 100% {
+    box-shadow: 0 2px 8px rgba(99, 102, 241, 0.3);
+  }
+  50% {
+    box-shadow: 0 2px 12px rgba(139, 92, 246, 0.5);
+  }
+}
+
+
+.meta-row {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  flex-wrap: wrap;
+}
+
+
+.meta-item {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  color: rgba(255, 255, 255, 0.95);
+  font-size: 0.8125rem;
+  font-weight: 500;
+}
+
+
+.meta-item i {
+  font-size: 0.9375rem;
+  opacity: 0.85;
+}
+
+
+.meta-divider {
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 0.75rem;
+}
+
+
+.tags-row {
+  display: flex;
+  gap: 0.4375rem;
+  flex-wrap: wrap;
+}
+
+
+.tag-pill {
+  padding: 0.3125rem 0.6875rem;
+  background: rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 14px;
+  color: white;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+
+/* V38: 分析级别切换按钮 */
+
+.analysis-level-switch {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+
+
+.level-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.375rem 0.75rem;
+  background: rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(8px);
+  border: 1.5px solid rgba(255, 255, 255, 0.25);
+  border-radius: 20px;
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 0.75rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  position: relative;
+}
+
+
+.level-btn:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.25);
+  border-color: rgba(255, 255, 255, 0.4);
+  color: white;
+  transform: translateY(-1px);
+}
+
+
+.level-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+
+.level-btn.active {
+  background: rgba(255, 255, 255, 0.95);
+  border-color: white;
+  color: #6366f1;
+  font-weight: 600;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+
+.level-btn.active:hover:not(:disabled) {
+  transform: none;
+}
+
+
+.level-btn.cached:not(.active) {
+  border-color: rgba(16, 185, 129, 0.5);
+}
+
+
+.level-btn i {
+  font-size: 0.875rem;
+}
+
+
+/* 🟢 P0+P1: 评分详情按钮（头部版本） */
+
+.level-btn.score-detail-header-btn {
+  background: rgba(255, 255, 255, 0.18);
+  border-color: rgba(255, 255, 255, 0.35);
+  margin-left: 0.25rem;
+}
+
+
+.level-btn.score-detail-header-btn:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.95);
+  border-color: white;
+  color: #8b5cf6;
+  box-shadow: 0 2px 8px rgba(139, 92, 246, 0.3);
+}
+
+
+.cache-dot {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  width: 8px;
+  height: 8px;
+  background: #10b981;
+  border-radius: 50%;
+  border: 1.5px solid white;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+
+.switching-indicator {
+  display: flex;
+  align-items: center;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+
+.switching-indicator i {
+  font-size: 1rem;
+}
+
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+
+.spin {
+  animation: spin 1s linear infinite;
+}
+
+
+.score-circle-wrapper {
+  position: relative;
+  width: 110px;
+  height: 110px;
+  flex-shrink: 0;
+}
+
+
+.score-svg {
+  width: 100%;
+  height: 100%;
+}
+
+
+.progress-circle {
+  transition: stroke-dashoffset 1.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+
+.score-text {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+
+.score-value {
+  font-size: 2rem;
+  font-weight: 800;
+  color: white;
+  line-height: 1;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  letter-spacing: -0.02em;
+}
+
+
+.score-label {
+  font-size: 0.625rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.88);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-top: 0.25rem;
+}
+
+
+/* 主内容 */
+
+.main-content {
+  padding: 1.75rem 2rem 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.375rem;
+}
+
+
+/* 🌟 顶部区域 - 综合评价 + 雷达图横向布局 */
+
+.top-section-grid {
+  display: grid;
+  grid-template-columns: 1.2fr 0.8fr;
+  gap: 1.375rem;
+  align-items: start;
+}
+
+
+/* 紧凑型综合评价卡片 */
+
+.summary-card-compact {
+  background: linear-gradient(135deg, #f8fafc 0%, #ffffff 100%);
+  border: 2px solid #e0e7ff;
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 4px 16px rgba(99, 102, 241, 0.1);
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+
+.summary-header-compact {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1.125rem 1.375rem;
+  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+  position: relative;
+}
+
+
+.summary-header-compact::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 20% 50%, rgba(255, 255, 255, 0.15), transparent 60%);
+  pointer-events: none;
+}
+
+
+.summary-icon-wrapper {
+  width: 40px;
+  height: 40px;
+  background: rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(10px);
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}

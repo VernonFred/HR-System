@@ -1,0 +1,392 @@
+
+.group-info {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1;
+}
+
+
+/* V42: 名字行 - 名字和电话放一起 */
+
+.group-name-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+
+.group-name {
+  font-weight: 600;
+  color: #1f2937;
+  font-size: 15px;
+}
+
+
+.group-phone {
+  font-size: 13px;
+  color: #6b7280;
+}
+
+
+/* V42: 标签行 - 放在名字下方 */
+
+.group-stats {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+
+.stat-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+
+.stat-badge.total {
+  background: #f3f4f6;
+  color: #4b5563;
+}
+
+
+.stat-badge.completed {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+
+.stat-badge.pending {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+
+.stat-badge.latest {
+  background: #dbeafe;
+  color: #1e40af;
+}
+
+
+.stat-badge i {
+  font-size: 14px;
+}
+
+
+.expand-icon {
+  font-size: 20px;
+  color: #9ca3af;
+  transition: transform 0.2s;
+}
+
+
+.candidate-group-card.expanded .expand-icon {
+  color: #7c3aed;
+}
+
+
+/* 展开的提交列表 */
+
+.group-submissions {
+  border-top: 1px solid #e5e7eb;
+  background: white;
+}
+
+
+.group-pagination {
+  margin: 10px 16px 14px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid #e9ddff;
+  background: linear-gradient(135deg, #fcfbff 0%, #f7f3ff 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+
+
+.group-pagination .page-btn {
+  min-width: 88px;
+  height: 34px;
+  padding: 0 12px;
+  border-radius: 10px;
+  border: 1px solid #ddd6fe;
+  background: white;
+  color: #7c3aed;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  transition: all 0.2s ease;
+}
+
+
+.group-pagination .page-btn:hover:not(:disabled) {
+  background: #f5f3ff;
+  border-color: #8b5cf6;
+  transform: translateY(-1px);
+}
+
+
+.group-pagination .page-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+  transform: none;
+}
+
+
+.group-pagination .page-info {
+  min-width: 74px;
+  text-align: center;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: rgba(124, 58, 237, 0.12);
+  color: #5b21b6;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+
+.submission-item {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 14px 20px;
+  border-bottom: 1px solid #f3f4f6;
+  transition: background 0.2s;
+}
+
+
+
+.submission-item:last-child {
+  border-bottom: none;
+}
+
+
+.submission-item:hover {
+  background: #faf5ff;
+}
+
+
+.submission-item.selected {
+  background: #f3e8ff;
+}
+
+
+.submission-order {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #e0e7ff 0%, #ddd6fe 100%);
+  color: #6366f1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+
+.submission-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+
+.submission-time {
+  font-size: 14px;
+  color: #64748b;
+}
+
+
+.submission-result {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+
+.score {
+  font-size: 15px;
+  font-weight: 600;
+  color: #10b981;
+}
+
+
+.grade {
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: white;
+}
+
+
+.grade.grade-a { background: #10b981; }
+
+.grade.grade-b { background: #3b82f6; }
+
+.grade.grade-c { background: #f59e0b; }
+
+.grade.grade-d { background: #ef4444; }
+
+
+.status-mini {
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 500;
+}
+
+
+.status-mini.completed {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+
+.status-mini.progress {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+
+.submission-actions {
+  display: flex;
+  gap: 8px;
+}
+
+
+.btn-mini {
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: #f1f5f9;
+  border-radius: 8px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #64748b;
+  transition: all 0.2s;
+}
+
+
+.btn-mini:hover {
+  background: #e2e8f0;
+  color: #334155;
+}
+
+
+.btn-mini.delete:hover {
+  background: #fee2e2;
+  color: #ef4444;
+}
+
+
+.statistics-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 18px;
+  padding: 18px 20px;
+  background:
+    radial-gradient(circle at top left, rgba(124, 58, 237, 0.12), transparent 30%),
+    linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+  border: 1px solid #e9ddff;
+  border-radius: 16px;
+  box-shadow: 0 12px 28px rgba(124, 58, 237, 0.08);
+}
+
+
+.statistics-toolbar-text h3 {
+  margin: 0 0 4px;
+  color: #1e293b;
+  font-size: 18px;
+  font-weight: 800;
+}
+
+
+.statistics-toolbar-text p {
+  margin: 0;
+  color: #64748b;
+  font-size: 13px;
+}
+
+
+.btn-stats-export {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-width: 126px;
+  padding: 11px 18px;
+  border: none;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 12px 24px rgba(99, 102, 241, 0.22);
+  transition: all 0.2s ease;
+}
+
+
+.btn-stats-export:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 16px 30px rgba(99, 102, 241, 0.28);
+}
+
+
+.btn-stats-export:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+
+/* 统计概览 */
+
+.stats-overview {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+
+.stat-card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 20px 24px;
+  background: white;
+  border-radius: 14px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+
+.stat-icon {
+  width: 52px;
+  height: 52px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+}
