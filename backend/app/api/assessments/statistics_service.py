@@ -5,6 +5,7 @@ from typing import Any, Dict, List, Optional
 from sqlmodel import Session, select
 
 from app.models_assessment import Questionnaire, Submission
+from app.api.assessments.answer_export_service import _select_export_submissions
 from app.api.assessments.statistics_normalizers import (
     _normalize_questionnaire_questions,
     _normalize_submission_answers,
