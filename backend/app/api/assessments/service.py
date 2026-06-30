@@ -186,13 +186,15 @@ async def get_submissions(
     status: Optional[str] = None,
     skip: int = 0,
     limit: int = 100,
-    category: Optional[str] = None
+    category: Optional[str] = None,
+    questionnaire_id: Optional[int] = None,
 ) -> Tuple[List[Submission], int]:
     """获取提交记录列表，支持按问卷category过滤.
 
     Args:
         session: 数据库会话
         assessment_id: 测评ID（可选）
+        questionnaire_id: 问卷ID（可选，按实际答题问卷查询）
         status: 提交状态（可选）
         skip: 跳过数量
         limit: 返回数量
@@ -218,6 +220,9 @@ async def get_submissions(
     if assessment_id:
         statement = statement.where(Submission.assessment_id == assessment_id)
         count_statement = count_statement.where(Submission.assessment_id == assessment_id)
+    if questionnaire_id:
+        statement = statement.where(Submission.questionnaire_id == questionnaire_id)
+        count_statement = count_statement.where(Submission.questionnaire_id == questionnaire_id)
     if status:
         statement = statement.where(Submission.status == status)
         count_statement = count_statement.where(Submission.status == status)

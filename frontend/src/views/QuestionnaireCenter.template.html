@@ -75,7 +75,7 @@
     <QuestionnaireDetailDrawer
       v-if="showDetailDrawer"
       :questionnaire="selectedQuestionnaire"
-      :submissions="submissions.filter(s => s.questionnaire_id === selectedQuestionnaire?.id)"
+      :submissions="selectedQuestionnaireSubmissions"
       @close="closeDetailDrawer"
       @distribute="openDistributeModal"
       @delete-submission="handleDeleteSubmission"

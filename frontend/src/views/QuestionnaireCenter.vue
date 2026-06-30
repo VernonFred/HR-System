@@ -42,15 +42,27 @@ const submissions = ref<Submission[]>([])
 // ===== 详情抽屉 =====
 const showDetailDrawer = ref(false)
 const selectedQuestionnaire = ref<Questionnaire | null>(null)
+const selectedQuestionnaireSubmissions = ref<Submission[]>([])
 
-const openDetailDrawer = (q: Questionnaire) => {
+const openDetailDrawer = async (q: Questionnaire) => {
   selectedQuestionnaire.value = q
+  selectedQuestionnaireSubmissions.value = []
   showDetailDrawer.value = true
+  try {
+    const response = await fetchSubmissions({ questionnaire_id: q.id, limit: 1000 })
+    if (selectedQuestionnaire.value?.id === q.id) {
+      selectedQuestionnaireSubmissions.value = response.items || []
+    }
+  } catch (error) {
+    console.error('加载问卷答题记录失败:', error)
+    showMessage('加载答题记录失败', 'error')
+  }
 }
 
 const closeDetailDrawer = () => {
   showDetailDrawer.value = false
   selectedQuestionnaire.value = null
+  selectedQuestionnaireSubmissions.value = []
 }
 
 // ⭐ V44: 删除单条提交记录
@@ -60,6 +72,10 @@ const handleDeleteSubmission = async (submission: Submission) => {
     showMessage('删除成功', 'success')
     // V45: 删除成功后重新加载数据
     await loadData()
+    if (selectedQuestionnaire.value) {
+      const response = await fetchSubmissions({ questionnaire_id: selectedQuestionnaire.value.id, limit: 1000 })
+      selectedQuestionnaireSubmissions.value = response.items || []
+    }
   } catch (error) {
     console.error('删除失败:', error)
     showMessage('删除失败，请重试', 'error')
@@ -75,6 +91,10 @@ const handleBatchDeleteSubmissions = async (toDelete: Submission[]) => {
     showMessage(`成功删除 ${toDelete.length} 条记录`, 'success')
     // V45: 删除成功后重新加载数据
     await loadData()
+    if (selectedQuestionnaire.value) {
+      const response = await fetchSubmissions({ questionnaire_id: selectedQuestionnaire.value.id, limit: 1000 })
+      selectedQuestionnaireSubmissions.value = response.items || []
+    }
   } catch (error) {
     console.error('批量删除失败:', error)
     showMessage('批量删除失败，请重试', 'error')

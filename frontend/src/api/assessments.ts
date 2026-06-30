@@ -260,6 +260,7 @@ export const deleteAssessment = async (id: number, force: boolean = false): Prom
 
 export const fetchSubmissions = (params?: {
   assessment_id?: number;
+  questionnaire_id?: number;
   status?: string;
   skip?: number;
   limit?: number;
@@ -267,6 +268,7 @@ export const fetchSubmissions = (params?: {
 }) => {
   const search = new URLSearchParams();
   if (params?.assessment_id) search.append("assessment_id", String(params.assessment_id));
+  if (params?.questionnaire_id) search.append("questionnaire_id", String(params.questionnaire_id));
   if (params?.status) search.append("status", params.status);
   if (params?.skip) search.append("skip", String(params.skip));
   if (params?.limit) search.append("limit", String(params.limit));

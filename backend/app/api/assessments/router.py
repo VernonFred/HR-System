@@ -214,6 +214,7 @@ async def delete_assessment(
 @router.get("/submissions", response_model=schemas.SubmissionListResponse)
 async def get_submissions(
     assessment_id: Optional[int] = Query(None),
+    questionnaire_id: Optional[int] = Query(None),
     status: Optional[str] = Query(None),
     category: Optional[str] = Query(None, description="问卷分类: professional/scored/survey"),
     skip: int = 0,
@@ -222,7 +223,7 @@ async def get_submissions(
 ):
     """获取提交记录列表，支持按问卷category过滤."""
     submissions, total = await service.get_submissions(
-        session, assessment_id, status, skip, limit, category=category
+        session, assessment_id, status, skip, limit, category=category, questionnaire_id=questionnaire_id
     )
     
     def normalize_display_name(name: Optional[str], phone: Optional[str]) -> Optional[str]:
