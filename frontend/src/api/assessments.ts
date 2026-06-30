@@ -3,7 +3,7 @@
  */
 import { apiRequest, apiRequestWithBody } from "./client";
 import { MOCK_QUESTIONNAIRES, MOCK_ASSESSMENTS, MOCK_SUBMISSIONS } from "./mocks/assessments";
-import { PRESET_QUESTIONS } from "../data/preset-questions";
+import { getQuestionsForQuestionnaireType } from "./assessmentFallbacks";
 
 // ========== 问卷管理 ==========
 
@@ -52,10 +52,10 @@ export const fetchQuestionnaires = (params?: {
   if (params?.limit) search.append("limit", String(params.limit));
   if (params?.category) search.append("category", params.category);
   const qs = search.toString();
-  
+
   // 根据 category 过滤 Mock 数据
   const filteredMockData = filterQuestionnairesByCategory(MOCK_QUESTIONNAIRES, params?.category);
-  
+
   return apiRequest<{ items: Questionnaire[]; total: number }>({
     path: `/api/assessments/questionnaires${qs ? `?${qs}` : ""}`,
     fallback: { items: filteredMockData, total: filteredMockData.length },
@@ -66,24 +66,24 @@ export const fetchQuestionnaires = (params?: {
 // 根据 category 过滤问卷
 const filterQuestionnairesByCategory = (questionnaires: Questionnaire[], category?: string): Questionnaire[] => {
   if (!category) return questionnaires;
-  
+
   // 专业测评类型
   const professionalTypes = ['MBTI', 'DISC', 'EPQ'];
-  
+
   switch (category) {
     case 'professional':
       // 只返回专业测评类型（MBTI, DISC, EPQ）
       return questionnaires.filter(q => professionalTypes.includes(q.type.toUpperCase()));
     case 'scored':
       // 只返回评分问卷（CUSTOM 类型且 custom_type 为 scored）
-      return questionnaires.filter(q => 
-        q.type.toUpperCase() === 'CUSTOM' && 
+      return questionnaires.filter(q =>
+        q.type.toUpperCase() === 'CUSTOM' &&
         (q as any).custom_type === 'scored'
       );
     case 'survey':
       // 只返回普通问卷（CUSTOM 类型且 custom_type 为 non_scored 或无 custom_type）
-      return questionnaires.filter(q => 
-        q.type.toUpperCase() === 'CUSTOM' && 
+      return questionnaires.filter(q =>
+        q.type.toUpperCase() === 'CUSTOM' &&
         ((q as any).custom_type === 'non_scored' || !(q as any).custom_type)
       );
     case 'custom':
@@ -224,7 +224,7 @@ export const fetchAssessments = (params?: {
   if (params?.skip) search.append("skip", String(params.skip));
   if (params?.limit) search.append("limit", String(params.limit));
   const qs = search.toString();
-  
+
   return apiRequest<{ items: Assessment[]; total: number }>({
     path: `/api/assessments${qs ? `?${qs}` : ""}`,
     fallback: { items: MOCK_ASSESSMENTS, total: MOCK_ASSESSMENTS.length },
@@ -237,7 +237,7 @@ export const createAssessment = (data: AssessmentCreate) => {
   const timestamp = Date.now().toString().slice(-6);
   const random = Math.random().toString(36).slice(2, 8).toUpperCase();
   const code = `ASS_${timestamp}_${random}`;
-  
+
   const fallbackData: Assessment = {
     id: MOCK_ASSESSMENTS.length + 1,
     name: data.name,
@@ -249,10 +249,10 @@ export const createAssessment = (data: AssessmentCreate) => {
     anonymous_mode: data.anonymous_mode,
     created_at: new Date().toISOString()
   };
-  
+
   // 同时添加到Mock数据中，这样后续查询时能找到
   MOCK_ASSESSMENTS.push(fallbackData);
-  
+
   return apiRequestWithBody<Assessment>({
     path: "/api/assessments",
     method: "POST",
@@ -285,7 +285,7 @@ export const updateAssessment = (id: number, data: AssessmentUpdate) => {
   if (index !== -1) {
     Object.assign(MOCK_ASSESSMENTS[index], data);
   }
-  
+
   return apiRequestWithBody<Assessment>({
     path: `/api/assessments/${id}`,
     method: "PUT",
@@ -302,7 +302,7 @@ export const deleteAssessment = async (id: number, force: boolean = false): Prom
   if (index !== -1) {
     MOCK_ASSESSMENTS.splice(index, 1);
   }
-  
+
   return apiRequestWithBody<any>({
     path: `/api/assessments/${id}${force ? '?force=true' : ''}`,
     method: "DELETE",
@@ -379,10 +379,10 @@ export const fetchSubmissions = (params?: {
   if (params?.limit) search.append("limit", String(params.limit));
   if (params?.category) search.append("category", params.category);
   const qs = search.toString();
-  
+
   // ⭐ 根据 category 过滤 Mock 数据
   const filteredSubmissions = filterSubmissionsByCategory(MOCK_SUBMISSIONS, params?.category);
-  
+
   return apiRequest<{ items: Submission[]; total: number }>({
     path: `/api/assessments/submissions${qs ? `?${qs}` : ""}`,
     fallback: { items: filteredSubmissions, total: filteredSubmissions.length },
@@ -400,17 +400,17 @@ export const fetchQuestionnaireAnswerExport = (questionnaireId: number) => {
 // ⭐ 按 category 过滤提交记录
 function filterSubmissionsByCategory(submissions: Submission[], category?: string): Submission[] {
   if (!category) return submissions;
-  
+
   // 专业测评类型
   const professionalTypes = ['MBTI', 'DISC', 'EPQ'];
-  
+
   if (category === 'professional') {
     return submissions.filter(s => professionalTypes.includes(s.questionnaire_type?.toUpperCase() || ''));
   } else if (category === 'custom' || category === 'scored' || category === 'survey') {
     // 自定义问卷（非专业测评）
     return submissions.filter(s => !professionalTypes.includes(s.questionnaire_type?.toUpperCase() || ''));
   }
-  
+
   return submissions;
 }
 
@@ -420,7 +420,7 @@ export const deleteSubmission = (id: number) => {
   if (index !== -1) {
     MOCK_SUBMISSIONS.splice(index, 1);
   }
-  
+
   return apiRequestWithBody<void>({
     path: `/api/assessments/submissions/${id}`,
     method: "DELETE",
@@ -454,7 +454,7 @@ export const fetchSubmissionStatistics = (params?: {
   if (params?.category) search.append("category", params.category);
   if (params?.questionnaire_id) search.append("questionnaire_id", String(params.questionnaire_id));
   const qs = search.toString();
-  
+
   return apiRequest<SubmissionStatistics>({
     path: `/api/assessments/statistics${qs ? `?${qs}` : ""}`,
     fallback: {
@@ -629,14 +629,14 @@ export interface SubmissionStart {
 export const fetchPublicAssessment = (code: string) => {
   // 构建fallback数据
   const assessment = MOCK_ASSESSMENTS.find(a => a.code === code);
-  const questionnaire = assessment 
+  const questionnaire = assessment
     ? MOCK_QUESTIONNAIRES.find(q => q.id === assessment.questionnaire_id)
     : null;
-  
+
   const now = new Date();
   const validFrom = assessment ? new Date(assessment.valid_from) : now;
   const validUntil = assessment ? new Date(assessment.valid_until) : now;
-  
+
   const fallbackData: PublicAssessmentInfo = assessment && questionnaire ? {
     name: questionnaire.name,
     type: questionnaire.type,
@@ -669,7 +669,7 @@ export const fetchPublicAssessment = (code: string) => {
     expired: false,
     description: '链接不存在'
   } as PublicAssessmentInfo;
-  
+
   return apiRequest<PublicAssessmentInfo>({
     path: `/api/public/assessment/${code}`,
     fallback: fallbackData,
@@ -680,15 +680,15 @@ export const fetchPublicAssessment = (code: string) => {
 export const startAssessment = (code: string, data: SubmissionStart, questionnaireType?: string, questionsData?: any[]) => {
   // 构建fallback数据
   const assessment = MOCK_ASSESSMENTS.find(a => a.code === code);
-  const questionnaire = assessment 
+  const questionnaire = assessment
     ? MOCK_QUESTIONNAIRES.find(q => q.id === assessment.questionnaire_id)
     : null;
-  
+
   // 生成submission code
   const timestamp = Date.now().toString().slice(-6);
   const random = Math.random().toString(36).slice(2, 8).toUpperCase();
   const submissionCode = `SUB_${timestamp}_${random}`;
-  
+
   // ⭐ 获取正确的题目列表
   // 优先级：1. 传入的实际题目数据 2. 根据类型获取预设题目 3. 示例题目
   let questions: any[];
@@ -701,17 +701,17 @@ export const startAssessment = (code: string, data: SubmissionStart, questionnai
     questions = getQuestionsForQuestionnaireType(questionnaireType || questionnaire?.type);
     console.log('[startAssessment] Using preset/sample questions:', questions.length);
   }
-  
+
   const fallbackData = {
     submission_code: submissionCode,
     questions: questions
   };
-  
+
   // ⭐ 调试日志
   console.log('[startAssessment] code:', code);
   console.log('[startAssessment] questionnaireType:', questionnaireType);
   console.log('[startAssessment] fallback questions count:', questions.length);
-  
+
   // ⚠️ 重要：开始测评操作不使用fallback，确保失败时能正确抛出错误
   // 如果使用fallback，会创建一个假的submission_code，后续提交会失败
   return apiRequestWithBody<PublicSubmissionStart>({
@@ -723,138 +723,11 @@ export const startAssessment = (code: string, data: SubmissionStart, questionnai
   });
 };
 
-// ⭐ 根据问卷类型字符串获取题目列表
-function getQuestionsForQuestionnaireType(typeStr: string | null | undefined): any[] {
-  if (!typeStr) return [];
-  
-  const type = typeStr.toUpperCase();
-  
-  // 专业测评使用预设题目
-  if (type === 'EPQ') {
-    return PRESET_QUESTIONS.EPQ.map(q => ({
-      id: q.id,
-      type: q.type,
-      text: q.text,
-      required: q.required,
-      dimension: q.dimension,
-      positive: q.positive,
-      options: q.type === 'yesno' ? [
-        { label: '是', text: '是', value: 'yes' },
-        { label: '否', text: '否', value: 'no' }
-      ] : q.options?.map(o => ({ label: o.value, text: o.label, value: o.value }))
-    }));
-  }
-  
-  if (type === 'DISC') {
-    return PRESET_QUESTIONS.DISC.map(q => ({
-      id: q.id,
-      type: q.type,
-      text: q.text,
-      required: q.required,
-      dimension: q.dimension,
-      options: q.options?.map(o => ({ label: o.value, text: o.label, value: o.value }))
-    }));
-  }
-  
-  if (type === 'MBTI') {
-    return PRESET_QUESTIONS.MBTI.map(q => ({
-      id: q.id,
-      type: q.type,
-      text: q.text,
-      required: q.required,
-      dimension: q.dimension,
-      optionA: q.optionA,
-      optionB: q.optionB,
-      options: q.type === 'choice' ? [
-        { label: 'A', text: q.optionA, value: 'A' },
-        { label: 'B', text: q.optionB, value: 'B' }
-      ] : undefined
-    }));
-  }
-  
-  // 自定义问卷返回示例题目
-  return [
-    { id: '1', type: 'radio', text: '示例题目1', required: true, options: [
-      { label: 'A', text: '选项A', value: 'A' },
-      { label: 'B', text: '选项B', value: 'B' },
-      { label: 'C', text: '选项C', value: 'C' }
-    ]},
-    { id: '2', type: 'radio', text: '示例题目2', required: true, options: [
-      { label: 'A', text: '选项A', value: 'A' },
-      { label: 'B', text: '选项B', value: 'B' },
-      { label: 'C', text: '选项C', value: 'C' }
-    ]}
-  ];
-}
-
-// ⭐ 根据问卷对象获取题目列表（保留旧函数以兼容）
-function getQuestionsForQuestionnaire(questionnaire: Questionnaire | null | undefined): any[] {
-  if (!questionnaire) return [];
-  
-  const type = questionnaire.type?.toUpperCase();
-  
-  // 专业测评使用预设题目
-  if (type === 'EPQ') {
-    return PRESET_QUESTIONS.EPQ.map(q => ({
-      id: q.id,
-      type: q.type,
-      text: q.text,
-      required: q.required,
-      dimension: q.dimension,
-      positive: q.positive,
-      options: q.type === 'yesno' ? [
-        { label: '是', text: '是', value: 'yes' },
-        { label: '否', text: '否', value: 'no' }
-      ] : q.options?.map(o => ({ label: o.value, text: o.label, value: o.value }))
-    }));
-  }
-  
-  if (type === 'DISC') {
-    return PRESET_QUESTIONS.DISC.map(q => ({
-      id: q.id,
-      type: q.type,
-      text: q.text,
-      required: q.required,
-      dimension: q.dimension,
-      options: q.options?.map(o => ({ label: o.value, text: o.label, value: o.value }))
-    }));
-  }
-  
-  if (type === 'MBTI') {
-    return PRESET_QUESTIONS.MBTI.map(q => ({
-      id: q.id,
-      type: q.type,
-      text: q.text,
-      required: q.required,
-      dimension: q.dimension,
-      optionA: q.optionA,
-      optionB: q.optionB,
-      options: q.type === 'choice' ? [
-        { label: 'A', text: q.optionA, value: 'A' },
-        { label: 'B', text: q.optionB, value: 'B' }
-      ] : undefined
-    }));
-  }
-  
-  // 自定义问卷返回示例题目
-  return [
-    { id: '1', type: 'radio', text: `${questionnaire.name} - 示例题目1`, required: true, options: [
-      { label: 'A', text: '选项A', value: 'A' },
-      { label: 'B', text: '选项B', value: 'B' },
-      { label: 'C', text: '选项C', value: 'C' }
-    ]},
-    { id: '2', type: 'radio', text: `${questionnaire.name} - 示例题目2`, required: true, options: [
-      { label: 'A', text: '选项A', value: 'A' },
-      { label: 'B', text: '选项B', value: 'B' },
-      { label: 'C', text: '选项C', value: 'C' }
-    ]}
-  ];
-}
 
 export const submitAnswers = (submissionCode: string, answers: Record<string, any>) => {
   // 构建fallback：模拟成功提交并创建submission记录
   const timestamp = new Date().toISOString();
-  
+
   // 尝试添加到MOCK_SUBMISSIONS（如果是mock环境）
   try {
     // 生成一个新的submission记录
@@ -883,14 +756,14 @@ export const submitAnswers = (submissionCode: string, answers: Record<string, an
           }))
       }
     };
-    
+
     // 添加到mock数组（仅在mock模式下）
     MOCK_SUBMISSIONS.push(newSubmission);
     console.log('✅ Mock提交成功，已添加到MOCK_SUBMISSIONS:', newSubmission);
   } catch (e) {
     console.log('Mock提交处理:', e);
   }
-  
+
   // ⚠️ 重要：提交操作不使用fallback，确保失败时能正确抛出错误
   return apiRequestWithBody<{ success: boolean; submission_code: string; submitted_at: string }>({
     path: `/api/public/assessment/submission/${submissionCode}/submit`,
@@ -929,30 +802,30 @@ export interface QuestionnaireImportResponse {
 /**
  * 导入问卷文件
  * 支持格式：JSON、Excel、Word、纯文本
- * 
+ *
  * V45: 支持AI智能解析
  * @param file 问卷文件
  * @param useAI 是否使用AI智能解析（默认true）
  */
 export const importQuestionnaire = async (
-  file: File, 
+  file: File,
   useAI: boolean = true
 ): Promise<QuestionnaireImportResponse> => {
   const formData = new FormData();
   formData.append('file', file);
-  
+
   // V45: 添加use_ai参数
   const url = `/api/assessments/questionnaires/import?use_ai=${useAI}`;
-  
+
   const response = await fetch(url, {
     method: 'POST',
     body: formData,
   });
-  
+
   if (!response.ok) {
     const error = await response.json().catch(() => ({ detail: '导入失败' }));
     throw new Error(error.detail || '导入失败');
   }
-  
+
   return response.json();
 };

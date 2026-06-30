@@ -1,7 +1,7 @@
 <script setup lang="ts">
 /**
  * 专业测评页面
- * 
+ *
  * 功能：
  * 1. 显示专业测评问卷（MBTI/DISC/EPQ）
  * 2. 测评管理（分发、查看链接）
@@ -83,7 +83,7 @@ const questionsLoading = ref(false)
 const editStep = ref<'info' | 'questions'>('info')
 
 // 控件库配置
-const questionControls = [
+const questionControls: Array<{ type: EditorQuestion['type']; label: string; icon: string }> = [
   { type: 'radio', label: '单选题', icon: 'ri-radio-button-line' },
   { type: 'checkbox', label: '多选题', icon: 'ri-checkbox-line' },
   { type: 'text', label: '单行文本', icon: 'ri-input-field' },
@@ -115,35 +115,35 @@ const totalPages = computed(() => {
 const visiblePages = computed(() => {
   const total = totalPages.value
   const current = questionsCurrentPage.value
-  
+
   if (total <= 7) {
     return Array.from({ length: total }, (_, i) => i + 1)
   }
-  
+
   const pages: (number | string)[] = []
   pages.push(1)
-  
+
   if (current > 3) {
     pages.push('...')
   }
-  
+
   const start = Math.max(2, current - 1)
   const end = Math.min(total - 1, current + 1)
-  
+
   for (let i = start; i <= end; i++) {
     if (!pages.includes(i)) {
       pages.push(i)
     }
   }
-  
+
   if (current < total - 2) {
     pages.push('...')
   }
-  
+
   if (!pages.includes(total)) {
     pages.push(total)
   }
-  
+
   return pages
 })
 
@@ -151,6 +151,12 @@ const visiblePages = computed(() => {
 const goToPage = (page: number) => {
   if (page >= 1 && page <= totalPages.value) {
     questionsCurrentPage.value = page
+  }
+}
+
+const goToVisiblePage = (page: number | string) => {
+  if (typeof page === 'number') {
+    goToPage(page)
   }
 }
 
@@ -165,6 +171,11 @@ const getQuestionTypeName = (type: string) => {
   return ctrl?.label || type
 }
 
+const editAssessmentType = computed<'MBTI' | 'DISC' | 'EPQ' | null>(() => {
+  const type = editQuestionnaireForm.value.type?.toUpperCase()
+  return type === 'MBTI' || type === 'DISC' || type === 'EPQ' ? type : null
+})
+
 // 生成唯一ID
 const generateQuestionId = () => {
   return `q_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
@@ -178,7 +189,7 @@ const addQuestionFromControl = (type: EditorQuestion['type']) => {
     text: `请输入${getQuestionTypeName(type)}内容`,
     required: true,
   }
-  
+
   if (type === 'radio' || type === 'checkbox') {
     question.options = [
       { label: '选项1', score: 0 },
@@ -188,7 +199,7 @@ const addQuestionFromControl = (type: EditorQuestion['type']) => {
     question.optionA = '选项A'
     question.optionB = '选项B'
   }
-  
+
   editorQuestions.value.push(question)
   // 跳转到最后一页
   questionsCurrentPage.value = totalPages.value
@@ -243,7 +254,7 @@ const loadData = async () => {
       fetchAssessments(),
       fetchSubmissions({ category: 'professional' }),
     ])
-    
+
     questionnaires.value = qRes.items || []
     assessments.value = aRes.items || []
     submissions.value = sRes.items || []
@@ -350,7 +361,7 @@ const handleEditQuestionnaire = async (q: Questionnaire) => {
   editStep.value = 'info'
   editorQuestions.value = []
   showEditQuestionnaireModal.value = true
-  
+
   // 加载题目数据
   await loadQuestionnaireQuestions(q.id)
 }
@@ -365,7 +376,7 @@ const loadQuestionnaireQuestions = async (id: number) => {
       // 根据问卷类型或名称判断是哪种专业测评
       const qName = questionnaire.name.toUpperCase()
       const qType = questionnaire.type?.toUpperCase() || ''
-      
+
       let presetKey: string | null = null
       if (qName.includes('EPQ') || qType.includes('EPQ')) {
         presetKey = 'EPQ'
@@ -374,14 +385,14 @@ const loadQuestionnaireQuestions = async (id: number) => {
       } else if (qName.includes('MBTI') || qType.includes('MBTI')) {
         presetKey = 'MBTI'
       }
-      
+
       // 如果是内置专业测评，从预设题目加载
       if (presetKey && PRESET_QUESTIONS[presetKey]) {
         const presetQuestions = PRESET_QUESTIONS[presetKey]
         editorQuestions.value = presetQuestions.map((pq: PresetQuestion, idx: number) => {
           // 根据题目类型构建选项
           let options: { label: string; value: string; score: number }[] = []
-          
+
           if (pq.type === 'yesno') {
             // 是非题：是/否 选项
             options = [
@@ -402,7 +413,7 @@ const loadQuestionnaireQuestions = async (id: number) => {
               score: 0,
             }))
           }
-          
+
           return {
             id: pq.id,
             type: pq.type === 'yesno' ? 'yesno' : (pq.type === 'choice' ? 'radio' : pq.type),
@@ -422,7 +433,7 @@ const loadQuestionnaireQuestions = async (id: number) => {
         return
       }
     }
-    
+
     // 非内置问卷，尝试从 API 加载
     const detail = await fetchQuestionnaireDetail(id)
     if (detail.questions_data?.questions) {
@@ -499,7 +510,7 @@ const handleDeleteQuestion = (index: number) => {
 const moveQuestion = (index: number, direction: 'up' | 'down') => {
   const newIndex = direction === 'up' ? index - 1 : index + 1
   if (newIndex < 0 || newIndex >= editorQuestions.value.length) return
-  
+
   const temp = editorQuestions.value[index]
   editorQuestions.value[index] = editorQuestions.value[newIndex]
   editorQuestions.value[newIndex] = temp
@@ -507,16 +518,16 @@ const moveQuestion = (index: number, direction: 'up' | 'down') => {
 
 const handleSaveQuestionnaire = async () => {
   if (!selectedQuestionnaire.value) return
-  
+
   try {
     loading.value = true
-    
+
     // 构建更新数据
     const updateData: any = {
       ...editQuestionnaireForm.value,
       questions_count: editorQuestions.value.length,
     }
-    
+
     // 如果有题目编辑，也更新题目数据
     if (editorQuestions.value.length > 0) {
       updateData.questions_data = {
@@ -535,7 +546,7 @@ const handleSaveQuestionnaire = async () => {
         }))
       }
     }
-    
+
     await updateQuestionnaire(selectedQuestionnaire.value.id, updateData)
     showEditQuestionnaireModal.value = false
     alert('问卷信息已更新')
@@ -551,10 +562,10 @@ const handleSaveQuestionnaire = async () => {
 // ===== 删除问卷 =====
 const handleDeleteQuestionnaire = (questionnaireOrId: Questionnaire | number) => {
   // 兼容传入对象或ID
-  const q = typeof questionnaireOrId === 'number' 
+  const q = typeof questionnaireOrId === 'number'
     ? questionnaires.value.find(item => item.id === questionnaireOrId)
     : questionnaireOrId
-  
+
   if (q) {
     deleteTargetQuestionnaire.value = q
     showDeleteQuestionnaireModal.value = true
@@ -563,7 +574,7 @@ const handleDeleteQuestionnaire = (questionnaireOrId: Questionnaire | number) =>
 
 const confirmDeleteQuestionnaire = async () => {
   if (!deleteTargetQuestionnaire.value) return
-  
+
   try {
     loading.value = true
     await deleteQuestionnaire(deleteTargetQuestionnaire.value.id)
@@ -637,440 +648,7 @@ onMounted(() => {
 })
 </script>
 
-<template>
-  <div class="assessment-page">
-    <!-- 页面头部 -->
-    <div class="page-header">
-      <div class="header-icon">
-        <i class="ri-file-list-3-line"></i>
-      </div>
-      <div class="header-content">
-        <h1>专业测评</h1>
-      </div>
-    </div>
-
-
-    <!-- 标签页切换 -->
-    <div class="tabs-container">
-      <button 
-        :class="['tab-btn', { active: activeTab === 'manage' }]"
-        @click="activeTab = 'manage'"
-      >
-        <i class="ri-settings-3-line"></i>
-        测评管理
-      </button>
-      <button 
-        :class="['tab-btn', { active: activeTab === 'records' }]"
-        @click="activeTab = 'records'"
-      >
-        <i class="ri-file-list-2-line"></i>
-        提交记录
-      </button>
-    </div>
-
-    <!-- 测评管理 Tab -->
-    <div v-if="activeTab === 'manage'" class="content-section">
-      <div class="section-header">
-        <h2>专业测评库</h2>
-      </div>
-
-      <div v-if="loading" class="loading-state">
-        <i class="ri-loader-4-line spin"></i>
-        <span>加载中...</span>
-      </div>
-
-      <div v-else-if="questionnaires.length === 0" class="empty-state">
-        <i class="ri-file-list-3-line"></i>
-        <p>暂无专业测评问卷</p>
-      </div>
-
-      <div v-else class="questionnaire-grid">
-        <QuestionnaireCard
-          v-for="q in questionnaires"
-          :key="q.id"
-          :questionnaire="q"
-          category="professional"
-          @distribute="handleDistribute"
-          @view-links="handleViewLinks"
-          @edit="handleEditQuestionnaire"
-          @delete="handleDeleteQuestionnaire"
-          @toggle-status="handleToggleStatus"
-        />
-      </div>
-    </div>
-
-    <!-- 提交记录 Tab - 使用独立组件 -->
-    <div v-if="activeTab === 'records'" class="content-section records-section">
-      <SubmissionRecordsTab
-        :submissions="submissions"
-        :questionnaires="questionnaires"
-        :loading="loading"
-        @delete="handleDeleteSubmissionFromTab"
-        @delete-batch="handleBatchDeleteSubmissions"
-        @export-pdf="handleExportPDF"
-        @refresh="loadData"
-            />
-          </div>
-
-    <!-- 分发弹窗组件 -->
-    <DistributeModal
-      v-if="showDistributeModal"
-      :questionnaire="selectedQuestionnaireForDistribute"
-      :assessment="selectedAssessmentForDistribute"
-      :mode="distributeMode"
-      @close="showDistributeModal = false; selectedAssessmentForDistribute = null; distributeMode = 'create'"
-      @success="handleDistributeSuccess"
-    />
-
-    <!-- 查看链接面板组件 -->
-    <ViewLinksPanel
-      v-if="showViewLinksPanel"
-      :questionnaire="viewLinksQuestionnaire"
-      @close="showViewLinksPanel = false"
-      @create-new="handleCreateNewLink"
-      @edit="handleEditDistribution"
-      @clone="handleCloneDistribution"
-    />
-
-    <!-- 提交详情弹窗已移至 SubmissionRecordsTab 组件内部 -->
-
-    <!-- 编辑问卷弹窗 - 使用与问卷中心一样的三列布局 -->
-    <div v-if="showEditQuestionnaireModal" class="modal-overlay editor-modal-overlay" @click="showEditQuestionnaireModal = false">
-      <div class="modal-dialog editor-modal-dialog" @click.stop>
-        <!-- 顶部标题栏 -->
-        <div class="editor-modal-header">
-          <div class="editor-header-left">
-            <h3><i class="ri-edit-line"></i> 编辑问卷</h3>
-            <div class="editor-step-tabs">
-            <button 
-                :class="['step-tab', { active: editStep === 'info' }]"
-                @click="editStep = 'info'"
-            >
-                <i class="ri-file-info-line"></i>
-                基本信息
-            </button>
-              <span class="step-arrow"><i class="ri-arrow-right-s-line"></i></span>
-            <button 
-                :class="['step-tab', { active: editStep === 'questions' }]"
-                @click="editStep = 'questions'"
-            >
-                <i class="ri-list-settings-line"></i>
-                题目编辑
-            </button>
-          </div>
-        </div>
-          <button class="btn-close-editor" @click="showEditQuestionnaireModal = false">
-            <i class="ri-close-line"></i>
-          </button>
-        </div>
-        
-        <!-- Step 1: 基本信息 -->
-        <div v-if="editStep === 'info'" class="editor-step-content info-step">
-          <div class="info-form-container">
-            <div class="form-group">
-              <label class="form-label">问卷名称 <span class="required">*</span></label>
-              <input 
-                type="text" 
-                class="form-input" 
-                v-model="editQuestionnaireForm.name" 
-                placeholder="请输入问卷名称" 
-              />
-      </div>
-
-            <div class="form-group">
-              <label class="form-label">预计时长</label>
-              <div class="input-with-suffix">
-                <input 
-                  type="number" 
-                  class="form-input" 
-                  v-model.number="editQuestionnaireForm.estimated_minutes" 
-                  min="1" 
-                  max="120" 
-                />
-                <span class="input-suffix">分钟</span>
-        </div>
-        </div>
-            
-            <div class="form-group">
-              <label class="form-label">问卷描述</label>
-              <textarea 
-                class="form-textarea" 
-                rows="3" 
-                v-model="editQuestionnaireForm.description" 
-                placeholder="请输入问卷描述（选填）"
-              ></textarea>
-        </div>
-          </div>
-          
-          <div class="info-tip">
-            <i class="ri-lightbulb-line"></i>
-            <span>请在下一步中编辑题目</span>
-        </div>
-      </div>
-
-        <!-- Step 2: 题目编辑 - 三列布局 -->
-        <div v-if="editStep === 'questions'" class="editor-step-content questions-step">
-          <div class="editor-layout-3col">
-            <!-- 左侧：控件库 -->
-            <div class="controls-library-panel">
-              <div class="panel-header">
-                <h4><i class="ri-apps-line"></i> 控件库</h4>
-                </div>
-              <div class="controls-list">
-                <div 
-                  v-for="ctrl in questionControls" 
-                  :key="ctrl.type"
-                  class="control-item"
-                  draggable="true"
-                  @click="addQuestionFromControl(ctrl.type as EditorQuestion['type'])"
-                  @dragstart="handleControlDragStart($event, ctrl.type)"
-                  @dragend="handleControlDragEnd"
-                  :title="`点击或拖拽添加${ctrl.label}`"
-                >
-                  <i :class="ctrl.icon"></i>
-                  <span>{{ ctrl.label }}</span>
-                </div>
-      </div>
-        </div>
-        
-            <!-- 中间：题目列表 -->
-            <div 
-              class="questions-list-panel"
-              @dragover.prevent="handleListDragOver"
-              @drop="handleListDrop"
-              @dragleave="isDragOver = false"
-              :class="{ 'drag-over': isDragOver }"
-          >
-              <div class="panel-header">
-                <h4><i class="ri-list-ordered"></i> 题目列表</h4>
-                <span class="question-count">{{ editorQuestions.length }} 道题</span>
-                </div>
-              
-              <div class="questions-list-scroll">
-                <div v-if="questionsLoading" class="questions-loading">
-                  <i class="ri-loader-4-line spin"></i>
-                  <span>加载题目中...</span>
-              </div>
-                
-                <div v-else-if="editorQuestions.length === 0" class="empty-questions">
-                  <i class="ri-file-add-line"></i>
-                  <p>暂无题目</p>
-                  <p class="text-muted">从左侧拖拽控件添加题目</p>
-            </div>
-            
-                <div 
-                  v-for="(q, localIndex) in paginatedQuestions" 
-                  :key="q.id || localIndex" 
-                  class="question-list-item"
-              >
-                  <div class="question-drag-handle">
-                    <i class="ri-draggable"></i>
-                </div>
-                  <div class="question-item-content">
-                    <div class="question-item-header">
-                      <span class="question-number">{{ getGlobalIndex(localIndex) + 1 }}</span>
-                      <span class="question-type-badge" :class="q.type">{{ getQuestionTypeName(q.type) }}</span>
-                      <span v-if="q.required" class="required-badge">必答</span>
-                      <span v-if="q.dimension" class="dimension-badge">{{ q.dimension }}</span>
-                </div>
-                    <p class="question-text-preview">{{ q.text || '未填写题目内容' }}</p>
-                    <!-- 选项内容展示 -->
-                    <div v-if="q.type === 'choice' && (q.optionA || q.optionB)" class="question-options-preview">
-                      <div class="option-preview-item">
-                        <span class="option-letter">A</span>
-                        <span class="option-text">{{ q.optionA || '选项A' }}</span>
-                      </div>
-                      <div class="option-preview-item">
-                        <span class="option-letter">B</span>
-                        <span class="option-text">{{ q.optionB || '选项B' }}</span>
-                      </div>
-                    </div>
-                    <div v-else-if="q.type === 'yesno'" class="question-options-preview">
-                      <div class="option-preview-item">
-                        <span class="option-letter yes">是</span>
-                      </div>
-                      <div class="option-preview-item">
-                        <span class="option-letter no">否</span>
-                      </div>
-                    </div>
-                    <div v-else-if="(q.type === 'radio' || q.type === 'checkbox') && q.options?.length" class="question-options-preview">
-                      <div v-for="(opt, optIdx) in q.options.slice(0, 4)" :key="optIdx" class="option-preview-item">
-                        <span class="option-letter">{{ String.fromCharCode(65 + optIdx) }}</span>
-                        <span class="option-text">{{ opt.label }}</span>
-                      </div>
-                      <div v-if="q.options.length > 4" class="option-preview-more">
-                        +{{ q.options.length - 4 }} 个选项
-                      </div>
-                    </div>
-                  </div>
-                  <div class="question-item-actions">
-                    <button class="btn-icon-small" @click="moveQuestion(getGlobalIndex(localIndex), 'up')" :disabled="getGlobalIndex(localIndex) === 0" title="上移">
-                      <i class="ri-arrow-up-s-line"></i>
-                  </button>
-                    <button class="btn-icon-small" @click="moveQuestion(getGlobalIndex(localIndex), 'down')" :disabled="getGlobalIndex(localIndex) === editorQuestions.length - 1" title="下移">
-                      <i class="ri-arrow-down-s-line"></i>
-                    </button>
-                    <button class="btn-icon-small" @click="handleEditQuestion(getGlobalIndex(localIndex))" title="编辑">
-                      <i class="ri-edit-line"></i>
-                    </button>
-                    <button class="btn-icon-small btn-danger" @click="handleDeleteQuestion(getGlobalIndex(localIndex))" title="删除">
-                    <i class="ri-delete-bin-line"></i>
-                  </button>
-                </div>
-              </div>
-            </div>
-              
-              <!-- 分页控件 -->
-              <div v-if="editorQuestions.length > questionsPageSize" class="questions-pagination">
-                <button 
-                  class="pagination-btn" 
-                  :disabled="questionsCurrentPage === 1"
-                  @click="questionsCurrentPage--"
-                >
-                  <i class="ri-arrow-left-s-line"></i>
-                </button>
-                
-                <div class="pagination-pages">
-                  <template v-for="(page, idx) in visiblePages" :key="idx">
-                    <span v-if="page === '...'" class="pagination-ellipsis">...</span>
-                    <button 
-                      v-else
-                      class="pagination-page-btn"
-                      :class="{ active: questionsCurrentPage === page }"
-                      @click="goToPage(page as number)"
-                    >
-                      {{ page }}
-                    </button>
-                  </template>
-          </div>
-          
-                <button 
-                  class="pagination-btn" 
-                  :disabled="questionsCurrentPage >= totalPages"
-                  @click="questionsCurrentPage++"
-                >
-                  <i class="ri-arrow-right-s-line"></i>
-                </button>
-                
-                <span class="pagination-info">共 {{ editorQuestions.length }} 题</span>
-          </div>
-              
-              <button class="btn-add-question-panel" @click="handleAddQuestion">
-                <i class="ri-add-line"></i>
-                添加题目
-              </button>
-        </div>
-            
-            <!-- 右侧：实时预览 -->
-            <CandidatePreviewPanel :questions="editorQuestions" />
-      </div>
-    </div>
-
-        <!-- 底部 -->
-        <div class="editor-modal-footer">
-          <div class="footer-left">
-            <span v-if="editStep === 'questions'" class="questions-summary">
-              <i class="ri-file-list-3-line"></i>
-              共 {{ editorQuestions.length }} 道题目
-            </span>
-          </div>
-          <div class="footer-right">
-            <button v-if="editStep === 'info'" class="btn-cancel" @click="showEditQuestionnaireModal = false">取消</button>
-            <button v-if="editStep === 'questions'" class="btn-secondary" @click="editStep = 'info'">
-              <i class="ri-arrow-left-line"></i>
-              上一步
-            </button>
-            <button v-if="editStep === 'info'" class="btn-primary" @click="editStep = 'questions'">
-              下一步
-              <i class="ri-arrow-right-line"></i>
-            </button>
-            <button v-if="editStep === 'questions'" class="btn-primary" @click="handleSaveQuestionnaire" :disabled="loading">
-              <i v-if="loading" class="ri-loader-4-line spin"></i>
-              <i v-else class="ri-check-line"></i>
-              {{ loading ? '保存中...' : '保存问卷' }}
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- 题目编辑弹窗 -->
-    <QuestionEditDialog
-      v-if="showQuestionEditDialog"
-      :question="editingQuestion"
-      :is-edit="editingQuestionIndex !== null"
-      :assessment-type="editQuestionnaireForm.type?.toUpperCase() as 'MBTI' | 'DISC' | 'EPQ' | null"
-      @close="showQuestionEditDialog = false"
-      @save="handleSaveQuestion"
-    />
-
-    <!-- 删除问卷确认弹窗 -->
-    <div v-if="showDeleteQuestionnaireModal" class="modal-overlay" @click="showDeleteQuestionnaireModal = false">
-      <div class="modal-dialog confirm-modal" @click.stop>
-        <div class="modal-header">
-          <h3>确认删除问卷</h3>
-        </div>
-        <div class="modal-body confirm-body">
-          <p>确定要删除问卷 <strong>{{ deleteTargetQuestionnaire?.name }}</strong> 吗？</p>
-          <p class="confirm-warning">
-            <i class="ri-error-warning-line"></i>
-            此操作不可恢复，相关的分发链接和提交记录也将被删除
-          </p>
-        </div>
-        <div class="modal-footer">
-          <button class="btn-cancel" @click="showDeleteQuestionnaireModal = false">取消</button>
-          <button class="btn-danger" @click="confirmDeleteQuestionnaire" :disabled="loading">
-            {{ loading ? '删除中...' : '确认删除' }}
-          </button>
-        </div>
-      </div>
-    </div>
-
-    <!-- 状态切换确认弹窗 -->
-    <div v-if="showToggleStatusConfirm" class="modal-overlay" @click="cancelToggleStatus">
-      <div class="modal-dialog confirm-modal" @click.stop>
-        <div class="modal-icon" :class="toggleTargetQuestionnaire?.status === 'active' ? 'warning' : 'success'">
-          <i :class="toggleTargetQuestionnaire?.status === 'active' ? 'ri-pause-circle-line' : 'ri-play-circle-line'"></i>
-        </div>
-        <h3 v-if="toggleTargetQuestionnaire?.status === 'active'">停用问卷</h3>
-        <h3 v-else>启用问卷</h3>
-        <p v-if="toggleTargetQuestionnaire?.status === 'active'">确定要停用问卷「{{ toggleTargetQuestionnaire?.name }}」吗？</p>
-        <p v-else>确定要启用问卷「{{ toggleTargetQuestionnaire?.name }}」吗？</p>
-        <p class="confirm-warning" v-if="toggleTargetQuestionnaire?.status === 'active'">
-          <i class="ri-information-line"></i>
-          停用后，该问卷将无法被分发，已分发的链接仍可继续使用。
-        </p>
-        <p class="confirm-warning success" v-else>
-          <i class="ri-information-line"></i>
-          启用后，该问卷将可以被分发。
-        </p>
-        <div class="modal-footer centered">
-          <button class="btn-cancel" @click="cancelToggleStatus">取消</button>
-          <button 
-            :class="toggleTargetQuestionnaire?.status === 'active' ? 'btn-warning' : 'btn-primary'" 
-            @click="executeToggleStatus"
-            :disabled="loading"
-          >
-            <span v-if="toggleTargetQuestionnaire?.status === 'active'">确认停用</span>
-            <span v-else>确认启用</span>
-          </button>
-        </div>
-      </div>
-    </div>
-
-    <!-- 消息提示 -->
-    <Transition name="message">
-      <div v-if="message.show" :class="['message-toast', message.type]">
-        <i :class="[
-          message.type === 'success' ? 'ri-check-line' :
-          message.type === 'error' ? 'ri-close-line' :
-          message.type === 'warning' ? 'ri-alert-line' : 'ri-information-line'
-        ]"></i>
-        <span>{{ message.text }}</span>
-      </div>
-    </Transition>
-  </div>
-</template>
+<template src="./ProfessionalAssessment.template.html"></template>
 
 <style scoped>
 @import './styles/professional-assessment.css';

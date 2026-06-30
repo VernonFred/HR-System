@@ -11,7 +11,6 @@ import asyncio
 import json
 import logging
 import time
-import re
 from datetime import datetime
 from typing import Optional, List, Dict, Any
 
@@ -38,150 +37,16 @@ from .ai_analyzer import (
 )
 from .dimension_mapping import calculate_dimension_score_from_assessments
 from app.services.cross_validation import CrossValidationService
-from app.services.resume_quality_analyzer import ResumeQualityAnalyzer  # 🟢 P2-2
 
 
-def _merge_fragments(items: List[str]) -> List[str]:
-    if not items:
-        return []
-    merged: List[str] = []
-    buffer = ""
-    end_punct = "。！？!?；;：:"
-    for item in items:
-        text = item.strip()
-        if not text:
-            continue
-        if not buffer:
-            buffer = text
-            continue
-        # 如果上一段没有结束标点，或任一段过短，则认为是同一句的分段
-        if buffer[-1] not in end_punct or len(buffer) < 18 or len(text) < 10:
-            joiner = "" if buffer.endswith(("，", "、", "；", ";", "：", ":")) else "，"
-            buffer = f"{buffer}{joiner}{text}"
-        else:
-            merged.append(buffer)
-            buffer = text
-    if buffer:
-        merged.append(buffer)
-    return merged
-
-
-def _normalize_list_field(value: Any) -> List[str]:
-    if value is None:
-        return []
-    if isinstance(value, list):
-        items = [str(item).strip() for item in value if str(item).strip()]
-        if not items:
-            return []
-        # 如果是按单字符拆分的列表，先拼回字符串再按分隔符拆分
-        single_char_ratio = sum(1 for item in items if len(item) == 1) / len(items)
-        if len(items) >= 6 and single_char_ratio >= 0.8:
-            merged = "".join(items)
-            parts = re.split(r"[\n、;；|]+", merged)
-            return _merge_fragments([p.strip() for p in parts if p and p.strip()])
-        return _merge_fragments(items)
-    if isinstance(value, str):
-        parts = re.split(r"[\n、;；|]+", value)
-        return _merge_fragments([p.strip() for p in parts if p and p.strip()])
-    text = str(value).strip()
-    return [text] if text else []
-
-
-def _normalize_ai_insights(value: Any, candidate_name: Optional[str]) -> List[str]:
-    items = _normalize_list_field(value)
-    if not items:
-        return []
-    if all(len(item) == 1 for item in items):
-        merged = "".join(items).strip()
-        if candidate_name and merged == candidate_name:
-            return []
-        return [merged] if merged else []
-    if candidate_name and len(items) == 1 and items[0] == candidate_name:
-        return []
-    return items
-
-
-_GENERIC_RULE_INSIGHT_MARKERS = (
-    "基础资料完整",
-    "建议上传简历",
-    "继续保持",
-    "测评得分偏低",
-    "建议补充更多测评",
-    "数据完整性良好",
+from .assessment_summary import _calculate_overall_assessment
+from .normalizers import (
+    _combine_ai_first,
+    _normalize_ai_insights,
+    _normalize_list_field,
+    _normalize_position_items,
+    _submission_result_payload,
 )
-
-
-def _is_generic_rule_insight(text: str) -> bool:
-    """识别规则引擎模板句，AI 有内容时不让这些句子抢占展示位."""
-    return any(marker in text for marker in _GENERIC_RULE_INSIGHT_MARKERS)
-
-
-def _combine_ai_first(ai_items: List[str], rule_items: List[str], max_items: int = 5) -> List[str]:
-    result: List[str] = []
-    seen = set()
-
-    def add_item(item: str) -> None:
-        text = str(item).strip()
-        if not text:
-            return
-        key = re.sub(r"\s+", "", text)
-        if key in seen:
-            return
-        seen.add(key)
-        result.append(text)
-
-    for item in ai_items:
-        add_item(item)
-
-    has_ai = len(result) > 0
-    for item in rule_items:
-        text = str(item).strip()
-        if has_ai and _is_generic_rule_insight(text):
-            continue
-        add_item(text)
-        if len(result) >= max_items:
-            break
-
-    return result[:max_items]
-
-
-def _normalize_position_items(value: Any) -> List[str]:
-    """岗位字段允许短词逗号分隔；长句保持原样，避免拆坏适配分析."""
-    items = _normalize_list_field(value)
-    expanded: List[str] = []
-
-    for item in items:
-        parts = [p.strip() for p in re.split(r"[\n、;；|]+", item) if p.strip()]
-        if len(parts) == 1:
-            comma_parts = [p.strip() for p in re.split(r"[,，]", item) if p.strip()]
-            if len(comma_parts) > 1 and all(len(p) <= 18 for p in comma_parts):
-                parts = comma_parts
-        expanded.extend(parts)
-
-    result: List[str] = []
-    seen = set()
-    for item in expanded:
-        key = re.sub(r"\s+", "", item)
-        if key and key not in seen:
-            seen.add(key)
-            result.append(item)
-    return result
-
-
-def _submission_result_payload(submission: Submission) -> Dict[str, Any]:
-    """Return the result payload expected by fallback/cross-validation services."""
-    for field_name in ("result_details", "scores", "answers"):
-        value = getattr(submission, field_name, None)
-        if isinstance(value, dict) and value:
-            return value
-        if isinstance(value, str) and value.strip():
-            try:
-                parsed = json.loads(value)
-            except json.JSONDecodeError:
-                continue
-            if isinstance(parsed, dict) and parsed:
-                return parsed
-    return {}
 
 
 from app.services.job_recommender import JobRecommender  # 🟢 P2-3
@@ -196,34 +61,34 @@ async def build_candidate_portrait(
     analysis_level: str = "pro"
 ) -> schemas.CandidatePortrait:
     """构建候选人完整画像.
-    
+
     整合以下数据源：
     1. 候选人基本信息
     2. 测评记录（通过 candidate_id 关联）
     3. 岗位画像匹配（通过 target_position 关联）
-    
+
     分析模式：
     - 当前统一使用 pro 单模型画像生成。
     - 旧的 expert 参数会在函数入口归一为 pro，避免生成重复缓存和重复话术。
-    
+
     缓存策略：
     - 首次访问：调用AI分析，结果存入缓存
     - 再次访问：直接返回缓存（毫秒级响应）
     - 数据变更：自动失效缓存，重新分析
-    
+
     Args:
         session: 数据库会话
         candidate_id: 候选人ID
         force_refresh: 是否强制刷新（跳过缓存）
         analysis_level: 画像分析模式（当前统一归一为 pro）
-        
+
     Returns:
         完整的候选人画像
     """
     start_time = time.time()
     # 单模型模式下不再区分 pro/expert；旧请求统一复用默认画像缓存。
     analysis_level = "pro"
-    
+
     # 1. 获取候选人基本信息
     candidate = session.get(Candidate, candidate_id)
     if not candidate:
@@ -231,13 +96,13 @@ async def build_candidate_portrait(
             status_code=http_status.HTTP_404_NOT_FOUND,
             detail="候选人不存在"
         )
-    
+
     # 获取最新提交记录（用于计算版本）
     latest_sub_stmt = select(Submission).where(
         Submission.candidate_id == candidate_id
     ).order_by(Submission.submitted_at.desc())
     latest_submission_for_version = session.exec(latest_sub_stmt).first()
-    
+
     # 获取关联的岗位画像（用于计算版本）
     job_profile_for_version = None
     if latest_submission_for_version and latest_submission_for_version.target_position:
@@ -246,10 +111,10 @@ async def build_candidate_portrait(
                 JobProfile.name == latest_submission_for_version.target_position
             )
         ).first()
-    
+
     # 计算数据版本
     data_version = compute_data_version(candidate, latest_submission_for_version, job_profile_for_version)
-    
+
     # 2. 检查缓存（除非强制刷新）- V38: 按级别缓存
     if not force_refresh:
         cached_portrait = get_cached_portrait(session, candidate_id, data_version, analysis_level)
@@ -257,14 +122,14 @@ async def build_candidate_portrait(
             elapsed = (time.time() - start_time) * 1000
             logger.info(f"⚡ 候选人{candidate_id}: 从{analysis_level}缓存返回画像 (耗时: {elapsed:.1f}ms)")
             return cached_portrait
-    
+
     logger.info(f"🔄 候选人{candidate_id}: 开始生成新画像 (版本: {data_version})")
-    
+
     # 获取岗位信息 - V5: 优先使用简历中的岗位（更准确）
     gender = None
     target_position = None
     resume_target_position = None
-    
+
     # 1. 从简历中获取岗位（如果有简历）
     if candidate.resume_parsed_data:
         parsed = candidate.resume_parsed_data
@@ -277,10 +142,10 @@ async def build_candidate_portrait(
             resume_target_position = parsed.get("target_position", "")
             if resume_target_position:
                 logger.info(f"📄 从简历中获取到岗位信息: {resume_target_position}")
-    
+
     # 2. 从 candidate.position 获取（测评时填写的）
     candidate_position = getattr(candidate, 'position', None)
-    
+
     # 3. 从 submission 获取（兼容旧数据）
     submission_position = None
     if candidate.submission_id:
@@ -288,7 +153,7 @@ async def build_candidate_portrait(
         if linked_submission:
             gender = getattr(linked_submission, 'gender', None)
             submission_position = getattr(linked_submission, 'target_position', None)
-    
+
     # V5: 优先使用简历中的岗位，因为简历通常更准确
     # 如果简历岗位和测评岗位不同，记录日志
     if resume_target_position:
@@ -299,7 +164,7 @@ async def build_candidate_portrait(
         target_position = candidate_position
     elif submission_position:
         target_position = submission_position
-    
+
     basic_info = schemas.CandidateBasicInfo(
         id=candidate.id,
         name=candidate.name,
@@ -309,30 +174,30 @@ async def build_candidate_portrait(
         target_position=target_position,
         created_at=candidate.created_at
     )
-    
+
     # 3. 获取所有测评记录
     statement = select(Submission).where(
         Submission.candidate_id == candidate_id
     ).order_by(Submission.submitted_at.desc())
-    
+
     submissions = session.exec(statement).all()
-    
+
     assessments_info = []
     latest_submission: Optional[Submission] = None
-    
+
     for submission in submissions:
         if submission.status == "completed":
             # 获取测评和问卷名称
             assessment = session.get(Assessment, submission.assessment_id)
             questionnaire = session.get(Questionnaire, submission.questionnaire_id)
-            
+
             # 解析该测评的人格维度数据
             submission_dims = []
             if submission.result_details:
                 result_details = submission.result_details if isinstance(submission.result_details, dict) else json.loads(submission.result_details or "{}")
                 from app.api.candidates.dimension_parser import parse_personality_dimensions
                 submission_dims = parse_personality_dimensions(result_details)
-            
+
             assessment_info = schemas.AssessmentInfo(
                 submission_id=submission.id,
                 assessment_name=assessment.name if assessment else "未知测评",
@@ -346,15 +211,15 @@ async def build_candidate_portrait(
                 personality_dimensions=submission_dims  # 添加该测评的维度数据
             )
             assessments_info.append(assessment_info)
-            
+
             # 保存最新的完成提交（用于匹配分析）
             if not latest_submission:
                 latest_submission = submission
-    
+
     # 3. 获取岗位匹配信息
     job_match_info = None
     job_profile = None  # V39: 在外部初始化，用于后续提取能力维度
-    
+
     # ⭐ 确定用于岗位匹配的目标岗位（优先测评数据，其次简历数据）
     match_target_position = None
     if latest_submission and latest_submission.target_position:
@@ -362,7 +227,7 @@ async def build_candidate_portrait(
     elif target_position:  # 使用前面从简历中获取的岗位信息
         match_target_position = target_position
         logger.info(f"📄 使用简历中的岗位信息进行匹配: {match_target_position}")
-    
+
     if latest_submission and match_target_position:
         # 通过 target_position 查找对应的岗位画像
         statement = select(JobProfile).where(
@@ -372,7 +237,7 @@ async def build_candidate_portrait(
             )
         )
         job_profile = session.exec(statement).first()
-        
+
         if job_profile:
             # 查找或创建匹配记录
             match_record = session.exec(
@@ -383,7 +248,7 @@ async def build_candidate_portrait(
                     )
                 )
             ).first()
-            
+
             if not match_record:
                 # 创建新的匹配记录（带超时控制）
                 try:
@@ -397,7 +262,7 @@ async def build_candidate_portrait(
                 except Exception as e:
                     print(f"❌ 创建匹配记录失败: {e}")
                     match_record = None
-            
+
             # 如果有有效的匹配记录，才构建job_match_info
             if match_record:
                 # 构建维度得分
@@ -405,7 +270,7 @@ async def build_candidate_portrait(
                     job_profile,
                     match_record.dimension_scores or {}
                 )
-                
+
                 job_match_info = schemas.JobMatchInfo(
                     profile_id=job_profile.id,
                     profile_name=job_profile.name,
@@ -415,7 +280,7 @@ async def build_candidate_portrait(
                     ai_analysis=match_record.ai_analysis,
                     matched_at=match_record.created_at
                 )
-    
+
     # ⭐ V39: 从岗位画像中提取能力维度名称，用于AI分析
     custom_job_competencies = None
     if job_profile:
@@ -426,23 +291,23 @@ async def build_candidate_portrait(
                 logger.info(f"📋 从岗位画像获取能力维度: {custom_job_competencies}")
         except Exception as e:
             logger.warning(f"⚠️ 解析岗位画像维度失败: {e}")
-    
+
     # 4. 调用AI生成完整分析（带超时控制）
     is_default_analysis = False  # 标记是否使用默认分析
     ai_model_used = "deepseek-v4-pro"  # 使用的AI模型
     fallback_reason = None  # 🟢 P1-2: 降级原因
     ai_start_time = time.time()
-    
+
     timeout_seconds = 120.0
-    
+
     logger.info(f"🎯 开始AI分析: 级别={analysis_level}, 超时={timeout_seconds}s")
-    
+
     try:
         # 设置超时（根据分析级别调整）
         # V39: 传递自定义岗位能力维度
         ai_analysis = await asyncio.wait_for(
             generate_ai_analysis(
-                candidate, latest_submission, target_position, 
+                candidate, latest_submission, target_position,
                 analysis_level, custom_job_competencies, session  # 🟢 P2-3增强: 传入session
             ),
             timeout=timeout_seconds
@@ -465,24 +330,24 @@ async def build_candidate_portrait(
         is_default_analysis = True
         ai_model_used = "fallback"
         fallback_reason = ai_analysis.get("_fallback_reason") or fallback_reason or "ai_invalid_response"
-    
+
     ai_generation_time = int((time.time() - ai_start_time) * 1000)  # 毫秒
-    
+
     # 5. 计算综合评价（结合AI分析）
     # ⭐ 传入candidate信息用于简历质量评分
     ai_analysis_with_candidate = ai_analysis.copy() if ai_analysis else {}
     ai_analysis_with_candidate["candidate"] = candidate
-    
+
     overall_score, strengths, improvements = _calculate_overall_assessment(
         assessments_info,
         job_match_info,
         ai_analysis_with_candidate
     )
-    
+
     # 6. 构建完整画像
     # 获取summary_points，优先使用AI返回的
     summary_points = ai_analysis.get("summary_points", [])
-    
+
     # 如果已有3条点，直接使用（不再因为字数不足而清空）
     # 只有当点数不足3条时，才尝试从summary补充
     if len(summary_points) < 3 and ai_analysis.get("summary"):
@@ -491,11 +356,11 @@ async def build_candidate_portrait(
     elif len(summary_points) >= 3:
         # 已有足够的点，截取前3条
         summary_points = summary_points[:3]
-    
+
     # 智能拆分summary为3条观点（每条80-100字）
     if not summary_points and ai_analysis.get("summary"):
         summary_text = ai_analysis.get("summary", "")
-        
+
         # 先按段落拆分
         paragraphs = [p.strip() for p in summary_text.split("\n\n") if p.strip()]
         if len(paragraphs) >= 3:
@@ -506,7 +371,7 @@ async def build_candidate_portrait(
             for para in (paragraphs if paragraphs else [summary_text]):
                 para_sentences = [s.strip() + "。" for s in para.split("。") if s.strip()]
                 sentences.extend(para_sentences)
-            
+
             # 智能合并句子，确保每条80-100字
             if len(sentences) >= 3:
                 merged_points = []
@@ -522,24 +387,24 @@ async def build_candidate_portrait(
                         if current_point:
                             merged_points.append(current_point)
                         current_point = sentence
-                    
+
                     # 如果当前点达到80字以上，考虑保存
                     if len(current_point) >= 80 and len(merged_points) < 2:
                         merged_points.append(current_point)
                         current_point = ""
-                
+
                 # 保存最后一个点
                 if current_point:
                     merged_points.append(current_point)
-                
+
                 summary_points = merged_points[:3] if len(merged_points) >= 3 else merged_points
             else:
                 # 句子太少，直接使用段落或整个summary
                 summary_points = paragraphs[:3] if paragraphs else [summary_text]
-    
+
     # 提取岗位胜任力（确保5-6个）
     ai_competencies = ai_analysis.get("competencies", [])[:6]
-    
+
     # 如果AI返回的不足5个，补充默认胜任力
     if len(ai_competencies) < 5:
         default_competencies = [
@@ -558,7 +423,7 @@ async def build_candidate_portrait(
             if dc["key"] not in existing_keys:
                 ai_competencies.append(dc)
                 existing_keys.add(dc["key"])
-    
+
     competencies = [
         schemas.CompetencyScore(
             key=comp.get("key"),
@@ -567,11 +432,11 @@ async def build_candidate_portrait(
             rationale=comp.get("rationale")
         ) for comp in ai_competencies
     ]
-    
+
     # 获取 quick_tags（用于头部展示的短标签）
     # 注意：quick_tags 必须是 AI 生成的简短标签，不能从 strengths 中截取
     quick_tags = ai_analysis.get("quick_tags", [])
-    
+
     # 验证 quick_tags 格式：每个标签应该是 3-6 个字的简短标签
     valid_tags = []
     for tag in quick_tags:
@@ -580,7 +445,7 @@ async def build_candidate_portrait(
             # 如果标签太长（超过8个字），说明可能是截断的文字，跳过
             if 2 <= len(tag) <= 8:
                 valid_tags.append(tag)
-    
+
     # 如果没有有效的 quick_tags，使用默认标签
     if len(valid_tags) < 3:
         # 使用通用的默认标签，而不是从 strengths 截取
@@ -588,7 +453,7 @@ async def build_candidate_portrait(
         quick_tags = valid_tags + default_tags[len(valid_tags):3]
     else:
         quick_tags = valid_tags[:3]
-    
+
     # 🟢 P1-1: 计算多测评交叉验证数据
     cross_validation_data = None
     if len(submissions) >= 2:
@@ -610,10 +475,10 @@ async def build_candidate_portrait(
                     'result': _submission_result_payload(sub)
                 }
                 submission_dicts.append(sub_dict)
-            
+
             # 调用交叉验证服务
             validation_result = CrossValidationService.calculate_cross_validation(submission_dicts)
-            
+
             # 转换为 schema 格式
             cross_validation_data = schemas.CrossValidationData(
                 consistency_score=validation_result['consistency_score'],
@@ -645,7 +510,7 @@ async def build_candidate_portrait(
         except Exception as e:
             logger.error(f"⚠️ 候选人{candidate_id}: 交叉验证计算失败: {str(e)}")
             cross_validation_data = None
-    
+
     ai_strengths = _normalize_ai_insights(ai_analysis.get("strengths", []), candidate.name)
     ai_risks = _normalize_ai_insights(ai_analysis.get("risks", []), candidate.name)
     ai_summary_points = _normalize_list_field(ai_analysis.get("summary_points", []))
@@ -663,7 +528,7 @@ async def build_candidate_portrait(
         strengths=display_strengths,
         improvements=display_improvements,
         personality_dimensions=[
-            schemas.PersonalityDimension(**dim) 
+            schemas.PersonalityDimension(**dim)
             for dim in ai_analysis.get("personality_dimensions", [])
         ],
         competencies=competencies,
@@ -678,7 +543,7 @@ async def build_candidate_portrait(
         analysis_method="fallback" if is_default_analysis else "ai",
         fallback_reason=fallback_reason if is_default_analysis else None
     )
-    
+
     # 7. 保存到缓存 - V38: 按级别缓存
     total_time = int((time.time() - start_time) * 1000)
     save_portrait_cache(
@@ -692,7 +557,7 @@ async def build_candidate_portrait(
         is_default=is_default_analysis
     )
     logger.info(f"🎉 候选人{candidate_id}: {analysis_level}画像生成完成 (总耗时: {total_time}ms, AI耗时: {ai_generation_time}ms)")
-    
+
     return portrait
 
 
@@ -702,23 +567,23 @@ async def _create_match_record(
     submission: Submission
 ) -> ProfileMatch:
     """创建岗位匹配记录.
-    
+
     ⭐ V2优化: 基于维度映射的智能匹配算法
     - 不再使用统一的总分百分比
     - 建立测评维度↔岗位维度的映射关系
     - 真正利用测评的维度数据
-    
+
     Args:
         session: 数据库会话
         job_profile: 岗位画像
         submission: 测评提交记录 (可能只是最新的一条)
-        
+
     Returns:
         匹配记录
     """
     # 解析岗位画像的能力维度
     dimensions = json.loads(job_profile.dimensions) if job_profile.dimensions else []
-    
+
     # ⭐ 获取候选人的所有测评记录（用于跨测评计算）
     candidate_id = submission.candidate_id
     all_submissions_stmt = select(Submission).where(
@@ -728,7 +593,7 @@ async def _create_match_record(
         )
     )
     all_submissions = session.exec(all_submissions_stmt).all()
-    
+
     # 构建测评数据列表（供维度映射算法使用）
     candidate_assessments = []
     for sub in all_submissions:
@@ -738,7 +603,7 @@ async def _create_match_record(
         if questionnaire and questionnaire.type:
             # 统一转小写
             test_type = questionnaire.type.lower()
-        
+
         # 解析result_details
         result_details = sub.result_details
         if isinstance(result_details, str):
@@ -746,40 +611,40 @@ async def _create_match_record(
                 result_details = json.loads(result_details)
             except json.JSONDecodeError:
                 result_details = {}
-        
+
         candidate_assessments.append({
             "test_type": test_type,
             "result_details": result_details,
             "score_percentage": sub.score_percentage
         })
-    
+
     logger.info(f"🔍 岗位匹配: 候选人{candidate_id}有{len(candidate_assessments)}项测评, "
                 f"测评类型: {[a['test_type'] for a in candidate_assessments]}")
-    
+
     # ⭐ 基于维度映射计算各维度得分
     dimension_scores = {}
     total_weighted_score = 0.0
     total_weight = 0.0
-    
+
     for dim in dimensions:
         dim_name = dim.get("name", "")
         dim_weight = float(dim.get("weight", 0))
-        
+
         # ⭐ 核心: 使用维度映射算法计算得分
         dim_score = calculate_dimension_score_from_assessments(
-            dim_name, 
+            dim_name,
             candidate_assessments
         )
-        
+
         dimension_scores[dim_name] = {
             "score": round(dim_score, 1),
             "weight": dim_weight,
             "weighted_score": dim_score * (dim_weight / 100)
         }
-        
+
         total_weighted_score += dim_score * (dim_weight / 100)
         total_weight += dim_weight
-    
+
     # 计算总匹配分数
     if total_weight > 0:
         match_score = total_weighted_score / (total_weight / 100)
@@ -787,21 +652,21 @@ async def _create_match_record(
         # 降级: 使用测评平均分
         scores = [a["score_percentage"] for a in candidate_assessments if a["score_percentage"]]
         match_score = sum(scores) / len(scores) if scores else 60.0
-    
+
     match_score = round(match_score, 1)
-    
+
     # 生成AI分析（占位，可以后续增强）
     ai_analysis = f"候选人在 {job_profile.name} 岗位的综合匹配度为 {match_score}分。"
-    
+
     # 添加维度分析
     if dimension_scores:
         top_dims = sorted(dimension_scores.items(), key=lambda x: x[1]["score"], reverse=True)[:3]
         top_names = [f"{name}({score['score']}分)" for name, score in top_dims]
         ai_analysis += f" 优势维度: {', '.join(top_names)}。"
-    
+
     logger.info(f"✅ 岗位匹配: {job_profile.name} 匹配度={match_score}, "
                 f"维度数={len(dimension_scores)}")
-    
+
     # 创建匹配记录
     match_record = ProfileMatch(
         profile_id=job_profile.id,
@@ -810,200 +675,14 @@ async def _create_match_record(
         dimension_scores=dimension_scores,
         ai_analysis=ai_analysis
     )
-    
+
     session.add(match_record)
     session.commit()
     session.refresh(match_record)
-    
+
     return match_record
 
 
-def _calculate_overall_assessment(
-    assessments: List[schemas.AssessmentInfo],
-    job_match: Optional[schemas.JobMatchInfo],
-    ai_analysis: Optional[Dict[str, Any]] = None
-) -> tuple[Optional[float], List[str], List[str]]:
-    """计算综合评价.
-    
-    ⭐ V2优化: 多因子加权融合算法
-    - 测评分(40%) + 岗位匹配(30%) + 完整度(15%) + 简历质量(15%)
-    - 各维度权重可调整
-    - 提供分数构成说明
-    
-    Args:
-        assessments: 测评信息列表
-        job_match: 岗位匹配信息
-        ai_analysis: AI分析结果（包含candidate信息）
-    
-    Returns:
-        (综合得分, 优势亮点, 改进建议)
-    """
-    strengths = []
-    improvements = []
-    
-    # ⭐ 1. 测评加权平均分 (40%)
-    # MBTI: 40%, DISC: 30%, EPQ: 30%
-    assessment_weights = {
-        "mbti": 0.40,
-        "disc": 0.30,
-        "epq": 0.30
-    }
-    
-    assessment_score = 0
-    actual_weight_sum = 0
-    assessment_count = len(assessments)
-    
-    for a in assessments:
-        # 检测测评类型
-        test_type = None
-        if a.questionnaire_type:
-            test_type = a.questionnaire_type.lower()
-        elif a.questionnaire_name:
-            name_lower = a.questionnaire_name.lower()
-            if "mbti" in name_lower:
-                test_type = "mbti"
-            elif "disc" in name_lower:
-                test_type = "disc"
-            elif "epq" in name_lower:
-                test_type = "epq"
-        
-        if test_type and test_type in assessment_weights:
-            weight = assessment_weights[test_type]
-            score = a.score_percentage or a.total_score or 60
-            assessment_score += score * weight
-            actual_weight_sum += weight
-    
-    # 归一化 (如果只做了部分测评)
-    if actual_weight_sum > 0:
-        assessment_score = assessment_score / actual_weight_sum
-    else:
-        # 降级: 简单平均
-        scores = [a.score_percentage or a.total_score or 60 for a in assessments if (a.score_percentage or a.total_score)]
-        assessment_score = sum(scores) / len(scores) if scores else 60
-    
-    # ⭐ 2. 岗位匹配分 (30%)
-    # 如果有匹配，使用匹配分；否则使用测评分
-    match_score = job_match.match_score if job_match else assessment_score
-    
-    # ⭐ 3. 完整度加成 (15%)
-    # 测评越全，加成越高
-    completeness_bonus = 60  # 基准分
-    
-    if assessment_count == 1:
-        completeness_bonus = 65  # 单测评
-    elif assessment_count == 2:
-        completeness_bonus = 75  # 双测评，有一定互补
-    elif assessment_count >= 3:
-        completeness_bonus = 85  # 三测评，数据全面
-    
-    # 如果有岗位匹配，额外加5分
-    if job_match:
-        completeness_bonus = min(completeness_bonus + 5, 95)
-    
-    # ⭐ 4. 简历质量分 (15%)
-    # 🟢 P2-2: 使用ResumeQualityAnalyzer进行智能评分
-    resume_score = 60  # 基准分
-    has_resume = False
-    
-    if ai_analysis and ai_analysis.get("candidate"):
-        candidate = ai_analysis["candidate"]
-        # 使用实际字段判断是否已上传简历
-        has_resume = bool(
-            getattr(candidate, "resume_file_path", None)
-            or getattr(candidate, "resume_original_name", None)
-            or getattr(candidate, "resume_uploaded_at", None)
-        )
-        
-        if has_resume:
-            # 使用新的简历质量分析器
-            resume_parsed_data = getattr(candidate, "resume_parsed_data", None)
-            target_position = ai_analysis.get("target_position")
-            
-            if resume_parsed_data:
-                try:
-                    resume_analysis = ResumeQualityAnalyzer.analyze_resume_quality(
-                        resume_parsed_data, target_position
-                    )
-                    resume_score = resume_analysis["quality_score"]
-                    logger.info(f"📄 简历质量评分: {resume_score:.1f}")
-                except Exception as e:
-                    logger.warning(f"⚠️ 简历质量分析失败: {e}，使用默认分")
-                    resume_score = 70  # 降级分数
-            else:
-                # 无解析数据时，使用简单评分
-                resume_score = 70
-    
-    # ⭐ 综合计算
-    overall_score = (
-        assessment_score * 0.40 +
-        match_score * 0.30 +
-        completeness_bonus * 0.15 +
-        resume_score * 0.15
-    )
-    
-    overall_score = round(overall_score, 1)
-    
-    logger.debug(f"📊 综合评分: {overall_score:.1f} = "
-                 f"测评({assessment_score:.1f}*0.4) + "
-                 f"匹配({match_score:.1f}*0.3) + "
-                 f"完整度({completeness_bonus:.1f}*0.15) + "
-                 f"简历({resume_score:.1f}*0.15)")
-    
-    # ⭐ 生成优势和改进建议
-    # 1. 基于测评表现
-    if assessment_score >= 80:
-        strengths.append(f"测评表现优秀（{assessment_score:.1f}分，{assessment_count}项测评）")
-    elif assessment_score >= 60:
-        strengths.append(f"测评表现良好（{assessment_score:.1f}分，{assessment_count}项测评）")
-    else:
-        improvements.append(f"测评得分偏低（{assessment_score:.1f}分），建议加强训练")
-    
-    # 2. 基于岗位匹配
-    if job_match:
-        if job_match.match_score >= 80:
-            strengths.append(f"与{job_match.profile_name}岗位高度匹配（{job_match.match_score:.1f}分）")
-        elif job_match.match_score >= 60:
-            strengths.append(f"与{job_match.profile_name}岗位基本匹配（{job_match.match_score:.1f}分）")
-        else:
-            improvements.append(f"与{job_match.profile_name}岗位匹配度较低，建议补充经验")
-        
-        # 分析维度得分 (只取前2个极端)
-        sorted_dims = sorted(job_match.dimension_scores, key=lambda d: d.score, reverse=True)
-        if len(sorted_dims) > 0 and sorted_dims[0].score >= 85:
-            strengths.append(f"{sorted_dims[0].name}表现突出（{sorted_dims[0].score:.1f}分）")
-        if len(sorted_dims) > 0 and sorted_dims[-1].score < 60:
-            improvements.append(f"{sorted_dims[-1].name}需要提升（{sorted_dims[-1].score:.1f}分）")
-    
-    # 3. 基于完整度
-    if assessment_count >= 3:
-        strengths.append(f"测评数据全面（完成{assessment_count}项测评）")
-    
-    # 4. 基于简历质量
-    if has_resume and resume_score >= 85:
-        strengths.append("简历内容完整详实")
-    elif not has_resume:
-        improvements.append("建议上传简历，提供更全面的背景信息")
-    
-    # 5. 如果有AI分析，追加AI生成的内容
-    if ai_analysis:
-        candidate = ai_analysis.get("candidate")
-        candidate_name = getattr(candidate, "name", None)
-        ai_strengths = _normalize_ai_insights(ai_analysis.get("strengths", []), candidate_name)
-        ai_risks = _normalize_ai_insights(ai_analysis.get("risks", []), candidate_name)
-        # 追加（不覆盖）AI分析的前2条
-        if ai_strengths:
-            strengths.extend(ai_strengths[:2])
-        if ai_risks:
-            improvements.extend(ai_risks[:2])
-    
-    # 6. 默认建议
-    if not strengths:
-        strengths.append("基础资料完整")
-    
-    if not improvements:
-        improvements.append("继续保持，持续提升")
-    
-    return overall_score, strengths[:5], improvements[:5]  # 最多返回5条
 
 
 async def get_candidate_portraits_summary(
@@ -1013,33 +692,33 @@ async def get_candidate_portraits_summary(
     target_position: Optional[str] = None
 ) -> tuple[List[schemas.CandidatePortraitSummary], int]:
     """获取候选人画像摘要列表.
-    
+
     Args:
         session: 数据库会话
         skip: 跳过数量
         limit: 限制数量
         target_position: 应聘岗位过滤
-        
+
     Returns:
         (画像摘要列表, 总数)
     """
     # 构建查询
     statement = select(Candidate)
-    
+
     if target_position:
         statement = statement.where(Candidate.position == target_position)
-    
+
     # 获取总数
     count_statement = select(func.count()).select_from(Candidate)
     if target_position:
         count_statement = count_statement.where(Candidate.position == target_position)
-    
+
     total = session.exec(count_statement).one()
-    
+
     # 获取候选人列表
     statement = statement.offset(skip).limit(limit).order_by(Candidate.created_at.desc())
     candidates = session.exec(statement).all()
-    
+
     # 构建摘要列表
     summaries = []
     for candidate in candidates:
@@ -1052,7 +731,7 @@ async def get_candidate_portraits_summary(
                 )
             )
         ).one()
-        
+
         # 获取最新匹配记录
         latest_match = session.exec(
             select(ProfileMatch).join(
@@ -1062,12 +741,12 @@ async def get_candidate_portraits_summary(
                 Submission.candidate_id == candidate.id
             ).order_by(ProfileMatch.created_at.desc())
         ).first()
-        
+
         # 计算综合得分（简化）
         overall_score = None
         if latest_match:
             overall_score = latest_match.match_score
-        
+
         summary = schemas.CandidatePortraitSummary(
             candidate_id=candidate.id,
             name=candidate.name,
@@ -1078,5 +757,5 @@ async def get_candidate_portraits_summary(
             has_job_match=latest_match is not None
         )
         summaries.append(summary)
-    
+
     return summaries, total

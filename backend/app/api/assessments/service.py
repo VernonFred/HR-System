@@ -13,6 +13,10 @@ from app.professional_scoring import (
     ProfessionalScoringError
 )
 from app.custom_scoring import calculate_custom_questionnaire_score
+from app.api.assessments.repeat_rules import (
+    _build_repeat_submission_condition,
+    _validate_submission_repeat_rules_before_complete,
+)
 
 
 # ========== 问卷管理 ==========
@@ -21,7 +25,7 @@ async def get_questionnaires(
     session: Session, skip: int = 0, limit: int = 100, category: Optional[str] = None
 ) -> Tuple[List[Questionnaire], int]:
     """获取问卷列表，支持按category过滤.
-    
+
     Args:
         session: 数据库会话
         skip: 跳过数量
@@ -32,7 +36,7 @@ async def get_questionnaires(
     # 构建查询条件
     base_query = select(Questionnaire)
     count_query = select(func.count()).select_from(Questionnaire)
-    
+
     if category:
         if category == 'custom':
             # ⭐ custom类别：获取所有非professional的问卷（scored + survey）
@@ -41,7 +45,7 @@ async def get_questionnaires(
         else:
             base_query = base_query.where(Questionnaire.category == category)
             count_query = count_query.where(Questionnaire.category == category)
-    
+
     total = session.scalar(count_query)
     statement = base_query.offset(skip).limit(limit).order_by(Questionnaire.created_at.desc())
     questionnaires = session.exec(statement).all()
@@ -69,11 +73,11 @@ async def update_questionnaire(
     questionnaire = session.get(Questionnaire, questionnaire_id)
     if not questionnaire:
         return None
-    
+
     for key, value in data.items():
         if value is not None:
             setattr(questionnaire, key, value)
-    
+
     questionnaire.updated_at = datetime.now()
     session.add(questionnaire)
     session.commit()
@@ -112,7 +116,7 @@ async def delete_questionnaire(session: Session, questionnaire_id: int) -> bool:
     questionnaire = session.get(Questionnaire, questionnaire_id)
     if not questionnaire:
         return False
-    
+
     session.delete(questionnaire)
     session.commit()
     return True
@@ -283,15 +287,15 @@ def generate_submission_code() -> str:
 
 
 async def check_can_submit(
-    session: Session, 
-    assessment_id: int, 
-    phone: str, 
+    session: Session,
+    assessment_id: int,
+    phone: str,
     name: str = "",
     anonymous_device_id: Optional[str] = None,
 ) -> dict:
     """
     检查是否可以提交测评.
-    
+
     返回:
         {
             "can_submit": bool,
@@ -322,7 +326,7 @@ async def check_can_submit(
     statement = select(Submission).where(condition).order_by(Submission.submitted_at.desc())
     submissions = session.exec(statement).all()
     submission_count = len(submissions)
-    
+
     # 获取之前提交的摘要
     previous_submissions = [
         {
@@ -334,16 +338,16 @@ async def check_can_submit(
         }
         for sub in submissions[:5]  # 只返回最近5条
     ]
-    
+
     # 1. 检查是否允许重复
     if (assessment.anonymous_mode or not assessment.allow_repeat) and submission_count > 0:
         return {
-            "can_submit": False, 
+            "can_submit": False,
             "reason": "该测评不允许重复提交",
             "submission_number": submission_count,
             "previous_submissions": previous_submissions
         }
-    
+
     # 2. 检查提交间隔
     if assessment.repeat_interval_hours > 0 and submissions:
         last_submission = submissions[0]
@@ -356,21 +360,21 @@ async def check_can_submit(
                 else:
                     remaining_text = f"{int(remaining_hours)}小时"
                 return {
-                    "can_submit": False, 
+                    "can_submit": False,
                     "reason": f"距上次提交不足{assessment.repeat_interval_hours}小时，请{remaining_text}后再试",
                     "submission_number": submission_count,
                     "previous_submissions": previous_submissions
                 }
-    
+
     # 3. 检查提交次数上限
     if assessment.max_submissions > 0 and submission_count >= assessment.max_submissions:
         return {
-            "can_submit": False, 
+            "can_submit": False,
             "reason": f"已达到最大提交次数({assessment.max_submissions}次)",
             "submission_number": submission_count,
             "previous_submissions": previous_submissions
         }
-    
+
     return {
         "can_submit": True,
         "reason": "",
@@ -379,87 +383,6 @@ async def check_can_submit(
     }
 
 
-def _build_repeat_submission_condition(
-    assessment: Assessment,
-    phone: str,
-    name: str = "",
-    anonymous_device_id: Optional[str] = None,
-    exclude_submission_id: Optional[int] = None,
-):
-    """构建重复提交判断条件，只统计已完成提交。"""
-    conditions = [
-        Submission.assessment_id == assessment.id,
-        Submission.status == "completed",
-    ]
-
-    if assessment.anonymous_mode:
-        conditions.append(Submission.anonymous_device_id == (anonymous_device_id or "").strip())
-    elif assessment.repeat_check_by == "phone_name":
-        conditions.extend([
-            Submission.candidate_phone == phone,
-            Submission.candidate_name == name,
-        ])
-    else:
-        conditions.append(Submission.candidate_phone == phone)
-
-    if exclude_submission_id is not None:
-        conditions.append(Submission.id != exclude_submission_id)
-
-    return and_(*conditions)
-
-
-def _format_repeat_interval_reason(repeat_interval_hours: int, last_submitted_at: datetime) -> Optional[str]:
-    """返回提交间隔拦截原因；未触发间隔限制时返回 None。"""
-    hours_since = (datetime.now() - last_submitted_at).total_seconds() / 3600
-    if hours_since >= repeat_interval_hours:
-        return None
-
-    remaining_hours = repeat_interval_hours - hours_since
-    if remaining_hours < 1:
-        remaining_text = f"{int(remaining_hours * 60)}分钟"
-    else:
-        remaining_text = f"{int(remaining_hours)}小时"
-    return f"距上次提交不足{repeat_interval_hours}小时，请{remaining_text}后再试"
-
-
-async def _validate_submission_repeat_rules_before_complete(
-    session: Session,
-    submission: Submission,
-) -> None:
-    """最终提交前再次校验重复规则，防止多开页面绕过开始前检查。"""
-    assessment = session.get(Assessment, submission.assessment_id)
-    if not assessment:
-        raise ValueError("测评不存在")
-
-    if assessment.anonymous_mode and not (submission.anonymous_device_id or "").strip():
-        raise ValueError("匿名设备标识缺失，请刷新页面后重试")
-
-    condition = _build_repeat_submission_condition(
-        assessment,
-        submission.candidate_phone,
-        submission.candidate_name,
-        anonymous_device_id=submission.anonymous_device_id,
-        exclude_submission_id=submission.id,
-    )
-    statement = select(Submission).where(condition).order_by(Submission.submitted_at.desc())
-    completed_submissions = session.exec(statement).all()
-    completed_count = len(completed_submissions)
-
-    if (assessment.anonymous_mode or not assessment.allow_repeat) and completed_count > 0:
-        raise ValueError("该测评不允许重复提交")
-
-    if assessment.repeat_interval_hours > 0 and completed_submissions:
-        last_submission = completed_submissions[0]
-        if last_submission.submitted_at:
-            interval_reason = _format_repeat_interval_reason(
-                assessment.repeat_interval_hours,
-                last_submission.submitted_at,
-            )
-            if interval_reason:
-                raise ValueError(interval_reason)
-
-    if assessment.max_submissions > 0 and completed_count >= assessment.max_submissions:
-        raise ValueError(f"已达到最大提交次数({assessment.max_submissions}次)")
 
 
 async def increment_view_count(session: Session, assessment_id: int) -> None:
@@ -491,22 +414,22 @@ async def create_submission(
     assessment = session.get(Assessment, assessment_id)
     if not assessment:
         raise ValueError("测评不存在")
-    
+
     code = generate_submission_code()
-    
+
     # ⭐ 提取 custom_data 中的关键字段（如果存在）
     custom_data = data.get("custom_data", {})
     if not isinstance(custom_data, dict):
         custom_data = {}
-    
+
     # V45: 调试日志 - 查看传入的数据
     print(f"[create_submission] 传入数据: {data}")
     print(f"[create_submission] custom_data: {custom_data}")
-    
+
     # ⭐ 提取应聘岗位（可能在 data、custom_data 或其他字段中）
     # 支持多种字段名：target_position, position, 应聘岗位, text（标签为应聘岗位的自定义字段）
     target_position = (
-        data.get("target_position") or 
+        data.get("target_position") or
         data.get("position") or
         custom_data.get("target_position") or
         custom_data.get("position") or
@@ -521,16 +444,16 @@ async def create_submission(
                     target_position = value
                     break
     print(f"[create_submission] target_position: {target_position}")
-    
+
     # ⭐ V45: 提取性别（可能在 data 或 custom_data 中）
     gender = data.get("gender") or custom_data.get("gender")
     print(f"[create_submission] gender: {gender}")
-    
+
     # ⭐ 通过手机号+姓名双重校验查找候选人
     candidate_id = None
     candidate_name = data.get("candidate_name", "").strip()
     candidate_phone = data.get("candidate_phone", "").strip()
-    
+
     if candidate_name and candidate_phone:
         # 查找匹配的候选人
         statement = select(Candidate).where(
@@ -540,12 +463,12 @@ async def create_submission(
             )
         )
         candidate = session.exec(statement).first()
-        
+
         if candidate:
             candidate_id = candidate.id
             # 更新候选人的submission_id（关联最新的提交）
             # 这里暂不更新，因为一个候选人可能有多次测评
-    
+
     submission_data = {
         **data,
         "code": code,
@@ -556,7 +479,7 @@ async def create_submission(
         "target_position": target_position,  # ⭐ 确保应聘岗位字段正确保存
         "gender": gender,  # ⭐ V45: 确保性别字段正确保存
     }
-    
+
     submission = Submission(**submission_data)
     session.add(submission)
     session.commit()
@@ -573,7 +496,7 @@ async def get_submissions(
     category: Optional[str] = None
 ) -> Tuple[List[Submission], int]:
     """获取提交记录列表，支持按问卷category过滤.
-    
+
     Args:
         session: 数据库会话
         assessment_id: 测评ID（可选）
@@ -595,10 +518,10 @@ async def get_submissions(
         questionnaire_ids = list(session.exec(q_statement).all())
         if not questionnaire_ids:
             return [], 0
-    
+
     statement = select(Submission)
     count_statement = select(func.count()).select_from(Submission)
-    
+
     if assessment_id:
         statement = statement.where(Submission.assessment_id == assessment_id)
         count_statement = count_statement.where(Submission.assessment_id == assessment_id)
@@ -608,12 +531,12 @@ async def get_submissions(
     if questionnaire_ids is not None:
         statement = statement.where(Submission.questionnaire_id.in_(questionnaire_ids))
         count_statement = count_statement.where(Submission.questionnaire_id.in_(questionnaire_ids))
-    
+
     total = session.scalar(count_statement)
-    
+
     statement = statement.offset(skip).limit(limit).order_by(Submission.started_at.desc())
     submissions = session.exec(statement).all()
-    
+
     return list(submissions), total or 0
 
 
@@ -626,11 +549,11 @@ async def get_submission_by_id(session: Session, submission_id: int) -> Optional
 async def get_submission_answers(session: Session, submission_id: int) -> dict:
     """获取提交记录的答案数据."""
     from app.models import SubmissionAnswer, Question
-    
+
     # 查询答案记录
     statement = select(SubmissionAnswer).where(SubmissionAnswer.submission_id == submission_id)
     answer_records = session.exec(statement).all()
-    
+
     # 构建答案字典: {question_id: {value, score}}
     answers = {}
     for ans in answer_records:
@@ -641,24 +564,24 @@ async def get_submission_answers(session: Session, submission_id: int) -> dict:
             "score": ans.score,
             "question_text": question.text if question else None,
         }
-    
+
     return answers
 
 
 async def get_candidate_by_submission(session: Session, submission_id: int) -> Optional[dict]:
     """通过提交记录获取候选人信息."""
     from app.models import Candidate
-    
+
     # 尝试通过 submission_id 关联查找候选人
     statement = select(Candidate).where(Candidate.submission_id == submission_id)
     candidate = session.exec(statement).first()
-    
+
     if candidate:
         return {
             "name": candidate.name,
             "phone": candidate.phone,
         }
-    
+
     return None
 
 
@@ -666,10 +589,10 @@ async def delete_submission(session: Session, submission_id: int) -> bool:
     """删除提交记录."""
     statement = select(Submission).where(Submission.id == submission_id)
     submission = session.exec(statement).first()
-    
+
     if not submission:
         return False
-    
+
     session.delete(submission)
     session.commit()
     return True
@@ -678,10 +601,10 @@ async def delete_submission(session: Session, submission_id: int) -> bool:
 async def update_assessment(session: Session, assessment_id: int, data: dict) -> Optional[Assessment]:
     """更新测评配置."""
     assessment = session.get(Assessment, assessment_id)
-    
+
     if not assessment:
         return None
-    
+
     if "routing_config" in data:
         data["routing_config"] = await normalize_routing_config(session, data.get("routing_config"), strict=True)
     if data.get("anonymous_mode"):
@@ -691,43 +614,43 @@ async def update_assessment(session: Session, assessment_id: int, data: dict) ->
     for key, value in data.items():
         if value is not None and hasattr(assessment, key):
             setattr(assessment, key, value)
-    
+
     assessment.updated_at = datetime.now()
     session.add(assessment)
     session.commit()
     session.refresh(assessment)
-    
+
     return assessment
 
 
 async def delete_assessment(
-    session: Session, 
+    session: Session,
     assessment_id: int,
     force_delete_submissions: bool = False
 ) -> dict:
     """
     删除测评（分发链接）.
-    
+
     Args:
         session: 数据库会话
         assessment_id: 测评ID
         force_delete_submissions: 是否强制删除关联的提交记录
             - False: 如果有提交记录，返回错误信息，不删除
             - True: 删除分发链接及所有关联的提交记录
-    
+
     Returns:
         dict: 包含删除结果的字典
     """
     assessment = session.get(Assessment, assessment_id)
-    
+
     if not assessment:
         return {"success": False, "error": "测评不存在"}
-    
+
     # 检查是否有关联的提交记录
     statement = select(Submission).where(Submission.assessment_id == assessment_id)
     submissions = session.exec(statement).all()
     submission_count = len(submissions)
-    
+
     if submission_count > 0 and not force_delete_submissions:
         # 有提交记录但未强制删除，返回警告
         return {
@@ -736,17 +659,17 @@ async def delete_assessment(
             "submission_count": submission_count,
             "message": f"该分发链接下有 {submission_count} 条提交记录，删除后数据将无法恢复。请确认是否继续删除？"
         }
-    
+
     # 执行删除
     deleted_submissions = 0
     if submission_count > 0:
         for sub in submissions:
             session.delete(sub)
             deleted_submissions = submission_count
-    
+
     session.delete(assessment)
     session.commit()
-    
+
     return {
         "success": True,
         "deleted_submissions": deleted_submissions,
@@ -758,30 +681,30 @@ async def submit_answers(session: Session, submission_code: str, answers: dict) 
     """提交答案并计算得分."""
     statement = select(Submission).where(Submission.code == submission_code)
     submission = session.exec(statement).first()
-    
+
     if not submission:
         raise ValueError("提交记录不存在")
-    
+
     if submission.status == "completed":
         raise ValueError("该测评已完成，无法重复提交")
 
     await _validate_submission_repeat_rules_before_complete(session, submission)
-    
+
     # 获取问卷信息
     questionnaire = session.get(Questionnaire, submission.questionnaire_id)
     if not questionnaire:
         raise ValueError("问卷不存在")
-    
+
     # ⭐ 根据问卷类型调用对应的评分算法
     try:
         questionnaire_type = questionnaire.type.upper() if questionnaire.type else ''
-        
+
         if questionnaire_type in ['MBTI', 'DISC', 'EPQ']:
             # 专业测评：使用专业评分算法
             # 获取题目数据以便评分算法能根据维度评分
             questions = questionnaire.questions_data.get('questions', [])
             result = score_professional_assessment(questionnaire_type, answers, questions)
-            
+
             # 构建result_details用于前端展示
             if questionnaire_type == 'MBTI':
                 result_details = {
@@ -800,12 +723,12 @@ async def submit_answers(session: Session, submission_code: str, answers: dict) 
                     'personality_trait': result.get('personality_trait'),
                     'dimensions': result.get('dimensions')
                 }
-            
+
             submission.result_details = result_details
             submission.scores = result.get('raw_scores') or result.get('dimensions', {})
             submission.total_score = result.get('total_score', 0)
             submission.grade = result.get('grade', 'C')
-            
+
         else:
             # 自定义问卷：使用新的评分算法
             questionnaire_dict = {
@@ -813,7 +736,7 @@ async def submit_answers(session: Session, submission_code: str, answers: dict) 
                 "scoring_config": questionnaire.scoring_config,
                 "questions_data": questionnaire.questions_data
             }
-            
+
             # 转换答案格式
             answers_list = []
             if isinstance(answers, dict):
@@ -824,10 +747,10 @@ async def submit_answers(session: Session, submission_code: str, answers: dict) 
                     })
             elif isinstance(answers, list):
                 answers_list = answers
-            
+
             # 使用新的评分算法
             result = calculate_custom_questionnaire_score(questionnaire_dict, answers_list)
-            
+
             # 保存结果
             submission.result_details = {
                 "custom_type": questionnaire.custom_type,
@@ -838,15 +761,15 @@ async def submit_answers(session: Session, submission_code: str, answers: dict) 
             submission.score_percentage = result.get("score_percentage")
             submission.grade = result.get("grade")
             submission.scores = {}  # 详细得分已在result_details中
-        
+
         # 保存答案和状态
         submission.answers = answers
         submission.status = "completed"
         submission.submitted_at = datetime.now()
-        
+
         # ⭐ 创建或关联候选人记录
         candidate = await _get_or_create_candidate(
-            session, 
+            session,
             submission.candidate_name,
             submission.candidate_phone,
             submission.candidate_email,
@@ -855,16 +778,16 @@ async def submit_answers(session: Session, submission_code: str, answers: dict) 
         )
         if candidate:
             submission.candidate_id = candidate.id
-        
+
         session.add(submission)
         session.commit()
         session.refresh(submission)
-        
+
     except ProfessionalScoringError as e:
         raise ValueError(f"评分失败: {str(e)}")
     except Exception as e:
         raise ValueError(f"提交失败: {str(e)}")
-    
+
     return submission
 
 
@@ -877,7 +800,7 @@ async def _get_or_create_candidate(
     gender: Optional[str] = None  # V45: 添加性别参数
 ) -> Optional[Candidate]:
     """根据手机号获取或创建候选人记录.
-    
+
     逻辑：
     1. 首先根据手机号查找已存在的候选人
     2. 如果存在，更新其信息（姓名、邮箱、岗位、性别）
@@ -885,12 +808,12 @@ async def _get_or_create_candidate(
     """
     if not phone:
         return None
-    
+
     try:
         # 查找已存在的候选人
         statement = select(Candidate).where(Candidate.phone == phone)
         existing_candidate = session.exec(statement).first()
-        
+
         if existing_candidate:
             # 更新候选人信息
             if name and name != existing_candidate.name:
@@ -918,7 +841,7 @@ async def _get_or_create_candidate(
             session.add(new_candidate)
             session.flush()  # 获取ID但不提交
             return new_candidate
-            
+
     except Exception as e:
         print(f"[候选人关联] 创建/更新候选人失败: {e}")
         return None
