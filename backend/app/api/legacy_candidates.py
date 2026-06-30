@@ -1,9 +1,12 @@
-from typing import Generator
+from datetime import datetime
+from typing import Generator, Optional
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from sqlmodel import Session, select
 
-from app.db import get_engine
+from app.auth import get_current_user
+from app.db import get_engine, get_session
+from app.models import User
 from app.mock_data import MOCK_ANALYTICS, MOCK_CANDIDATES
 from app.models_assessment import Questionnaire, Submission
 from app.schemas import AnalyticsSummary, CandidateListResponse, CandidateOut
