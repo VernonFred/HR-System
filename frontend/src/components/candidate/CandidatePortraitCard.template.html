@@ -1,0 +1,554 @@
+  <div class="portrait-wrapper">
+    <!-- 空状态 -->
+    <div v-if="!profile" class="empty-state">
+      <i class="ri-user-search-line"></i>
+      <h3>请选择候选人查看画像</h3>
+      <p>包含人格分布、岗位胜任力、画像总结、亮点/风险分析</p>
+    </div>
+
+    <!-- 有数据时显示导出按钮和画像 -->
+    <div v-else class="portrait-container">
+      <!-- 画像卡片 -->
+      <div class="portrait-card">
+        <!-- 顶部工具栏 -->
+        <div v-if="!hideToolbar" class="portrait-toolbar">
+          <div class="toolbar-actions">
+            <!-- 简历按钮 -->
+            <button
+              class="toolbar-btn resume-btn"
+              @click="openResumeModal"
+              :class="{ 'has-resume': hasResume }"
+              title="简历管理"
+            >
+              <i class="ri-file-text-line"></i>
+              <span>简历</span>
+              <span v-if="hasResume" class="resume-badge"></span>
+            </button>
+
+            <!-- 导出按钮 -->
+            <button
+              class="toolbar-btn export-btn"
+              @click="showExportMenu = !showExportMenu"
+              :disabled="isExporting"
+              title="导出画像"
+            >
+              <i class="ri-download-cloud-line"></i>
+              <span>导出</span>
+            </button>
+
+            <!-- 导出菜单 -->
+            <transition name="fade-slide">
+              <div v-if="showExportMenu" class="export-dropdown">
+                <button class="dropdown-item" @click="exportAsPNG">
+                  <i class="ri-image-line"></i>
+                  <span>导出为图片</span>
+                </button>
+                <button class="dropdown-item" @click="exportAsPDF">
+                  <i class="ri-file-pdf-line"></i>
+                  <span>导出为 PDF</span>
+                </button>
+                <button class="dropdown-item disabled" @click="exportAsWord">
+                  <i class="ri-file-word-line"></i>
+                  <span>导出为 Word</span>
+                </button>
+              </div>
+            </transition>
+          </div>
+        </div>
+
+        <!-- 精致渐变头部 -->
+        <div class="header-gradient">
+          <div class="header-content">
+          <!-- 左侧信息 -->
+          <div class="candidate-info">
+            <div class="avatar-badge">{{ displayData.name.charAt(0) }}</div>
+            <div class="info-text">
+              <div class="name-row">
+                <h1 class="name">{{ displayData.name }}</h1>
+                <!-- 人格类型徽章 - 完整格式：问卷类型 · 人格类型 描述 -->
+                <div v-if="isMBTI" class="personality-badge mbti" :title="mbtiTypeInfo?.description || 'MBTI人格类型'">
+                  <span class="badge-prefix">MBTI</span>
+                  <span class="badge-divider">·</span>
+                  <span class="badge-type">{{ personalityTypeLabel }}</span>
+                  <span class="badge-desc">{{ getMBTIName(personalityTypeLabel) }}</span>
+                </div>
+                <div v-else-if="isDISC" class="personality-badge disc" :title="'DISC行为风格'">
+                  <span class="badge-prefix">DISC</span>
+                  <span class="badge-divider">·</span>
+                  <span class="badge-type">{{ personalityTypeLabel }}</span>
+                  <span class="badge-desc">{{ getDISCName(personalityTypeLabel) }}</span>
+                </div>
+                <div v-else class="personality-badge epq" :title="'EPQ人格类型'">
+                  <span class="badge-prefix">EPQ</span>
+                  <span class="badge-divider">·</span>
+                  <span class="badge-type">{{ personalityTypeLabel }}</span>
+                </div>
+              </div>
+              <div class="meta-row">
+                <div class="meta-item">
+                  <i class="ri-briefcase-4-line"></i>
+                  <span>{{ displayData.appliedPosition || '未指定岗位' }}</span>
+                </div>
+                <div class="meta-divider">·</div>
+                <div class="meta-item">
+                  <i class="ri-calendar-event-line"></i>
+                  <span>{{ displayData.updatedAt }}</span>
+                </div>
+              </div>
+              <div class="tags-row">
+                <span v-for="tag in displayData.tags" :key="tag" class="tag-pill">
+                  {{ tag }}
+                </span>
+              </div>
+
+              <!-- 单模型模式：画像自动生成，仅保留评分详情入口 -->
+              <div class="analysis-level-switch">
+                <button
+                  class="level-btn score-detail-header-btn"
+                  @click="showScoreBreakdown = true"
+                  title="查看综合评分详情"
+                >
+                  <i class="ri-pie-chart-line"></i>
+                  <span>评分详情</span>
+                </button>
+                <button
+                  class="level-btn regenerate-header-btn"
+                  @click="regeneratePortrait()"
+                  :disabled="isRegeneratingPortrait"
+                  title="清除缓存并重新生成AI画像"
+                >
+                  <i :class="isRegeneratingPortrait ? 'ri-loader-4-line spin' : 'ri-refresh-line'"></i>
+                  <span>{{ isRegeneratingPortrait ? '生成中' : '重新生成' }}</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- 右侧分数圈 -->
+          <div class="score-circle-wrapper">
+            <svg class="score-svg" viewBox="0 0 136 136">
+              <defs>
+                <linearGradient id="scoreGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop
+                    offset="0%"
+                    :stop-color="getScoreColor(displayData.overallMatchScore)"
+                    stop-opacity="1"
+                  />
+                  <stop
+                    offset="100%"
+                    :stop-color="getScoreColor(displayData.overallMatchScore)"
+                    stop-opacity="0.7"
+                  />
+                </linearGradient>
+                <filter id="glow">
+                  <feGaussianBlur stdDeviation="2.5" result="coloredBlur" />
+                  <feMerge>
+                    <feMergeNode in="coloredBlur" />
+                    <feMergeNode in="SourceGraphic" />
+                  </feMerge>
+                </filter>
+              </defs>
+              <circle
+                cx="68"
+                cy="68"
+                :r="scoreProgress.radius"
+                fill="none"
+                stroke="rgba(255, 255, 255, 0.25)"
+                stroke-width="8"
+              />
+              <circle
+                cx="68"
+                cy="68"
+                :r="scoreProgress.radius"
+                fill="none"
+                stroke="url(#scoreGradient)"
+                stroke-width="8"
+                stroke-linecap="round"
+                :stroke-dasharray="scoreProgress.circumference"
+                :stroke-dashoffset="scoreProgress.offset"
+                transform="rotate(-90 68 68)"
+                class="progress-circle"
+                filter="url(#glow)"
+              />
+              <!-- 文字直接在SVG内，确保导出时居中 -->
+              <text x="68" y="62" text-anchor="middle" dominant-baseline="middle"
+                    fill="white" font-size="36" font-weight="700" class="score-svg-value">
+                {{ displayData.overallMatchScore }}
+              </text>
+              <text x="68" y="90" text-anchor="middle" dominant-baseline="middle"
+                    fill="rgba(255,255,255,0.8)" font-size="12" class="score-svg-label">
+                综合匹配度
+              </text>
+            </svg>
+            <!-- 保留DOM文字用于页面显示（导出时隐藏） -->
+            <div class="score-text score-text-dom">
+              <div class="score-value">{{ displayData.overallMatchScore }}</div>
+              <div class="score-label">综合匹配度</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 测评记录折叠列表 -->
+      <AssessmentAccordion
+        v-if="!hideAssessmentList && displayData.assessments && displayData.assessments.length > 0"
+        :assessments="displayData.assessments"
+        :profile="displayData"
+      />
+
+      <!-- 主内容区 -->
+      <div class="main-content">
+        <!-- 双栏布局：雷达图 + 胜任力 -->
+        <div class="two-column-grid">
+          <!-- 左栏：人格雷达图 -->
+          <div class="card-section radar-section">
+            <div class="section-header">
+              <div class="header-icon">
+                <i class="ri-radar-line"></i>
+              </div>
+              <div>
+                <h2 class="section-title">人格特征分布</h2>
+                <p class="section-subtitle">PERSONALITY TRAIT DISTRIBUTION</p>
+              </div>
+            </div>
+
+            <!-- MBTI 四象限展示（替代雷达图） -->
+            <div v-if="isMBTI" class="mbti-quadrant-container">
+              <!-- 四个维度的进度条展示 -->
+              <div v-for="dim in displayData.personalityDimensions" :key="dim.key" class="mbti-dimension">
+                <div class="mbti-dimension-header">
+                  <span class="dimension-label">{{ dim.label }} ({{ dim.key }})</span>
+                  <span class="dimension-score">{{ dim.score }}</span>
+                </div>
+                <div class="mbti-bar-container">
+                  <div class="mbti-bar-track">
+                    <div class="mbti-bar-fill" :style="{ width: dim.score + '%' }">
+                      <div class="mbti-bar-glow"></div>
+                    </div>
+                    <div class="mbti-center-marker"></div>
+                  </div>
+                  <div class="mbti-bar-labels">
+                    <span class="bar-label-left">{{ dim.label?.split('-')?.[0]?.trim() || '' }} ({{ dim.key?.split('-')?.[0] || '' }})</span>
+                    <span class="bar-label-right">{{ dim.label?.split('-')?.[1]?.trim() || '' }} ({{ dim.key?.split('-')?.[1] || '' }})</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- DISC 四色象限图展示 -->
+            <div v-else-if="isDISC" class="disc-quadrant-container">
+              <div class="disc-quadrant">
+                <!-- D - 支配型 (红色) -->
+                <div class="disc-item disc-d" :class="{ active: getDISCScore('D') > 50 }">
+                  <div class="disc-icon">
+                    <i class="ri-fire-line"></i>
+                  </div>
+                  <div class="disc-label">D 支配型</div>
+                  <div class="disc-score">{{ getDISCScore('D') }}</div>
+                  <div class="disc-bar">
+                    <div class="disc-bar-fill" :style="{ width: getDISCScore('D') + '%' }"></div>
+                  </div>
+                  <div class="disc-traits">结果导向、决断力强</div>
+                </div>
+
+                <!-- I - 影响型 (黄色) -->
+                <div class="disc-item disc-i" :class="{ active: getDISCScore('I') > 50 }">
+                  <div class="disc-icon">
+                    <i class="ri-sun-line"></i>
+                  </div>
+                  <div class="disc-label">I 影响型</div>
+                  <div class="disc-score">{{ getDISCScore('I') }}</div>
+                  <div class="disc-bar">
+                    <div class="disc-bar-fill" :style="{ width: getDISCScore('I') + '%' }"></div>
+                  </div>
+                  <div class="disc-traits">热情开朗、善于社交</div>
+                </div>
+
+                <!-- S - 稳健型 (绿色) -->
+                <div class="disc-item disc-s" :class="{ active: getDISCScore('S') > 50 }">
+                  <div class="disc-icon">
+                    <i class="ri-leaf-line"></i>
+                  </div>
+                  <div class="disc-label">S 稳健型</div>
+                  <div class="disc-score">{{ getDISCScore('S') }}</div>
+                  <div class="disc-bar">
+                    <div class="disc-bar-fill" :style="{ width: getDISCScore('S') + '%' }"></div>
+                  </div>
+                  <div class="disc-traits">耐心稳重、团队协作</div>
+                </div>
+
+                <!-- C - 谨慎型 (蓝色) -->
+                <div class="disc-item disc-c" :class="{ active: getDISCScore('C') > 50 }">
+                  <div class="disc-icon">
+                    <i class="ri-shield-check-line"></i>
+                  </div>
+                  <div class="disc-label">C 谨慎型</div>
+                  <div class="disc-score">{{ getDISCScore('C') }}</div>
+                  <div class="disc-bar">
+                    <div class="disc-bar-fill" :style="{ width: getDISCScore('C') + '%' }"></div>
+                  </div>
+                  <div class="disc-traits">严谨细致、追求品质</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- EPQ 圆环图展示 -->
+            <div v-else class="epq-rings-container">
+              <div v-for="(dim, index) in displayData.personalityDimensions"
+                   :key="dim.key"
+                   class="epq-ring-item">
+                <div class="ring-wrapper">
+                  <svg viewBox="0 0 120 120" class="ring-svg">
+                <defs>
+                      <linearGradient :id="`ringGradient-${index}`" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" :stop-color="getRingColor(index)" stop-opacity="1" />
+                        <stop offset="100%" :stop-color="getRingColor(index)" stop-opacity="0.6" />
+                      </linearGradient>
+                </defs>
+                    <!-- 背景圆环 -->
+                <circle
+                      cx="60"
+                      cy="60"
+                      r="45"
+                  fill="none"
+                  stroke="#e5e7eb"
+                      stroke-width="10"
+                />
+                    <!-- 进度圆环 -->
+                <circle
+                      cx="60"
+                      cy="60"
+                      r="45"
+                      fill="none"
+                      :stroke="`url(#ringGradient-${index})`"
+                      stroke-width="10"
+                      stroke-linecap="round"
+                      :stroke-dasharray="`${(dim.score / 100) * 282.7} 282.7`"
+                      transform="rotate(-90 60 60)"
+                      class="ring-progress"
+                    />
+                    <!-- 分数直接在SVG内，确保导出时居中 -->
+                    <text x="60" y="68" text-anchor="middle" dominant-baseline="middle"
+                          fill="#374151" font-size="24" font-weight="700" class="ring-svg-score">
+                      {{ dim.score }}
+                    </text>
+              </svg>
+                  <!-- 中心内容（导出时隐藏，只用SVG文字） -->
+                  <div class="ring-center ring-center-dom">
+                    <div class="ring-icon" :style="{ color: getRingColor(index) }">
+                      <i :class="getRingIcon(dim.key)"></i>
+                    </div>
+                    <div class="ring-score">{{ dim.score }}</div>
+                  </div>
+                </div>
+                <!-- 标签和描述 -->
+                <div class="ring-label">{{ dim.label }}</div>
+                <div class="ring-desc">{{ dim.description || getDefaultDescription(dim.key) }}</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 右栏：胜任力 - 使用重构后的组件 🟢 -->
+          <CompetencySection :competencies="displayData.competencies" />
+        </div>
+
+        <!-- 亮点与风险 -->
+        <div class="insights-grid">
+          <div class="insight-card highlight-card">
+            <div class="insight-header">
+              <div class="icon-badge highlight-badge">
+                <i class="ri-checkbox-circle-fill"></i>
+              </div>
+              <h3 class="insight-title">优势亮点</h3>
+            </div>
+            <ul class="insight-list">
+              <li
+                v-for="(item, i) in displayData.highlights"
+                :key="i"
+                class="insight-item highlight-item"
+              >
+                <i class="ri-checkbox-circle-line"></i>
+                <span>{{ item }}</span>
+              </li>
+            </ul>
+          </div>
+
+          <div class="insight-card risk-card">
+            <div class="insight-header">
+              <div class="icon-badge risk-badge">
+                <i class="ri-error-warning-fill"></i>
+              </div>
+              <h3 class="insight-title">潜在风险</h3>
+            </div>
+            <ul class="insight-list">
+              <li
+                v-for="(item, i) in displayData.risks"
+                :key="i"
+                class="insight-item risk-item"
+              >
+                <i class="ri-error-warning-line"></i>
+                <span>{{ item }}</span>
+              </li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- 新增：岗位推荐模块 -->
+        <div class="position-recommendation-section">
+          <div class="section-header-block">
+            <div class="header-icon-large">
+              <i class="ri-compass-3-line"></i>
+            </div>
+            <div>
+              <h2 class="section-title-large">岗位匹配分析</h2>
+              <p class="section-subtitle">POSITION MATCH ANALYSIS</p>
+            </div>
+          </div>
+
+          <div class="position-grid">
+            <!-- 推荐岗位 -->
+            <div class="position-card suitable-card">
+              <div class="position-header">
+                <i class="ri-thumb-up-line"></i>
+                <h4>推荐岗位</h4>
+              </div>
+              <div class="position-list">
+                <span
+                  v-for="(pos, i) in suitablePositionsList"
+                  :key="i"
+                  class="position-tag suitable-tag"
+                >
+                  <i class="ri-check-line"></i>
+                  {{ pos }}
+                </span>
+              </div>
+            </div>
+
+            <!-- 不推荐岗位 -->
+            <div class="position-card unsuitable-card">
+              <div class="position-header">
+                <i class="ri-close-circle-line"></i>
+                <h4>不推荐岗位</h4>
+              </div>
+              <div class="position-list">
+                <span
+                  v-for="(pos, i) in unsuitablePositionsList"
+                  :key="i"
+                  class="position-tag unsuitable-tag"
+                >
+                  <i class="ri-close-line"></i>
+                  {{ pos }}
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 新增：发展建议与面试焦点 -->
+        <div class="action-grid" v-if="developmentSuggestionsList.length || interviewFocusList.length">
+          <!-- 发展建议 -->
+          <div class="action-card development-card" v-if="developmentSuggestionsList.length">
+            <div class="action-header">
+              <div class="icon-badge development-badge">
+                <i class="ri-lightbulb-line"></i>
+              </div>
+              <h3 class="action-title">发展建议</h3>
+            </div>
+            <ul class="action-list">
+              <li
+                v-for="(item, i) in developmentSuggestionsList"
+                :key="i"
+                class="action-item development-item"
+              >
+                <i class="ri-arrow-right-s-line"></i>
+                <span>{{ item }}</span>
+              </li>
+            </ul>
+          </div>
+
+          <!-- 面试关注点 -->
+          <div class="action-card interview-card" v-if="interviewFocusList.length">
+            <div class="action-header">
+              <div class="icon-badge interview-badge">
+                <i class="ri-question-answer-line"></i>
+              </div>
+              <h3 class="action-title">面试关注点</h3>
+            </div>
+            <ul class="action-list">
+              <li
+                v-for="(item, i) in interviewFocusList"
+                :key="i"
+                class="action-item interview-item"
+              >
+                <i class="ri-arrow-right-s-line"></i>
+                <span>{{ item }}</span>
+              </li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- 🌟 综合评价 - 使用重构后的组件 🟢 + P1-2 降级提示 -->
+        <SummaryCard
+          :ai-analysis-text="displayData.aiAnalysisText"
+          :is-fallback="displayData.isFallbackAnalysis"
+          :fallback-reason="displayData.fallbackReason"
+          @retry-ai="handleRetryAI"
+        />
+      </div><!-- 结束 main-content -->
+    </div><!-- 结束 portrait-card -->
+  </div><!-- 结束 portrait-container -->
+</div><!-- 结束 portrait-wrapper -->
+
+<!-- 简历模态框 -->
+<ResumeModal
+  :visible="showResumeModal"
+  :candidate-id="profile?.id ? Number(profile.id) : undefined"
+  :candidate-name="profile?.name"
+  :resume-info="resumeInfo"
+  :loading="resumeLoading"
+  :is-regenerating-portrait="isRegeneratingPortrait"
+  @close="showResumeModal = false"
+  @uploaded="handleResumeUploaded"
+  @error="handleResumeError"
+  @download="handleDownloadResume"
+  @delete="handleDeleteResume"
+  @parse="handleParseResume"
+  @parse-complete="handleParseComplete"
+/>
+
+<!-- 删除简历确认弹窗 -->
+<Transition name="modal">
+  <div v-if="showDeleteResumeConfirm" class="delete-confirm-overlay" @click.self="cancelDeleteResume">
+    <div class="delete-confirm-modal">
+      <div class="modal-icon warning">
+        <i class="ri-error-warning-line"></i>
+      </div>
+      <h3>确认删除简历</h3>
+      <p>删除后将无法恢复，确定要删除这份简历吗？</p>
+      <div class="modal-actions">
+        <button class="btn-secondary" @click="cancelDeleteResume">取消</button>
+        <button class="btn-danger" @click="confirmDeleteResume">确认删除</button>
+      </div>
+    </div>
+  </div>
+</Transition>
+
+<!-- 消息提示 Toast -->
+<Transition name="toast">
+  <div v-if="showToast" :class="['toast-message', toastType]">
+    <i :class="toastType === 'success' ? 'ri-check-line' : toastType === 'error' ? 'ri-close-circle-line' : 'ri-information-line'"></i>
+    <span>{{ toastMessage }}</span>
+  </div>
+</Transition>
+
+<!-- 🟢 P0+P1: 评分详情弹窗 -->
+<ScoreBreakdownModal
+  v-model:visible="showScoreBreakdown"
+  :overall-score="displayData.overallMatchScore"
+  :score-breakdown="displayData.scoreBreakdown"
+  :assessment-count="assessmentCount"
+  :current-assessment-type="currentAssessmentType"
+  :has-resume="hasResume"
+  :cross-validation-data="displayData.crossValidation"
+  :assessments="displayData.assessmentInfoList"
+/>

@@ -1,0 +1,358 @@
+  <div class="candidates">
+    <HeaderBar title="人员画像" />
+    <div class="layout">
+      <section class="list-panel">
+        <div class="list-header">
+          <!-- 第一行：搜索框 + 统计 -->
+          <div class="header-row">
+          <div class="search-box">
+            <i class="ri-search-line"></i>
+            <input
+              v-model="searchKeyword"
+              type="text"
+                placeholder="搜索姓名/手机/岗位..."
+              @input="handleSearch"
+            />
+            <button
+              v-if="searchKeyword"
+              class="clear-btn"
+              @click="searchKeyword = ''"
+              title="清空搜索"
+            >
+              <i class="ri-close-line"></i>
+            </button>
+          </div>
+          <div class="count-chip">
+            <i class="ri-user-line"></i>
+            <span v-if="loading">加载中</span>
+            <span v-else>共 {{ total }} 人</span>
+            </div>
+          </div>
+          <!-- V45: 第二行：年份/月份筛选 -->
+          <div class="header-row filters-row">
+            <div class="date-filters">
+              <select v-model="filterYear" class="date-select">
+                <option :value="null">全部年份</option>
+                <option v-for="year in yearOptions" :key="year" :value="year">{{ year }}年</option>
+              </select>
+              <select v-model="filterMonth" class="date-select">
+                <option :value="null">全部月份</option>
+                <option v-for="month in monthOptions" :key="month" :value="month">{{ month }}月</option>
+              </select>
+            </div>
+          </div>
+        </div>
+        <div class="list-body">
+          <div
+            v-for="item in filteredCandidates"
+            :key="item.id"
+            class="candidate-row"
+            :class="{ active: activeCandidate?.id === item.id }"
+            @click="selectCandidate(item.id)"
+          >
+            <div class="candidate-info">
+              <div class="candidate-name-row">
+                <span class="candidate-name">{{ item.name }}</span>
+                <!-- 性别标签 -->
+                <span v-if="item.gender" class="gender-tag" :class="item.gender === '男' ? 'male' : 'female'">
+                  <i :class="item.gender === '男' ? 'ri-men-line' : 'ri-women-line'"></i>
+                </span>
+                <!-- ⭐ 提交类型标签 -->
+                <div class="submission-tags" v-if="item.submission_types?.length">
+                  <span
+                    v-if="item.submission_types.includes('professional')"
+                    class="submission-tag professional"
+                    title="已完成专业测评"
+                  >
+                    <i class="ri-brain-line"></i>
+                    专业测评
+                  </span>
+                  <span
+                    v-if="item.submission_types.includes('survey')"
+                    class="submission-tag survey"
+                    title="已填写问卷调查"
+                  >
+                    <i class="ri-questionnaire-line"></i>
+                    问卷调查
+                  </span>
+                </div>
+              </div>
+              <div class="candidate-sub">
+                <span class="position">{{ item.position || '未知岗位' }}</span>
+                <span class="divider">·</span>
+                <span class="phone">{{ item.phone }}</span>
+              </div>
+            </div>
+            <!-- V45: 删除按钮已移至人员管理页面 -->
+            </div>
+          <div v-if="!loading && !listErrorMsg && candidates.length === 0" class="empty-state">
+            <i class="ri-user-search-line"></i>
+            <h4>暂无候选人</h4>
+          </div>
+        </div>
+
+        <!-- 分页控件 -->
+        <div v-if="total > pageSize" class="pagination-bar">
+          <button
+            class="page-btn"
+            :disabled="page === 1"
+            @click="changePage(page - 1)"
+            title="上一页"
+          >
+            <i class="ri-arrow-left-s-line"></i>
+          </button>
+          <span class="page-info">{{ page }} / {{ totalPages }}</span>
+          <button
+            class="page-btn"
+            :disabled="page >= totalPages"
+            @click="changePage(page + 1)"
+            title="下一页"
+          >
+            <i class="ri-arrow-right-s-line"></i>
+          </button>
+        </div>
+
+        <!-- ⭐ AI重新生成画像 - 左侧圆形动画（无边框设计，更大更清晰） -->
+        <div v-if="aiLoading && activeProfile" class="regen-circle-loader">
+          <div class="regen-circle-content">
+            <!-- 圆形进度指示器 -->
+            <div class="regen-circle-wrapper">
+              <!-- 旋转光晕（放在底层） -->
+              <div class="regen-circle-glow"></div>
+              <svg class="regen-circle-svg" viewBox="0 0 180 180">
+                <!-- 背景圆环 -->
+                <circle
+                  class="regen-circle-bg"
+                  cx="90" cy="90" r="78"
+                  fill="none"
+                  stroke="rgba(255,255,255,0.3)"
+                  stroke-width="10"
+                />
+                <!-- 进度圆环 -->
+                <circle
+                  class="regen-circle-progress"
+                  cx="90" cy="90" r="78"
+                  fill="none"
+                  stroke="url(#regenGradient)"
+                  stroke-width="10"
+                  stroke-linecap="round"
+                  :stroke-dasharray="490.09"
+                  :stroke-dashoffset="490.09 - (490.09 * regenerateProgress / 100)"
+                />
+                <!-- 渐变定义 - 使用紫粉色调 -->
+                <defs>
+                  <linearGradient id="regenGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stop-color="#a855f7" />
+                    <stop offset="50%" stop-color="#d946ef" />
+                    <stop offset="100%" stop-color="#f0abfc" />
+                  </linearGradient>
+                </defs>
+              </svg>
+              <!-- 中心内容 -->
+              <div class="regen-circle-center">
+                <span class="regen-progress-number">{{ Math.round(regenerateProgress) }}</span>
+                <span class="regen-progress-percent">%</span>
+              </div>
+            </div>
+
+            <!-- 文字信息 -->
+            <div class="regen-loading-info">
+              <div class="regen-loading-header">
+                <i class="ri-refresh-line"></i>
+                <span>画像更新中</span>
+              </div>
+              <p class="regen-stage-text">正在融合简历数据...</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="detail-panel">
+        <!-- ⭐ 独立悬浮胶囊Tab -->
+        <div v-if="activeCandidate && showTabSwitch" class="floating-tabs">
+          <button
+            class="floating-tab"
+            :class="{ active: activeTab === 'portrait', 'has-data': hasProfessional }"
+            @click="activeTab = 'portrait'"
+            :title="hasProfessional ? '查看专业测评画像' : '暂无专业测评数据'"
+          >
+            <i class="ri-brain-line"></i>
+            <span>测评画像</span>
+          </button>
+          <button
+            class="floating-tab survey"
+            :class="{ active: activeTab === 'survey', 'has-data': hasSurvey }"
+            @click="activeTab = 'survey'"
+            :title="hasSurvey ? '查看问卷调查数据' : '暂无问卷调查数据'"
+          >
+            <i class="ri-questionnaire-line"></i>
+            <span>问卷数据</span>
+          </button>
+          </div>
+
+        <!-- ⭐ 专业测评画像内容 -->
+        <template v-if="activeCandidate && activeTab === 'portrait'">
+          <!-- 有专业测评数据时：只显示测评记录列表，点击打开抽屉查看画像 -->
+          <template v-if="hasProfessional">
+            <!-- AI加载状态 - 圆形进度 -->
+        <div v-if="aiLoading && !activeProfile" class="ai-loading-circle-overlay">
+          <div class="ai-loading-circle-card">
+            <!-- 圆形进度指示器 -->
+            <div class="circle-progress-wrapper">
+              <svg class="circle-progress-svg" viewBox="0 0 120 120">
+                <!-- 背景圆环 -->
+                <circle
+                  class="circle-bg"
+                  cx="60" cy="60" r="52"
+                  fill="none"
+                  stroke="#e8ecf4"
+                  stroke-width="8"
+                />
+                <!-- 进度圆环 -->
+                <circle
+                  class="circle-progress"
+                  cx="60" cy="60" r="52"
+                  fill="none"
+                  stroke="url(#progressGradient)"
+                  stroke-width="8"
+                  stroke-linecap="round"
+                  :stroke-dasharray="326.73"
+                  :stroke-dashoffset="326.73 - (326.73 * loadingProgress / 100)"
+                />
+                <!-- 渐变定义 -->
+                <defs>
+                  <linearGradient id="progressGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stop-color="#6366f1" />
+                    <stop offset="50%" stop-color="#8b5cf6" />
+                    <stop offset="100%" stop-color="#a78bfa" />
+                  </linearGradient>
+                </defs>
+              </svg>
+              <!-- 中心内容 -->
+              <div class="circle-center">
+                <span class="progress-number">{{ loadingProgress }}</span>
+                <span class="progress-percent">%</span>
+              </div>
+              <!-- 旋转光晕 -->
+              <div class="circle-glow"></div>
+            </div>
+
+            <!-- 文字信息 -->
+            <div class="loading-info">
+              <div class="loading-header">
+                <i class="ri-brain-line"></i>
+                <span>AI 智能分析</span>
+              </div>
+              <p class="loading-stage-text">{{ loadingStage }}</p>
+              <p class="loading-hint">
+                <i class="ri-time-line"></i>
+              首次分析约30s，再次访问秒开
+            </p>
+            </div>
+          </div>
+        </div>
+
+        <!-- 画像错误提示 -->
+        <div v-if="portraitErrorMsg && activeProfile" class="portrait-error-tip">
+          <i class="ri-information-line"></i>
+          <span>{{ portraitErrorMsg }}（已显示默认数据）</span>
+          <button @click="portraitErrorMsg = ''" class="close-tip">
+            <i class="ri-close-line"></i>
+          </button>
+        </div>
+
+            <!-- ⭐ 测评记录列表（点击打开抽屉） -->
+            <AssessmentAccordion
+              v-if="activeProfile"
+              :assessments="activeProfile.assessments || []"
+              :profile="activeProfile"
+              @open-drawer="openPortraitDrawer"
+            />
+
+
+        </template>
+
+          <!-- 无专业测评时的精致提示 -->
+          <div v-if="!hasProfessional" class="empty-tab-content">
+            <div class="empty-tab-icon">
+              <i class="ri-brain-line"></i>
+              <div class="empty-tab-badge">
+                <i class="ri-time-line"></i>
+              </div>
+            </div>
+            <h3>暂无专业测评数据</h3>
+            <p class="single-line">该人员尚未完成专业测评，完成后将自动生成AI智能画像</p>
+            <div class="empty-tab-features">
+              <div class="feature-item">
+                <i class="ri-pie-chart-2-line"></i>
+                <span>人格特征分析</span>
+              </div>
+              <div class="feature-item">
+                <i class="ri-bar-chart-grouped-line"></i>
+                <span>岗位胜任力评估</span>
+              </div>
+              <div class="feature-item">
+                <i class="ri-magic-line"></i>
+                <span>AI综合评价</span>
+              </div>
+            </div>
+          </div>
+        </template>
+
+        <!-- ⭐ 问卷调查数据内容 -->
+        <template v-if="activeCandidate && activeTab === 'survey'">
+          <!-- 有问卷调查数据时显示详情 -->
+          <SurveyDetailCard
+            v-if="hasSurvey"
+            :candidate-id="activeCandidate.id"
+            :candidate-name="activeCandidate.name"
+          />
+
+          <!-- 无问卷调查时的精致提示 -->
+          <div v-else class="empty-tab-content">
+            <div class="empty-tab-icon survey">
+              <i class="ri-questionnaire-line"></i>
+              <div class="empty-tab-badge">
+                <i class="ri-time-line"></i>
+              </div>
+            </div>
+            <h3>暂无问卷调查数据</h3>
+            <p class="single-line">该人员尚未填写任何问卷调查，填写后数据将自动同步</p>
+            <div class="empty-tab-features survey">
+              <div class="feature-item">
+                <i class="ri-file-list-3-line"></i>
+                <span>问卷填写记录</span>
+              </div>
+              <div class="feature-item">
+                <i class="ri-checkbox-multiple-line"></i>
+                <span>答题详情查看</span>
+              </div>
+              <div class="feature-item">
+                <i class="ri-download-2-line"></i>
+                <span>数据导出功能</span>
+              </div>
+            </div>
+          </div>
+        </template>
+
+        <!-- 未选择候选人的提示 -->
+        <div v-if="!activeCandidate" class="empty-detail">
+          <i class="ri-user-line"></i>
+          <h3>请选择候选人</h3>
+          <p>点击左侧候选人列表查看详细画像</p>
+        </div>
+      </section>
+    </div>
+
+    <!-- V45: 删除功能已移至人员管理页面 -->
+
+    <!-- ⭐ 画像抽屉：点击测评记录后打开，显示完整AI画像 -->
+    <PortraitDrawer
+      :visible="drawerVisible"
+      :profile="activeProfile"
+      :assessment="selectedAssessment"
+      :is-refreshing="isPortraitRefreshing"
+      @close="closePortraitDrawer"
+      @portrait-regenerated="(level, forceRefresh) => handlePortraitRegenerated(level, forceRefresh)"
+    />
+  </div>

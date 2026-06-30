@@ -1,0 +1,529 @@
+  <div class="records-tab">
+    <!-- V45: 现代化筛选工具栏 - 飞书/Notion风格 -->
+    <div class="toolbar">
+      <!-- 搜索框 -->
+      <div class="toolbar-search">
+          <i class="ri-search-line"></i>
+          <input
+            type="text"
+            v-model="searchQuery"
+            placeholder="搜索候选人姓名或编号..."
+          />
+        </div>
+
+      <!-- 筛选器组 -->
+      <div class="toolbar-filters">
+        <div class="filter-chip" :class="{ active: filterYear !== null }">
+          <i class="ri-calendar-line"></i>
+          <select v-model="filterYear">
+            <option :value="null">全部年份</option>
+            <option v-for="year in yearOptions" :key="year" :value="year">{{ year }}年</option>
+          </select>
+        </div>
+        <div class="filter-chip" :class="{ active: filterMonth !== null }">
+          <i class="ri-calendar-event-line"></i>
+          <select v-model="filterMonth">
+            <option :value="null">全部月份</option>
+            <option v-for="month in monthOptions" :key="month" :value="month">{{ month }}月</option>
+          </select>
+        </div>
+        <div class="filter-chip" :class="{ active: filterQuestionnaire !== 'all' }">
+          <i class="ri-file-list-3-line"></i>
+          <select v-model="filterQuestionnaire">
+            <option value="all">全部问卷</option>
+            <option v-for="q in questionnaires" :key="q.id" :value="q.name">{{ q.name }}</option>
+          </select>
+        </div>
+        <div class="filter-chip" :class="{ active: filterStatus !== 'all' }">
+          <i class="ri-checkbox-circle-line"></i>
+          <select v-model="filterStatus">
+            <option value="all">全部</option>
+            <option value="completed">已完成</option>
+            <option value="in_progress">进行中</option>
+          </select>
+        </div>
+      </div>
+
+        <!-- 视图切换 -->
+      <div class="toolbar-view">
+          <button
+          :class="['view-btn', { active: !groupByCandidate }]"
+            @click="groupByCandidate = false"
+            title="列表视图"
+          >
+            <i class="ri-list-unordered"></i>
+          </button>
+          <button
+          :class="['view-btn', { active: groupByCandidate }]"
+            @click="groupByCandidate = true"
+          title="分组视图"
+          >
+          <i class="ri-layout-grid-line"></i>
+          </button>
+        </div>
+
+      <!-- 操作按钮 -->
+      <div class="toolbar-actions">
+        <button class="action-btn primary" @click="openExportModal">
+          <i class="ri-download-line"></i>
+          导出
+        </button>
+        <button
+          v-if="!groupByCandidate"
+          :class="['action-btn', { danger: isSelectMode }]"
+          @click="toggleSelectMode"
+        >
+          <i :class="isSelectMode ? 'ri-close-line' : 'ri-checkbox-multiple-line'"></i>
+          {{ isSelectMode ? '取消' : '批量删除' }}
+        </button>
+      </div>
+    </div>
+
+    <!-- ⭐ V44: 批量操作栏 - 列表模式显示 -->
+    <div v-if="isSelectMode && !groupByCandidate" class="batch-action-bar">
+      <div class="batch-left">
+        <label class="select-all-checkbox">
+          <input
+            type="checkbox"
+            :checked="selectedSubmissions.size === selectableSubmissions.length && selectableSubmissions.length > 0"
+            :indeterminate="selectedSubmissions.size > 0 && selectedSubmissions.size < selectableSubmissions.length"
+            @change="toggleSelectAll"
+          />
+          <span>全选</span>
+        </label>
+        <span class="selected-count">已选择 {{ selectedSubmissions.size }} 条</span>
+      </div>
+      <div class="batch-right">
+        <button
+          class="btn-batch-delete"
+          :disabled="selectedSubmissions.size === 0"
+          @click="openBatchDeleteModal"
+        >
+          <i class="ri-delete-bin-line"></i>
+          删除选中 ({{ selectedSubmissions.size }})
+        </button>
+      </div>
+    </div>
+
+    <!-- 统计信息 -->
+    <div class="records-summary">
+      <div class="summary-item">
+        <span class="summary-value">{{ actualFilteredCount }}</span>
+        <span class="summary-label">条记录</span>
+      </div>
+      <div class="summary-item" v-if="groupByCandidate">
+        <i class="ri-user-line"></i>
+        <span class="summary-value">{{ groupedSubmissionsAll.length }}</span>
+        <span class="summary-label">位候选人</span>
+      </div>
+      <div class="summary-item completed">
+        <i class="ri-checkbox-circle-fill"></i>
+        <span class="summary-value">{{ filteredSubmissions.filter(s => s.status === 'completed').length }}</span>
+        <span class="summary-label">已完成</span>
+      </div>
+      <div class="summary-item pending">
+        <i class="ri-time-fill"></i>
+        <span class="summary-value">{{ filteredSubmissions.filter(s => s.status === 'in_progress').length }}</span>
+        <span class="summary-label">进行中</span>
+      </div>
+    </div>
+
+    <!-- 列表视图 -->
+    <div v-if="!groupByCandidate" class="table-wrapper">
+      <table class="records-table">
+        <thead>
+          <tr>
+            <th v-if="isSelectMode" class="cell-checkbox">
+              <input
+                type="checkbox"
+                :checked="selectedSubmissions.size === selectableSubmissions.length && selectableSubmissions.length > 0"
+                @change="toggleSelectAll"
+              />
+            </th>
+            <th>编号</th>
+            <th>姓名</th>
+            <th>联系方式</th>
+            <th>问卷</th>
+            <th>类型</th>
+            <th>状态</th>
+            <th>提交时间</th>
+            <th>操作</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="r in paginatedSubmissions" :key="r.id" class="record-row" :class="{ selected: selectedSubmissions.has(r.id) }">
+            <td v-if="isSelectMode && !isAggregateSubmission(r)" class="cell-checkbox">
+              <input
+                type="checkbox"
+                :checked="selectedSubmissions.has(r.id)"
+                @change="toggleSubmissionSelect(r.id)"
+              />
+            </td>
+            <td class="cell-code">{{ isAggregateSubmission(r) ? '-' : r.code }}</td>
+            <td class="cell-name">
+              <div class="candidate-info">
+                <span class="candidate-avatar">{{ (r.candidate_name || 'U')[0].toUpperCase() }}</span>
+                <span>{{ r.candidate_name }}</span>
+              </div>
+            </td>
+            <td class="cell-phone">{{ isAggregateSubmission(r) ? '-' : r.candidate_phone }}</td>
+            <td class="cell-questionnaire">{{ r.questionnaire_name || "N/A" }}</td>
+            <td class="cell-type">
+              <span
+                v-if="!isAggregateSubmission(r)"
+                class="type-badge"
+                :class="getPersonalityTypeClass(r)"
+              >
+                {{ getPersonalityType(r) }}
+              </span>
+              <span v-else class="type-badge type-pending">汇总</span>
+            </td>
+            <td class="cell-status">
+              <span
+                v-if="!isAggregateSubmission(r)"
+                :class="['status-pill', r.status === 'completed' ? 'status-completed' : 'status-progress']"
+              >
+                <i :class="r.status === 'completed' ? 'ri-checkbox-circle-fill' : 'ri-time-fill'"></i>
+                {{ getStatusLabel(r.status) }}
+              </span>
+              <span v-else class="status-pill status-progress">
+                <i class="ri-group-line"></i>
+                匿名汇总
+              </span>
+            </td>
+            <td class="cell-time">{{ isAggregateSubmission(r) ? '--' : formatDate(r.submitted_at) }}</td>
+            <td class="cell-actions">
+              <button
+                v-if="!isAggregateSubmission(r)"
+                class="btn-action-delete"
+                title="删除记录"
+                @click="handleDeleteSubmission(r)"
+              >
+                <i class="ri-delete-bin-line"></i>
+              </button>
+            </td>
+          </tr>
+          <tr v-if="paginatedSubmissions.length === 0">
+            <td :colspan="isSelectMode ? 9 : 8" class="empty-cell">
+              <div class="empty-state-inline">
+                <i class="ri-inbox-line"></i>
+                <span>暂无提交记录</span>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+
+      <!-- 分页控件 -->
+      <div v-if="displayFilteredCount > pageSize" class="pagination-bar">
+        <button class="page-btn" :disabled="currentPage === 1" @click="changePage(currentPage - 1)" title="上一页">
+          <i class="ri-arrow-left-s-line"></i>
+        </button>
+        <span class="page-info">{{ currentPage }} / {{ totalPages }} (共 {{ actualFilteredCount }} 条)</span>
+        <button class="page-btn" :disabled="currentPage >= totalPages" @click="changePage(currentPage + 1)" title="下一页">
+          <i class="ri-arrow-right-s-line"></i>
+        </button>
+      </div>
+    </div>
+
+    <!-- 分组视图 -->
+    <div v-else class="grouped-view">
+      <!-- V45: 分组模式控制栏 -->
+      <div class="grouped-controls">
+        <button class="btn-toggle-all" @click="toggleAllCandidates">
+          <i :class="areVisibleGroupsExpanded ? 'ri-contract-up-down-line' : 'ri-expand-up-down-line'"></i>
+          {{ areVisibleGroupsExpanded ? '全部收起' : '全部展开' }}
+        </button>
+        <button class="btn-export" @click="openExportModal">
+          <i class="ri-download-line"></i>
+          导出数据
+        </button>
+        <button
+          :class="['btn-batch-select', { active: isSelectMode }]"
+          @click="toggleSelectMode"
+        >
+          <i :class="isSelectMode ? 'ri-close-line' : 'ri-checkbox-multiple-line'"></i>
+          {{ isSelectMode ? '取消选择' : '批量删除' }}
+        </button>
+      </div>
+
+      <!-- V45: 批量操作栏 - 选择模式下显示 -->
+      <div v-if="isSelectMode" class="batch-action-bar">
+        <div class="batch-left">
+          <label class="select-all-checkbox">
+            <input
+              type="checkbox"
+              :checked="selectedSubmissions.size === selectableSubmissions.length && selectableSubmissions.length > 0"
+              @change="toggleSelectAll"
+            />
+            <span>全选</span>
+          </label>
+          <span class="selected-count">已选择 {{ selectedSubmissions.size }} 条</span>
+        </div>
+        <div class="batch-right">
+          <button
+            class="btn-batch-delete"
+            :disabled="selectedSubmissions.size === 0"
+            @click="openBatchDeleteModal"
+          >
+            <i class="ri-delete-bin-line"></i>
+            删除选中 ({{ selectedSubmissions.size }})
+          </button>
+        </div>
+      </div>
+
+      <!-- 候选人分组卡片 -->
+      <div class="candidate-groups">
+        <div
+          v-for="group in paginatedGroupedSubmissions"
+          :key="getGroupKey(group)"
+          class="candidate-group-card"
+          :class="{ expanded: expandedCandidates.has(getGroupKey(group)) }"
+        >
+          <!-- 分组头部 -->
+          <div
+            class="group-header"
+            @click="toggleCandidateExpand(getGroupKey(group))"
+          >
+            <div class="group-main">
+              <span class="group-avatar">{{ (group.name || 'U')[0].toUpperCase() }}</span>
+              <div class="group-info">
+                <div class="group-name-row">
+                <span class="group-name">{{ getGroupDisplayName(group) }}</span>
+                <span class="group-phone">{{ group.phone }}</span>
+            </div>
+            <div class="group-stats">
+              <span class="stat-badge total">
+                <i class="ri-file-list-3-line"></i>
+                {{ group.totalSubmissions }}条记录
+              </span>
+              <span class="stat-badge completed" v-if="group.completedCount > 0">
+                <i class="ri-checkbox-circle-fill"></i>
+                {{ group.completedCount }}已完成
+              </span>
+              <span class="stat-badge pending" v-if="getGroupPendingCount(group) > 0">
+                <i class="ri-time-fill"></i>
+                {{ getGroupPendingCount(group) }}未完成
+              </span>
+                  <span class="stat-badge latest" v-if="group.latestSubmission?.submitted_at">
+                <i class="ri-time-line"></i>
+                    {{ formatDate(group.latestSubmission.submitted_at).split(' ')[0] }}
+              </span>
+                </div>
+              </div>
+            </div>
+            <i :class="['expand-icon', expandedCandidates.has(getGroupKey(group)) ? 'ri-arrow-up-s-line' : 'ri-arrow-down-s-line']"></i>
+          </div>
+
+          <!-- 展开的测评列表 -->
+          <div v-if="expandedCandidates.has(getGroupKey(group))" class="group-submissions">
+            <div v-if="group.submissions.length === 0" class="submission-item empty-submissions">
+              <span class="submission-questionnaire">匿名提交已汇总</span>
+            </div>
+            <div
+              v-for="(sub, idx) in getGroupSubmissions(group)"
+              :key="sub.id"
+              class="submission-item"
+              :class="{ selected: selectedSubmissions.has(sub.id) }"
+            >
+              <!-- V45: 分组模式下也显示复选框 -->
+              <input
+                v-if="isSelectMode"
+                type="checkbox"
+                class="submission-checkbox"
+                :checked="selectedSubmissions.has(sub.id)"
+                @click.stop
+                @change="toggleSubmissionSelect(sub.id)"
+              />
+              <div class="submission-order">#{{ (getGroupPage(getGroupKey(group)) - 1) * groupPageSize + idx + 1 }}</div>
+              <div class="submission-info">
+                <span class="submission-questionnaire">{{ sub.questionnaire_name || 'N/A' }}</span>
+              </div>
+              <div class="submission-result">
+                <span class="type-badge" :class="getPersonalityTypeClass(sub)">
+                  {{ getPersonalityType(sub) }}
+                </span>
+                <span :class="['status-mini', sub.status === 'completed' ? 'completed' : 'progress']">
+                  {{ sub.status === 'completed' ? '已完成' : '进行中' }}
+                </span>
+                <span class="submission-time">
+                  {{ sub.submitted_at ? formatDate(sub.submitted_at) : '--' }}
+                </span>
+              </div>
+              <div class="submission-actions">
+                <button class="btn-mini delete" title="删除" @click.stop="handleDeleteSubmission(sub)">
+                  <i class="ri-delete-bin-line"></i>
+                </button>
+              </div>
+            </div>
+            <div v-if="group.submissions.length > groupPageSize" class="group-pagination">
+              <button
+                class="page-btn page-btn-text"
+                :disabled="getGroupPage(getGroupKey(group)) <= 1"
+                @click.stop="changeGroupPage(group, getGroupPage(getGroupKey(group)) - 1)"
+              >
+                <i class="ri-arrow-left-s-line"></i>
+                上一页
+              </button>
+              <span class="page-info">
+                {{ getGroupPage(getGroupKey(group)) }} / {{ getGroupTotalPages(group) }}
+              </span>
+              <button
+                class="page-btn page-btn-text"
+                :disabled="getGroupPage(getGroupKey(group)) >= getGroupTotalPages(group)"
+                @click.stop="changeGroupPage(group, getGroupPage(getGroupKey(group)) + 1)"
+              >
+                下一页
+                <i class="ri-arrow-right-s-line"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 空状态 -->
+        <div v-if="groupedSubmissionsAll.length === 0" class="empty-grouped">
+          <i class="ri-inbox-line"></i>
+          <span>暂无提交记录</span>
+        </div>
+        <div v-if="groupedSubmissionsAll.length > groupListPageSize" class="pagination-bar">
+          <button class="page-btn" :disabled="groupListPage === 1" @click="changeGroupListPage(groupListPage - 1)" title="上一页">
+            <i class="ri-arrow-left-s-line"></i>
+          </button>
+          <span class="page-info">{{ groupListPage }} / {{ groupListTotalPages }} (共 {{ groupedSubmissionsAll.length }} 人)</span>
+          <button class="page-btn" :disabled="groupListPage >= groupListTotalPages" @click="changeGroupListPage(groupListPage + 1)" title="下一页">
+            <i class="ri-arrow-right-s-line"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 删除确认弹窗 -->
+    <div v-if="showDeleteConfirmModal" class="modal-overlay" @click="showDeleteConfirmModal = false">
+      <div class="modal-dialog confirm-modal" @click.stop>
+        <div class="modal-header">
+          <h3>确认删除</h3>
+        </div>
+        <div class="modal-body confirm-body">
+          <p>确定要删除 <strong>{{ deleteTargetSubmission?.candidate_name }}</strong> 的提交记录吗？</p>
+          <p class="confirm-warning">
+            <i class="ri-error-warning-line"></i>
+            此操作不可恢复
+          </p>
+        </div>
+        <div class="modal-footer">
+          <button class="btn-cancel" @click="showDeleteConfirmModal = false">取消</button>
+          <button class="btn-danger" @click="confirmDeleteSubmission">确认删除</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ⭐ V44: 批量删除确认弹窗（优化样式） -->
+    <div v-if="showBatchDeleteModal" class="modal-overlay batch-delete-overlay" @click="showBatchDeleteModal = false">
+      <div class="batch-delete-dialog" @click.stop>
+        <!-- 顶部警告图标 -->
+        <div class="batch-delete-icon">
+          <i class="ri-delete-bin-line"></i>
+        </div>
+
+        <!-- 标题 -->
+        <h3 class="batch-delete-title">批量删除确认</h3>
+
+        <!-- 删除数量提示 -->
+        <p class="batch-delete-count">
+          即将删除 <strong>{{ selectedSubmissions.size }}</strong> 条提交记录
+        </p>
+
+        <!-- 预览列表 -->
+          <div class="batch-delete-preview">
+            <div v-for="sub in filteredSubmissions.filter(s => selectedSubmissions.has(s.id)).slice(0, 5)" :key="sub.id" class="preview-item">
+            <div class="preview-avatar">{{ sub.candidate_name?.charAt(0) || '?' }}</div>
+            <div class="preview-info">
+              <span class="preview-name">{{ sub.candidate_name }}</span>
+              <span class="preview-questionnaire">{{ sub.questionnaire_name }}</span>
+            </div>
+            </div>
+            <div v-if="selectedSubmissions.size > 5" class="preview-more">
+            <i class="ri-more-2-line"></i>
+            还有 {{ selectedSubmissions.size - 5 }} 条记录
+            </div>
+          </div>
+
+        <!-- 警告提示 -->
+        <div class="batch-delete-warning">
+            <i class="ri-error-warning-line"></i>
+          <span>此操作不可恢复，请谨慎操作</span>
+        </div>
+
+        <!-- 操作按钮 -->
+        <div class="batch-delete-actions">
+          <button class="btn-batch-cancel" @click="showBatchDeleteModal = false">
+            取消
+          </button>
+          <button class="btn-batch-confirm" @click="confirmBatchDelete">
+            <i class="ri-delete-bin-line"></i>
+            确认删除
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 导出弹窗 -->
+    <div v-if="showExportModal" class="modal-overlay" @click="closeExportModal">
+      <div class="modal-dialog export-modal" @click.stop>
+        <div class="modal-header">
+          <h3><i class="ri-download-line"></i> 导出数据</h3>
+          <button class="btn-close" @click="closeExportModal">
+            <i class="ri-close-line"></i>
+          </button>
+        </div>
+        <div class="modal-body export-body">
+          <p class="export-info">
+            <i class="ri-file-list-3-line"></i>
+            将导出 <strong>{{ filteredSubmissions.length }}</strong> 条提交记录
+          </p>
+          <div class="export-format-group">
+            <label class="format-label">选择导出格式：</label>
+            <div class="format-options">
+              <label class="format-option" :class="{ active: exportFormat === 'csv' }">
+                <input type="radio" v-model="exportFormat" value="csv" />
+                <i class="ri-file-text-line"></i>
+                <span>CSV 文件</span>
+                <small>通用格式，可用Excel打开</small>
+              </label>
+              <label class="format-option" :class="{ active: exportFormat === 'excel' }">
+                <input type="radio" v-model="exportFormat" value="excel" />
+                <i class="ri-file-excel-2-line"></i>
+                <span>Excel 文件</span>
+                <small>带格式的表格文件</small>
+              </label>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn-cancel" @click="closeExportModal">取消</button>
+          <button class="btn-primary" @click="executeExport" :disabled="exportLoading">
+            <i v-if="exportLoading" class="ri-loader-4-line spinning"></i>
+            <i v-else class="ri-download-line"></i>
+            {{ exportLoading ? '导出中...' : '确认导出' }}
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 导出成功提示 -->
+    <Transition name="toast">
+      <div v-if="showExportSuccessToast" class="toast-success">
+        <i class="ri-checkbox-circle-fill"></i>
+        <span>{{ filteredSubmissions.length > 0 ? '导出成功！文件已下载' : '暂无数据可导出' }}</span>
+      </div>
+    </Transition>
+
+    <!-- 提交详情弹窗 -->
+    <SubmissionDetailModal
+      v-if="showSubmissionDetailModal"
+      :submission="selectedSubmission"
+      @close="showSubmissionDetailModal = false"
+      @delete="handleDeleteSubmission"
+      @export-pdf="handleExportPDF"
+    />
+  </div>

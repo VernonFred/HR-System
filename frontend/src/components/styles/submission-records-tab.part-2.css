@@ -1,0 +1,621 @@
+.summary-item.completed i {
+  color: #10b981;
+}
+
+.summary-item.pending i {
+  color: #f59e0b;
+}
+
+/* ===== 表格样式 ===== */
+.table-wrapper {
+  overflow-x: auto;
+}
+
+.records-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.records-table thead {
+  background: #f9fafb;
+}
+
+.records-table th {
+  padding: 0.875rem 1rem;
+  text-align: left;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+
+.records-table td {
+  padding: 1rem;
+  border-bottom: 1px solid #f3f4f6;
+  font-size: 0.875rem;
+  color: #374151;
+}
+
+.record-row:hover {
+  background: #faf5ff;
+}
+
+/* 分页控件样式 */
+.pagination-bar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 12px 16px;
+  margin-top: 16px;
+  background: linear-gradient(135deg, #faf7ff 0%, #f5f3ff 100%);
+  border-radius: 14px;
+  border: 1px solid #e9ddff;
+  box-shadow: 0 6px 18px rgba(124, 58, 237, 0.06);
+}
+
+.page-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border: 1px solid #ddd6fe;
+  border-radius: 10px;
+  background: white;
+  color: #7c3aed;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.page-btn:hover:not(:disabled) {
+  background: #f5f3ff;
+  color: #6d28d9;
+  border-color: #7c3aed;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 14px rgba(124, 58, 237, 0.14);
+}
+
+.page-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.page-btn.page-btn-text {
+  width: auto;
+  min-width: 88px;
+  height: 34px;
+  padding: 0 12px;
+  gap: 4px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.page-info {
+  font-size: 13px;
+  font-weight: 600;
+  color: #5b21b6;
+  min-width: 150px;
+  text-align: center;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: rgba(124, 58, 237, 0.1);
+}
+
+/* 分组内分页控件 */
+.group-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 10px 12px;
+  margin-top: 8px;
+  border: 1px solid #ece7ff;
+  border-radius: 12px;
+  background: #faf9ff;
+}
+
+.cell-code {
+  font-family: 'SF Mono', 'Menlo', monospace;
+  font-size: 0.75rem;
+  color: #6b7280;
+  white-space: nowrap;
+  max-width: 180px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.candidate-info {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  white-space: nowrap;
+}
+
+.candidate-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #7c3aed 0%, #a855f7 100%);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.cell-name span:last-child {
+  font-weight: 500;
+  color: #1f2937;
+  white-space: nowrap;
+}
+
+.cell-phone {
+  color: #6b7280;
+  white-space: nowrap;
+}
+
+.cell-questionnaire {
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.cell-type {
+  white-space: nowrap;
+}
+
+.cell-status {
+  white-space: nowrap;
+}
+
+.cell-time {
+  white-space: nowrap;
+  font-size: 0.8125rem;
+  color: #6b7280;
+}
+
+.score-value {
+  font-weight: 700;
+  color: #1f2937;
+  font-size: 1rem;
+}
+
+.score-pending, .grade-pending {
+  color: #d1d5db;
+  font-size: 0.875rem;
+}
+
+/* ⭐ 人格类型标签样式 */
+.type-badge {
+  display: inline-block;
+  padding: 0.25rem 0.625rem;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.type-badge.type-mbti {
+  background: linear-gradient(135deg, #e0e7ff 0%, #c7d2fe 100%);
+  color: #4338ca;
+}
+
+.type-badge.type-disc {
+  background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+  color: #92400e;
+}
+
+.type-badge.type-epq {
+  background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
+  color: #065f46;
+}
+
+.type-badge.type-pending {
+  background: #f3f4f6;
+  color: #9ca3af;
+}
+
+.type-badge.type-default {
+  background: #f3f4f6;
+  color: #6b7280;
+}
+
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.375rem 0.75rem;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.status-pill.status-completed {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+.status-pill.status-progress {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.status-pill i {
+  font-size: 0.875rem;
+}
+
+.cell-time {
+  color: #6b7280;
+  font-size: 0.8125rem;
+}
+
+.cell-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.btn-action-view {
+  padding: 0.5rem;
+  background: #f3f4f6;
+  border: none;
+  border-radius: 8px;
+  color: #6b7280;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-action-view:hover {
+  background: #7c3aed;
+  color: white;
+}
+
+.btn-action-delete {
+  padding: 0.5rem;
+  background: #f3f4f6;
+  border: none;
+  border-radius: 8px;
+  color: #6b7280;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-action-delete:hover {
+  background: #ef4444;
+  color: white;
+}
+
+.empty-cell {
+  text-align: center;
+  padding: 3rem !important;
+}
+
+.empty-state-inline {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  color: #9ca3af;
+}
+
+.empty-state-inline i {
+  font-size: 2rem;
+}
+
+/* ===== 分组视图样式 ===== */
+.grouped-view {
+  padding: 1rem;
+}
+
+/* ===== 分组视图样式 ===== */
+.grouped-controls {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 1rem;
+}
+
+.btn-toggle-all {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  font-size: 0.8125rem;
+  color: #6b7280;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-toggle-all:hover {
+  background: #f3f4f6;
+  border-color: #d1d5db;
+}
+
+.candidate-groups {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.candidate-group-card {
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  overflow: hidden;
+  transition: all 0.2s;
+}
+
+.candidate-group-card:hover {
+  border-color: #d1d5db;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.candidate-group-card.expanded {
+  border-color: #8b5cf6;
+  box-shadow: 0 4px 12px rgba(139, 92, 246, 0.1);
+}
+
+.group-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.875rem 1rem;
+  cursor: pointer;
+  background: linear-gradient(135deg, #faf5ff 0%, #f5f3ff 100%);
+  transition: all 0.2s;
+  gap: 0.75rem;
+}
+
+.group-header:hover {
+  background: linear-gradient(135deg, #f3e8ff 0%, #ede9fe 100%);
+}
+
+.group-main {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex: 1;
+  min-width: 0;
+}
+
+.group-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background: linear-gradient(135deg, #7c3aed 0%, #a855f7 100%);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.875rem;
+  flex-shrink: 0;
+  font-weight: 600;
+}
+
+.group-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  flex: 1;
+  min-width: 0;
+}
+
+.group-name-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.group-name {
+  font-weight: 600;
+  color: #1f2937;
+  font-size: 0.9375rem;
+  white-space: nowrap;
+}
+
+.group-phone {
+  font-size: 0.8125rem;
+  color: #9ca3af;
+  white-space: nowrap;
+}
+
+.group-stats {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.stat-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: 12px;
+  font-size: 0.7rem;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.stat-badge.total {
+  background: #f3f4f6;
+  color: #4b5563;
+}
+
+.stat-badge.completed {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+.stat-badge.pending {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.stat-badge.latest {
+  background: #dbeafe;
+  color: #1e40af;
+}
+
+.stat-badge i {
+  font-size: 0.875rem;
+}
+
+.expand-icon {
+  font-size: 1.25rem;
+  color: #9ca3af;
+  transition: transform 0.2s;
+}
+
+.candidate-group-card.expanded .expand-icon {
+  color: #7c3aed;
+}
+
+/* 展开的测评列表 */
+.group-submissions {
+  border-top: 1px solid #e5e7eb;
+  background: white;
+}
+
+.submission-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.625rem 1rem;
+  border-bottom: 1px solid #f3f4f6;
+  transition: background 0.2s;
+}
+
+.submission-item.selected {
+  background: rgba(124, 58, 237, 0.05);
+}
+
+/* V45: 分组模式下的复选框 */
+.submission-checkbox {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+  accent-color: #7c3aed;
+  flex-shrink: 0;
+}
+
+.submission-item:last-child {
+  border-bottom: none;
+}
+
+.submission-item:hover {
+  background: #faf5ff;
+}
+
+.submission-order {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #e0e7ff 0%, #ddd6fe 100%);
+  color: #6366f1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.625rem;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.submission-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.submission-questionnaire {
+  font-weight: 500;
+  color: #1f2937;
+  font-size: 0.8125rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.submission-time {
+  font-size: 0.6875rem;
+  color: #9ca3af;
+  white-space: nowrap;
+}
+
+.submission-result {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  flex-shrink: 0;
+}
+
+.submission-result .type-badge {
+  font-size: 0.625rem;
+  padding: 0.125rem 0.375rem;
+}
+
+.status-mini {
+  padding: 0.125rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.6875rem;
+  font-weight: 500;
+}
+
+.status-mini.completed {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+.status-mini.progress {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.submission-actions {
+  display: flex;
+  gap: 0.375rem;
+}
+
+.btn-mini {
+  padding: 0.375rem;
+  background: #f3f4f6;
+  border: none;
+  border-radius: 6px;
+  color: #6b7280;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-mini:hover {
+  background: #7c3aed;
+  color: white;
+}
+
+.btn-mini.delete:hover {
+  background: #ef4444;
+}
+
+.btn-mini i {
+  font-size: 0.875rem;
+}
+
+.empty-grouped {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem;
+  color: #9ca3af;
+  gap: 0.5rem;
+}
+
+.empty-grouped i {
+  font-size: 2.5rem;
+}

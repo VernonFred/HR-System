@@ -1,7 +1,7 @@
 <script setup lang="ts">
 /**
  * 查看链接面板组件
- * 
+ *
  * 功能：
  * 1. 显示问卷的所有分发链接
  * 2. 复制链接
@@ -88,16 +88,16 @@ const formatDateTime = (value?: string) => {
 
 const loadDistributions = async () => {
   if (!props.questionnaire) return
-  
+
   loading.value = true
   try {
     const res = await fetchAssessments()
     const baseUrl = window.location.origin
     const now = new Date()
-    
+
     // 过滤该问卷的分发记录
     const filtered = res.items.filter(a => a.questionnaire_id === props.questionnaire!.id)
-    
+
     // 转换为分发信息
     distributions.value = await Promise.all(filtered.map(async (a) => {
       const link = `${baseUrl}/assessment/${a.code}`
@@ -105,18 +105,18 @@ const loadDistributions = async () => {
       const validUntil = new Date(a.valid_until)
       const isExpired = now > validUntil
       const isActive = now >= validFrom && now <= validUntil
-      
+
       // 判断链接类型（100年后过期视为永久）
       const yearDiff = validUntil.getFullYear() - validFrom.getFullYear()
       const linkType = yearDiff > 50 ? 'permanent' : 'temporary'
-      
+
       let qrcode = ''
       try {
         qrcode = await QRCode.toDataURL(link, { width: 160, margin: 2 })
       } catch (e) {
         console.error('生成二维码失败:', e)
       }
-      
+
       return {
         id: a.id,
         name: a.name,
@@ -133,10 +133,10 @@ const loadDistributions = async () => {
         assessment: a,
       }
     }))
-    
+
     // 按生成时间倒序排列，便于识别最新链接
     distributions.value.sort((a, b) => b.createdAtTime - a.createdAtTime || b.id - a.id)
-    
+
   } catch (error) {
     console.error('加载分发记录失败:', error)
   } finally {
@@ -203,20 +203,20 @@ const cancelDelete = () => {
 // 确认删除
 const confirmDelete = async (force: boolean = false) => {
   if (!deletingDistribution.value) return
-  
+
   deleteError.value = ''  // 清除之前的错误
-  
+
   try {
     loading.value = true
     await deleteAssessment(deletingDistribution.value.id, force)
-    
+
     // 从列表中移除
     distributions.value = distributions.value.filter(d => d.id !== deletingDistribution.value!.id)
-    
+
     showDeleteModal.value = false
     deletingDistribution.value = null
     showForceDeleteConfirm.value = false
-    
+
     // 如果没有链接了，关闭面板
     if (distributions.value.length === 0) {
       emit('close')
@@ -294,8 +294,8 @@ onMounted(() => {
 
           <!-- 链接列表 -->
           <div class="distributions-list">
-            <div 
-              v-for="dist in distributions" 
+            <div
+              v-for="dist in distributions"
               :key="dist.id"
               :class="['distribution-card', { expired: dist.isExpired, active: dist.isActive }]"
             >
@@ -337,8 +337,8 @@ onMounted(() => {
               <div class="dist-body">
                 <div class="qr-section">
                   <img v-if="dist.qrcode" :src="dist.qrcode" :alt="dist.name" />
-                  <button 
-                    class="btn-download-qr" 
+                  <button
+                    class="btn-download-qr"
                     @click="downloadQRCode(dist.qrcode, dist.name)"
                     :disabled="!dist.qrcode"
                   >
@@ -349,7 +349,7 @@ onMounted(() => {
                 <div class="link-section">
                   <div class="link-box">
                     <input type="text" :value="dist.link" readonly />
-                    <button 
+                    <button
                       :class="['btn-copy', { copied: copiedLink === dist.link }]"
                       @click="copyLink(dist.link)"
                     >
@@ -392,8 +392,8 @@ onMounted(() => {
         </div>
         <div class="footer-actions">
           <button class="btn-secondary" @click="close">关闭</button>
-          <button 
-            class="btn-primary" 
+          <button
+            class="btn-primary"
             @click="createNew"
             :disabled="questionnaire?.status !== 'active'"
           >
@@ -410,7 +410,7 @@ onMounted(() => {
         <div class="delete-confirm-icon" :class="{ danger: showForceDeleteConfirm }">
           <i class="ri-delete-bin-line"></i>
         </div>
-        
+
         <!-- 第一次确认：普通删除 -->
         <template v-if="!showForceDeleteConfirm">
         <h3>确认删除分发链接？</h3>
@@ -421,7 +421,7 @@ onMounted(() => {
             <span>删除后，已分发的二维码和链接将失效</span>
         </div>
         </template>
-        
+
         <!-- 第二次确认：强制删除（有提交记录） -->
         <template v-else>
           <h3>⚠️ 警告：该链接下有提交数据</h3>
@@ -434,28 +434,28 @@ onMounted(() => {
             </div>
           </div>
         </template>
-        
+
         <!-- ⭐ V50: 错误提示 -->
         <div v-if="deleteError" class="delete-error-msg">
           <i class="ri-error-warning-line"></i>
           {{ deleteError }}
         </div>
-        
+
         <div class="delete-confirm-actions">
           <button class="btn-secondary" @click="cancelDelete">取消</button>
-          <button 
+          <button
             v-if="!showForceDeleteConfirm"
-            class="btn-danger" 
-            @click="confirmDelete(false)" 
+            class="btn-danger"
+            @click="confirmDelete(false)"
             :disabled="loading"
           >
             <i class="ri-delete-bin-line"></i>
             确认删除
           </button>
-          <button 
+          <button
             v-else
-            class="btn-danger-strong" 
-            @click="confirmDelete(true)" 
+            class="btn-danger-strong"
+            @click="confirmDelete(true)"
             :disabled="loading"
           >
             <i class="ri-alert-line"></i>
@@ -468,738 +468,5 @@ onMounted(() => {
 </template>
 
 <style scoped>
-.modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-}
-
-.modal-panel {
-  background: white;
-  border-radius: 20px;
-  width: 100%;
-  max-width: 700px;
-  max-height: 85vh;
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
-}
-
-/* 头部 */
-.modal-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 20px 24px;
-  border-bottom: 1px solid #e2e8f0;
-  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
-  color: white;
-}
-
-.header-title {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.header-title i {
-  font-size: 24px;
-}
-
-.header-title h3 {
-  font-size: 18px;
-  font-weight: 600;
-  margin: 0;
-}
-
-.btn-close {
-  width: 36px;
-  height: 36px;
-  border: none;
-  background: rgba(255, 255, 255, 0.2);
-  border-radius: 10px;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: white;
-  font-size: 20px;
-  transition: all 0.2s;
-}
-
-.btn-close:hover {
-  background: rgba(255, 255, 255, 0.3);
-}
-
-/* 内容 */
-.modal-body {
-  flex: 1;
-  overflow-y: auto;
-  padding: 24px;
-}
-
-/* 加载/空状态 */
-.loading-state,
-.empty-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 60px 20px;
-  color: #64748b;
-}
-
-.loading-state i,
-.empty-state i {
-  font-size: 48px;
-  margin-bottom: 16px;
-  opacity: 0.5;
-}
-
-.empty-state p {
-  font-size: 16px;
-  font-weight: 500;
-  color: #334155;
-  margin: 0 0 8px;
-}
-
-.empty-state span {
-  font-size: 14px;
-}
-
-/* 统计栏 */
-.summary-bar {
-  display: flex;
-  gap: 12px;
-  margin-bottom: 20px;
-}
-
-.summary-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 8px 14px;
-  border-radius: 20px;
-  font-size: 13px;
-  font-weight: 500;
-}
-
-.summary-badge.total {
-  background: #f1f5f9;
-  color: #475569;
-}
-
-.summary-badge.active {
-  background: #d1fae5;
-  color: #065f46;
-}
-
-.summary-badge.expired {
-  background: #fee2e2;
-  color: #dc2626;
-}
-
-/* 分发列表 */
-.distributions-list {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-.distribution-card {
-  background: #f8fafc;
-  border: 1px solid #e2e8f0;
-  border-radius: 16px;
-  padding: 20px;
-  transition: all 0.2s;
-}
-
-.distribution-card.active {
-  border-color: #10b981;
-  background: #f0fdf4;
-}
-
-.distribution-card.expired {
-  opacity: 0.7;
-  border-color: #fecaca;
-  background: #fef2f2;
-}
-
-.dist-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 12px;
-}
-
-.dist-title {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.type-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 4px 10px;
-  border-radius: 6px;
-  font-size: 12px;
-  font-weight: 600;
-}
-
-.type-badge.permanent {
-  background: #dbeafe;
-  color: #1d4ed8;
-}
-
-.type-badge.temporary {
-  background: #fef3c7;
-  color: #d97706;
-}
-
-.dist-name {
-  font-size: 15px;
-  font-weight: 600;
-  color: #1e293b;
-}
-
-.dist-status .status {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 4px 10px;
-  border-radius: 6px;
-  font-size: 12px;
-  font-weight: 500;
-}
-
-.status.active {
-  background: #d1fae5;
-  color: #065f46;
-}
-
-.status.expired {
-  background: #fee2e2;
-  color: #dc2626;
-}
-
-.status.pending {
-  background: #fef3c7;
-  color: #92400e;
-}
-
-.dist-meta {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 8px 16px;
-  font-size: 13px;
-  color: #64748b;
-  margin-bottom: 16px;
-}
-
-.meta-item {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.dist-body {
-  display: flex;
-  gap: 20px;
-}
-
-.qr-section {
-  position: relative;
-  flex-shrink: 0;
-}
-
-.qr-section img {
-  width: 120px;
-  height: 120px;
-  border-radius: 12px;
-  border: 1px solid #e2e8f0;
-}
-
-.btn-download-qr {
-  position: absolute;
-  bottom: 8px;
-  right: 8px;
-  width: 28px;
-  height: 28px;
-  border: none;
-  background: rgba(0, 0, 0, 0.6);
-  border-radius: 6px;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: white;
-  font-size: 14px;
-  transition: all 0.2s;
-}
-
-.btn-download-qr:hover {
-  background: rgba(0, 0, 0, 0.8);
-}
-
-.link-section {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.link-box {
-  display: flex;
-  gap: 8px;
-}
-
-.link-box input {
-  flex: 1;
-  padding: 10px 14px;
-  border: 1px solid #e2e8f0;
-  border-radius: 10px;
-  font-size: 13px;
-  background: white;
-}
-
-.btn-copy {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 10px 16px;
-  background: #6366f1;
-  color: white;
-  border: none;
-  border-radius: 10px;
-  font-size: 13px;
-  cursor: pointer;
-  transition: all 0.2s;
-  white-space: nowrap;
-}
-
-.btn-copy:hover {
-  background: #4f46e5;
-}
-
-.btn-copy.copied {
-  background: #10b981;
-}
-
-.code-info {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 13px;
-}
-
-.code-label {
-  color: #64748b;
-}
-
-.code-value {
-  font-family: monospace;
-  font-weight: 600;
-  color: #334155;
-  padding: 4px 10px;
-  background: white;
-  border-radius: 6px;
-  border: 1px solid #e2e8f0;
-}
-
-/* 底部 */
-.modal-footer {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 18px;
-  padding: 16px 24px;
-  border-top: 1px solid #e2e8f0;
-  background: #f8fafc;
-}
-
-.footer-tip {
-  display: flex;
-  align-items: flex-start;
-  gap: 8px;
-  flex: 1;
-  min-width: 0;
-  font-size: 13px;
-  line-height: 1.5;
-  color: #64748b;
-}
-
-.footer-tip i {
-  flex-shrink: 0;
-  margin-top: 2px;
-  color: #f59e0b;
-}
-
-.footer-tip span {
-  display: block;
-}
-
-.footer-actions {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex-shrink: 0;
-}
-
-.btn-primary {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  min-width: 128px;
-  padding: 10px 16px;
-  background: linear-gradient(135deg, #6366f1, #8b5cf6);
-  color: white;
-  border: none;
-  border-radius: 10px;
-  font-size: 13px;
-  line-height: 1.2;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s;
-  white-space: nowrap;
-}
-
-.btn-primary:hover:not(:disabled) {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
-}
-
-.btn-primary:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-.btn-secondary {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  min-width: 84px;
-  padding: 10px 16px;
-  background: white;
-  color: #475569;
-  border: 1px solid #e2e8f0;
-  border-radius: 10px;
-  font-size: 13px;
-  line-height: 1.2;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s;
-  white-space: nowrap;
-}
-
-.btn-secondary:hover {
-  background: #f1f5f9;
-}
-
-.spin {
-  animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
-}
-
-/* 操作按钮 */
-.dist-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 8px;
-  padding-top: 12px;
-  border-top: 1px solid #e2e8f0;
-  margin-top: 16px;
-}
-
-.dist-action-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 8px 14px;
-  border-radius: 8px;
-  font-size: 13px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s;
-  border: 1px solid transparent;
-}
-
-.dist-action-btn.delete {
-  background: white;
-  border-color: #e2e8f0;
-  color: #6b7280;
-}
-
-.dist-action-btn.delete:hover {
-  background: #ef4444;
-  border-color: #ef4444;
-  color: white;
-}
-
-.dist-action-btn.edit {
-  background: #f5f3ff;
-  border-color: #ddd6fe;
-  color: #6d28d9;
-}
-
-.dist-action-btn.edit:hover {
-  background: #ede9fe;
-  border-color: #c4b5fd;
-}
-
-.dist-action-btn.clone {
-  background: #ecfeff;
-  border-color: #a5f3fc;
-  color: #0e7490;
-}
-
-.dist-action-btn.clone:hover {
-  background: #cffafe;
-  border-color: #67e8f9;
-}
-
-/* 删除确认弹窗 */
-.delete-modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.6);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1100;
-}
-
-.modal-delete-confirm {
-  width: 400px;
-  max-width: 90vw;
-  padding: 2rem;
-  text-align: center;
-  background: white;
-  border-radius: 16px;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
-}
-
-.delete-confirm-icon {
-  width: 64px;
-  height: 64px;
-  margin: 0 auto 1.25rem;
-  background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.delete-confirm-icon i {
-  font-size: 2rem;
-  color: #dc2626;
-}
-
-.delete-confirm-icon.danger {
-  background: linear-gradient(135deg, #dc2626 0%, #991b1b 100%);
-}
-
-.delete-confirm-icon.danger i {
-  color: white;
-}
-
-.modal-delete-confirm h3 {
-  margin: 0 0 0.75rem;
-  font-size: 1.125rem;
-  font-weight: 600;
-  color: #1f2937;
-}
-
-.delete-dist-name {
-  margin: 0;
-  font-size: 0.9375rem;
-  font-weight: 500;
-  color: #374151;
-}
-
-.delete-dist-code {
-  margin: 0.25rem 0 1rem;
-  font-size: 0.8125rem;
-  color: #6b7280;
-  font-family: 'SF Mono', monospace;
-}
-
-.delete-warning {
-  display: flex;
-  align-items: flex-start;
-  gap: 0.5rem;
-  padding: 0.875rem 1rem;
-  background: #fef3c7;
-  border-radius: 8px;
-  margin-bottom: 1.5rem;
-  text-align: left;
-}
-
-.delete-warning i {
-  color: #f59e0b;
-  font-size: 1.125rem;
-  flex-shrink: 0;
-}
-
-.delete-warning span {
-  font-size: 0.8125rem;
-  color: #92400e;
-  line-height: 1.5;
-}
-
-/* ⭐ V50: 删除错误提示样式 */
-.delete-error-msg {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.75rem 1rem;
-  background: #fef2f2;
-  border: 1px solid #fecaca;
-  border-radius: 8px;
-  margin-bottom: 1rem;
-  color: #dc2626;
-  font-size: 0.875rem;
-}
-
-.delete-error-msg i {
-  font-size: 1rem;
-  flex-shrink: 0;
-}
-
-/* 提交记录警告样式 */
-.submissions-warning {
-  display: flex;
-  align-items: flex-start;
-  gap: 0.75rem;
-  padding: 1rem 1.25rem;
-  background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
-  border: 2px solid #fca5a5;
-  border-radius: 10px;
-  margin: 1rem 0 1.5rem;
-  text-align: left;
-}
-
-.submissions-warning i {
-  color: #dc2626;
-  font-size: 1.5rem;
-  flex-shrink: 0;
-  margin-top: 0.125rem;
-}
-
-.warning-content {
-  flex: 1;
-}
-
-.warning-title {
-  margin: 0 0 0.5rem;
-  font-size: 0.9375rem;
-  font-weight: 600;
-  color: #991b1b;
-}
-
-.warning-title strong {
-  color: #dc2626;
-  font-size: 1.125rem;
-}
-
-.warning-desc {
-  margin: 0;
-  font-size: 0.8125rem;
-  color: #7f1d1d;
-  line-height: 1.5;
-}
-
-.warning-desc strong {
-  font-weight: 600;
-  text-decoration: underline;
-}
-
-.delete-confirm-actions {
-  display: flex;
-  justify-content: center;
-  gap: 0.75rem;
-}
-
-.btn-danger,
-.btn-danger-strong {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.625rem 1.25rem;
-  background: linear-gradient(135deg, #dc2626 0%, #ef4444 100%);
-  color: white;
-  border: none;
-  border-radius: 10px;
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.btn-danger:hover:not(:disabled),
-.btn-danger-strong:hover:not(:disabled) {
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(220, 38, 38, 0.3);
-}
-
-.btn-danger:disabled,
-.btn-danger-strong:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-.btn-danger-strong {
-  background: linear-gradient(135deg, #991b1b 0%, #dc2626 100%);
-  font-weight: 600;
-  animation: pulse-warning 2s ease-in-out infinite;
-}
-
-@keyframes pulse-warning {
-  0%, 100% {
-    box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.7);
-  }
-  50% {
-    box-shadow: 0 0 0 8px rgba(220, 38, 38, 0);
-  }
-}
-
-/* 响应式 */
-@media (max-width: 640px) {
-  .modal-panel {
-    margin: 16px;
-    max-height: calc(100vh - 32px);
-  }
-  
-  .dist-body {
-    flex-direction: column;
-  }
-  
-  .qr-section {
-    align-self: center;
-  }
-  
-  .modal-footer {
-    flex-direction: column;
-    gap: 16px;
-  }
-}
+@import './styles/view-links-panel.css';
 </style>

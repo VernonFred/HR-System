@@ -1,0 +1,369 @@
+  <div class="person-management">
+        <!-- 页面头部 -->
+    <header class="page-header">
+      <div class="header-icon">
+        <i class="ri-group-2-line"></i>
+      </div>
+      <div class="header-content">
+              <h1>人员管理</h1>
+            </div>
+    </header>
+
+    <!-- V45: 现代化工具栏 - 飞书/Notion风格 -->
+    <div class="toolbar">
+      <!-- 搜索框 -->
+      <div class="toolbar-search">
+            <i class="ri-search-line"></i>
+            <input
+              type="text"
+            v-model="searchQuery"
+            placeholder="搜索姓名、电话或岗位..."
+            />
+        </div>
+
+      <!-- 筛选器组 -->
+      <div class="toolbar-filters">
+        <div class="filter-chip" :class="{ active: filterYear !== null }">
+          <i class="ri-calendar-line"></i>
+          <select v-model="filterYear">
+            <option :value="null">全部年份</option>
+            <option v-for="year in yearOptions" :key="year" :value="year">{{ year }}年</option>
+          </select>
+        </div>
+        <div class="filter-chip" :class="{ active: filterMonth !== null }">
+          <i class="ri-calendar-event-line"></i>
+          <select v-model="filterMonth">
+            <option :value="null">全部月份</option>
+            <option v-for="month in monthOptions" :key="month" :value="month">{{ month }}月</option>
+          </select>
+        </div>
+        <div class="filter-chip" :class="{ active: filterStatus !== 'all' }">
+          <i class="ri-checkbox-circle-line"></i>
+          <select v-model="filterStatus">
+            <option value="all">全部状态</option>
+            <option value="active">待测评</option>
+            <option value="completed">已完成</option>
+          </select>
+        </div>
+      </div>
+
+        <!-- 视图切换 -->
+      <div class="toolbar-view">
+          <button
+          :class="['view-btn', { active: viewMode === 'list' }]"
+            @click="viewMode = 'list'"
+            title="列表视图"
+          >
+            <i class="ri-list-unordered"></i>
+          </button>
+          <button
+          :class="['view-btn', { active: viewMode === 'group' }]"
+            @click="viewMode = 'group'"
+            title="分组视图"
+          >
+          <i class="ri-layout-grid-line"></i>
+            </button>
+          </div>
+
+      <!-- 操作按钮 -->
+      <div class="toolbar-actions">
+        <button class="action-btn primary" @click="exportData">
+          <i class="ri-download-line"></i>
+          导出
+        </button>
+        <button
+          v-if="viewMode === 'list'"
+          :class="['action-btn', { danger: isSelectMode }]"
+          @click="toggleSelectMode"
+        >
+            <i :class="isSelectMode ? 'ri-close-line' : 'ri-checkbox-multiple-line'"></i>
+            {{ isSelectMode ? '取消' : '批量删除' }}
+          </button>
+        <button class="action-btn icon-only" @click="loadPersons" :disabled="loading" title="刷新">
+          <i class="ri-refresh-line" :class="{ spin: loading }"></i>
+        </button>
+          </div>
+        </div>
+
+    <!-- V44: 批量操作栏 - 仅列表模式显示 -->
+    <div v-if="isSelectMode && viewMode === 'list'" class="batch-bar">
+      <label class="select-all">
+        <input type="checkbox" :checked="selectedPersons.size === filteredPersons.length && filteredPersons.length > 0" @change="toggleSelectAll" />
+        <span>全选</span>
+      </label>
+      <span class="selected-count">已选 {{ selectedPersons.size }} 人</span>
+      <button class="btn-delete-batch" :disabled="selectedPersons.size === 0" @click="openBatchDeleteModal">
+        <i class="ri-delete-bin-line"></i>
+        删除选中
+      </button>
+        </div>
+
+    <!-- 统计信息 -->
+    <div class="stats-summary">
+      <div class="summary-item">
+        <span class="summary-value">{{ stats.total }}</span>
+        <span class="summary-label">人员总数</span>
+      </div>
+      <div class="summary-item active">
+        <i class="ri-time-fill"></i>
+        <span class="summary-value">{{ stats.active }}</span>
+        <span class="summary-label">待测评</span>
+      </div>
+      <div class="summary-item completed">
+        <i class="ri-checkbox-circle-fill"></i>
+        <span class="summary-value">{{ stats.completed }}</span>
+        <span class="summary-label">已完成</span>
+      </div>
+      <div class="summary-item total">
+        <i class="ri-file-list-3-line"></i>
+        <span class="summary-value">{{ stats.totalSubmissions }}</span>
+        <span class="summary-label">测评记录</span>
+      </div>
+    </div>
+
+    <!-- 内容区域 -->
+    <div class="content-card">
+          <div v-if="loading" class="loading-state">
+        <i class="ri-loader-4-line spin"></i>
+            <span>加载中...</span>
+          </div>
+
+      <div v-else-if="paginatedPersons.length === 0" class="empty-state">
+            <i class="ri-user-unfollow-line"></i>
+            <p>暂无人员数据</p>
+          </div>
+
+      <!-- 列表视图 -->
+      <div v-else-if="viewMode === 'list'" class="table-wrapper">
+        <table class="persons-table">
+            <thead>
+              <tr>
+                <th v-if="isSelectMode" class="cell-checkbox"><input type="checkbox" :checked="selectedPersons.size === filteredPersons.length" @change="toggleSelectAll" /></th>
+                <th>姓名</th>
+                <th>性别</th>
+                <th>联系方式</th>
+              <th>岗位</th>
+              <th>测评次数</th>
+              <th>完成率</th>
+              <th>最近测评</th>
+                <th>最近活动</th>
+                <th>操作</th>
+              </tr>
+            </thead>
+            <tbody>
+            <tr v-for="person in paginatedPersons" :key="person.phone || person.name" class="person-row" :class="{ selected: selectedPersons.has(person.phone || person.name) }">
+                <td v-if="isSelectMode" class="cell-checkbox"><input type="checkbox" :checked="selectedPersons.has(person.phone || person.name)" @change="togglePersonSelect(person)" /></td>
+                <td class="cell-name">
+                <div class="person-info">
+                  <span class="person-avatar">{{ person.name.charAt(0).toUpperCase() }}</span>
+                  <div class="person-detail">
+                    <span class="name">{{ person.name }}</span>
+                    <span v-if="person.email" class="email">{{ person.email }}</span>
+                  </div>
+                </div>
+                </td>
+                <td class="cell-gender">
+                  <span v-if="person.gender" class="gender-tag" :class="person.gender === '男' ? 'male' : 'female'">
+                    <i :class="person.gender === '男' ? 'ri-men-line' : 'ri-women-line'"></i>
+                    {{ person.gender }}
+                  </span>
+                  <span v-else class="no-data">--</span>
+                </td>
+              <td class="cell-phone">{{ person.phone || "--" }}</td>
+              <td class="cell-position">{{ person.position || "--" }}</td>
+              <td class="cell-count">
+                <span class="count-badge">{{ person.totalSubmissions }} 次</span>
+                </td>
+              <td class="cell-rate">
+                <div class="progress-bar">
+                  <div
+                    class="progress-fill"
+                    :style="{ width: person.totalSubmissions > 0 ? `${(person.completedSubmissions / person.totalSubmissions) * 100}%` : '0%' }"
+                  ></div>
+                </div>
+                <span class="rate-text">{{ person.completedSubmissions }}/{{ person.totalSubmissions }}</span>
+              </td>
+              <td class="cell-latest">
+                <div v-if="person.submissions.length > 0" class="latest-info">
+                  <span class="questionnaire-name">{{ person.submissions[0].questionnaire_name }}</span>
+                </div>
+                <span v-else class="no-data">--</span>
+                </td>
+              <td class="cell-time">{{ formatDate(person.lastActivity) }}</td>
+              <td class="cell-actions">
+                <button class="btn-action-delete" @click="openDeleteConfirmModal(person)" title="删除">
+                  <i class="ri-delete-bin-line"></i>
+                </button>
+              </td>
+              </tr>
+            </tbody>
+          </table>
+
+          <!-- 分页控件 -->
+          <div v-if="totalFilteredCount > pageSize" class="pagination-bar">
+            <button class="page-btn" :disabled="currentPage === 1" @click="changePage(currentPage - 1)" title="上一页">
+              <i class="ri-arrow-left-s-line"></i>
+            </button>
+            <span class="page-info">{{ currentPage }} / {{ totalPages }} (共 {{ totalFilteredCount }} 人)</span>
+            <button class="page-btn" :disabled="currentPage >= totalPages" @click="changePage(currentPage + 1)" title="下一页">
+              <i class="ri-arrow-right-s-line"></i>
+            </button>
+          </div>
+        </div>
+
+      <!-- 分组视图 -->
+      <div v-else class="grouped-view">
+        <!-- V45: 分组模式控制栏 - 类似专业测评 -->
+        <div class="grouped-controls">
+          <button class="btn-toggle-all" @click="toggleAllPersons">
+            <i :class="expandedPersons.size === filteredPersons.length ? 'ri-contract-up-down-line' : 'ri-expand-up-down-line'"></i>
+            {{ expandedPersons.size === filteredPersons.length ? '全部收起' : '全部展开' }}
+          </button>
+          <button
+            :class="['btn-batch-select', { active: isSelectMode }]"
+            @click="toggleSelectMode"
+          >
+            <i :class="isSelectMode ? 'ri-close-line' : 'ri-checkbox-multiple-line'"></i>
+            {{ isSelectMode ? '取消选择' : '批量删除' }}
+          </button>
+        </div>
+
+        <!-- V45: 批量操作栏 -->
+        <div v-if="isSelectMode" class="batch-action-bar">
+          <div class="batch-left">
+            <label class="select-all-checkbox">
+              <input
+                type="checkbox"
+                :checked="selectedPersons.size === filteredPersons.length && filteredPersons.length > 0"
+                @change="toggleSelectAll"
+              />
+              <span>全选</span>
+            </label>
+            <span class="selected-count">已选择 {{ selectedPersons.size }} 人</span>
+          </div>
+          <div class="batch-right">
+            <button
+              class="btn-batch-delete"
+              :disabled="selectedPersons.size === 0"
+              @click="openBatchDeleteConfirmModal"
+            >
+              <i class="ri-delete-bin-line"></i>
+              删除选中 ({{ selectedPersons.size }})
+            </button>
+          </div>
+        </div>
+
+        <!-- 人员分组卡片 -->
+        <div class="person-groups">
+          <div
+            v-for="person in paginatedPersons"
+            :key="person.phone || person.name"
+            class="person-group-card"
+            :class="{ expanded: expandedPersons.has(person.phone || person.name) }"
+          >
+            <!-- 分组头部 - V45: 标签放在名字旁边，类似专业测评分组样式 -->
+            <div
+              class="group-header"
+              @click="togglePersonExpand(person.phone || person.name)"
+            >
+              <!-- V45: 选择模式下显示复选框 -->
+              <input
+                v-if="isSelectMode"
+                type="checkbox"
+                class="group-checkbox"
+                :checked="selectedPersons.has(person.phone || person.name)"
+                @click.stop
+                @change="togglePersonSelect(person)"
+              />
+              <div class="group-main">
+                <span class="group-avatar">{{ person.name.charAt(0).toUpperCase() }}</span>
+                <div class="group-info">
+                  <div class="group-name-row">
+                  <span class="group-name">{{ person.name }}</span>
+                  <span class="group-phone">{{ person.phone || '--' }}</span>
+                    <!-- V45: 标签放在名字旁边 -->
+                <span class="stat-badge total">
+                  <i class="ri-file-list-3-line"></i>
+                  {{ person.totalSubmissions }}次测评
+                </span>
+                <span class="stat-badge completed" v-if="person.completedSubmissions > 0">
+                  <i class="ri-checkbox-circle-fill"></i>
+                  {{ person.completedSubmissions }}已完成
+                </span>
+                <span class="stat-badge latest" v-if="person.submissions.length > 0">
+                  <i class="ri-time-line"></i>
+                  {{ formatShortDate(person.lastActivity) }}
+                </span>
+              </div>
+                </div>
+              </div>
+              <button class="btn-delete-group" @click.stop="openDeleteConfirmModal(person)" title="删除">
+                <i class="ri-delete-bin-line"></i>
+              </button>
+              <i :class="['expand-icon', expandedPersons.has(person.phone || person.name) ? 'ri-arrow-up-s-line' : 'ri-arrow-down-s-line']"></i>
+            </div>
+
+            <!-- 展开的测评列表 -->
+            <div v-if="expandedPersons.has(person.phone || person.name)" class="group-submissions">
+              <div v-if="person.submissions.length === 0" class="no-submissions">
+                <i class="ri-inbox-line"></i>
+                <span>暂无测评记录</span>
+              </div>
+              <div
+                v-else
+                v-for="(sub, idx) in person.submissions"
+                :key="sub.id"
+                class="submission-item"
+              >
+                <div class="submission-order">#{{ idx + 1 }}</div>
+                <div class="submission-info">
+                  <span class="submission-questionnaire">{{ sub.questionnaire_name || 'N/A' }}</span>
+                  <span class="submission-time">
+                    {{ sub.submitted_at ? formatDate(sub.submitted_at) : '进行中' }}
+                  </span>
+                </div>
+                <div class="submission-result">
+                  <span v-if="sub.total_score !== null && sub.total_score !== undefined" class="score">{{ sub.total_score }}分</span>
+                  <span v-if="sub.grade" class="grade" :class="`grade-${sub.grade.toLowerCase()}`">{{ sub.grade }}</span>
+                  <span :class="['status-mini', sub.status === 'completed' ? 'completed' : 'progress']">
+                    {{ sub.status === 'completed' ? '已完成' : '进行中' }}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 分页控件 -->
+        <div v-if="totalFilteredCount > pageSize" class="pagination-bar">
+          <button class="page-btn" :disabled="currentPage === 1" @click="changePage(currentPage - 1)" title="上一页">
+            <i class="ri-arrow-left-s-line"></i>
+          </button>
+          <span class="page-info">{{ currentPage }} / {{ totalPages }} (共 {{ totalFilteredCount }} 人)</span>
+          <button class="page-btn" :disabled="currentPage >= totalPages" @click="changePage(currentPage + 1)" title="下一页">
+            <i class="ri-arrow-right-s-line"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 提交详情弹窗 -->
+    <SubmissionDetailModal
+      v-if="showSubmissionDetailModal"
+      :submission="selectedSubmission"
+      @close="showSubmissionDetailModal = false"
+    />
+
+    <!-- V44: 删除确认弹窗 -->
+    <CustomAlert
+      :show="showDeleteConfirmModal"
+      :title="isBatchDelete ? '批量删除确认' : '删除确认'"
+      :message="isBatchDelete ? `确定要删除选中的 ${selectedPersons.size} 位人员吗？此操作不可恢复。` : `确定要删除「${deleteTargetPerson?.name}」吗？此操作不可恢复。`"
+      type="error"
+      confirm-text="确认删除"
+      cancel-text="取消"
+      :show-cancel="true"
+      @confirm="executeDelete"
+      @close="closeDeleteConfirmModal"
+    />
+      </div>
