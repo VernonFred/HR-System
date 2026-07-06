@@ -12,13 +12,14 @@ import { getQuestionTypeText, isTextQuestionType } from './questionnaireQuestion
 
 type FormatDate = (value?: string | null) => string
 type GetStatusLabel = (status: string) => string
+type ExportRow = Record<string, string | number>
 
 export const buildSubmissionRows = (
   submissions: Submission[],
   questionnaire: Questionnaire | null,
   formatDate: FormatDate,
   getStatusLabel: GetStatusLabel
-): Array<Record<string, string | number>> => {
+): ExportRow[] => {
   return submissions.map(record => ({
     '姓名': record.candidate_name || '',
     '联系方式': record.candidate_phone || '',
@@ -32,13 +33,23 @@ export const buildSubmissionRows = (
 
 export const buildQuestionStatsRows = (
   questionStats: QuestionnaireQuestionStats | null,
-): Array<Record<string, string | number>> => {
-  const rows: Array<Record<string, string | number>> = []
+): ExportRow[] => {
+  const rows: ExportRow[] = []
   if (!questionStats?.questions?.length) return rows
 
   questionStats.questions.forEach((question: QuestionStat) => {
     const questionLabel = `Q${question.index}`
     const questionType = getQuestionTypeText(question.type)
+    const scoreColumns = {
+      '平均原始分': question.score_stats?.average_raw_score ?? '',
+      '原始满分': question.score_stats?.max_raw_score ?? '',
+      '平均得分': question.score_stats?.average_score ?? '',
+      '题目满分': question.score_stats?.max_score ?? '',
+      '平均得分率': question.score_stats?.average_percentage !== undefined && question.score_stats?.average_percentage !== null
+        ? `${question.score_stats.average_percentage}%`
+        : '',
+      '计分回答数': question.score_stats?.scored_answer_count ?? '',
+    }
 
     if (question.options?.length) {
       question.options.forEach((option) => {
@@ -49,6 +60,7 @@ export const buildQuestionStatsRows = (
           '选项/答案': option.text || '',
           '人数': option.count ?? 0,
           '占比': `${option.percentage ?? 0}%`,
+          ...scoreColumns,
         })
       })
       return
@@ -65,6 +77,7 @@ export const buildQuestionStatsRows = (
           '选项/答案': `[标签] ${item.text || ''}`,
           '人数': item.count ?? 0,
           '占比': '',
+          ...scoreColumns,
         })
       })
       longAnswers.forEach((item) => {
@@ -75,6 +88,7 @@ export const buildQuestionStatsRows = (
           '选项/答案': `[文本] ${item.text || ''}`,
           '人数': item.count ?? 0,
           '占比': '',
+          ...scoreColumns,
         })
       })
       return
@@ -87,6 +101,7 @@ export const buildQuestionStatsRows = (
       '选项/答案': '(无选项统计)',
       '人数': question.total_answers ?? 0,
       '占比': '',
+      ...scoreColumns,
     })
   })
 

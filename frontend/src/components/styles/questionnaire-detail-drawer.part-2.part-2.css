@@ -65,6 +65,50 @@
 }
 
 
+/* 分数摘要 */
+
+.score-summary-panel {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 12px;
+  margin: -8px 0 24px;
+}
+
+
+.score-summary-item {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+  padding: 16px;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  background: #ffffff;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
+}
+
+
+.score-summary-item span {
+  font-size: 12px;
+  font-weight: 600;
+  color: #64748b;
+}
+
+
+.score-summary-item strong {
+  font-size: 24px;
+  line-height: 1;
+  color: #0f172a;
+}
+
+
+.score-summary-item em {
+  font-style: normal;
+  font-size: 12px;
+  color: #94a3b8;
+}
+
+
 /* 等级分布 */
 
 .grade-distribution {

@@ -234,7 +234,7 @@ export function useQuestionnaireExports(options: UseQuestionnaireExportsOptions)
     renderStatsExportReport.value = true
     await nextTick()
     await delay(120)
-    const element = statsExportReportRef.value
+    const element = statsExportReportRef.value?.getElement()
     if (!element) throw new Error('找不到统计报告导出节点')
     return element
   }

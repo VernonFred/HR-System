@@ -29,7 +29,10 @@ defineProps<{
   getGradePercent: (grade: string) => number
   getGradePercentLabel: (grade: string) => number
   formatTrendDate: (date: string) => string
+  getTrendBarHeight: (count: number) => string
   isTextQuestion: (type: string) => boolean
+  getQuestionTypeLabel: (type: string) => string
+  getQuestionResponseText: (question: QuestionStat) => string
   getQuestionVisualLabel: (question: QuestionStat) => string
   getQuestionExportChartKey: (question: QuestionStat) => string
   getQuestionVisualMode: (question: QuestionStat) => string

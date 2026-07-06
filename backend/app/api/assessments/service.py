@@ -410,6 +410,18 @@ async def get_question_answer_statistics(
     return await _impl(session, questionnaire_id, trend_range=trend_range)
 
 
+async def recalculate_questionnaire_scores(
+    session: Session,
+    questionnaire_id: int,
+) -> Optional[Dict[str, Any]]:
+    """重算评分问卷历史提交得分."""
+    from app.api.assessments.score_recalculation_service import (
+        recalculate_questionnaire_scores as _impl,
+    )
+
+    return await _impl(session, questionnaire_id)
+
+
 async def export_submissions_to_excel(
     session: Session,
     category: Optional[str] = None,

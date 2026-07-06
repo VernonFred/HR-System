@@ -208,6 +208,15 @@
                 </div>
               </div>
               <div class="stat-card" v-if="isScored">
+                <div class="stat-icon score">
+                  <i class="ri-line-chart-line"></i>
+                </div>
+                <div class="stat-data">
+                  <span class="stat-value">{{ formatScoreValue(averageScoreDisplay) }}<small>/{{ formatScoreValue(scoreMaxDisplay) }}</small></span>
+                  <span class="stat-label">平均分</span>
+                </div>
+              </div>
+              <div class="stat-card" v-if="isScored">
                 <div class="stat-icon highlight">
                   <i class="ri-star-line"></i>
                 </div>
@@ -235,6 +244,28 @@
                 </div>
               </div>
             </div>
+            <div v-if="isScored && scoreSummary" class="score-summary-panel">
+              <div class="score-summary-item">
+                <span>计分人数</span>
+                <strong>{{ scoredSubmissionCount }}</strong>
+                <em>{{ scoreCompletionRate }}% 已计分</em>
+              </div>
+              <div class="score-summary-item">
+                <span>最高分</span>
+                <strong>{{ formatScoreValue(scoreSummary.highest_score) }}</strong>
+                <em>/ {{ formatScoreValue(scoreSummary.max_score) }}</em>
+              </div>
+              <div class="score-summary-item">
+                <span>最低分</span>
+                <strong>{{ formatScoreValue(scoreSummary.lowest_score) }}</strong>
+                <em>/ {{ formatScoreValue(scoreSummary.max_score) }}</em>
+              </div>
+              <div class="score-summary-item">
+                <span>平均得分率</span>
+                <strong>{{ formatScoreValue(scoreSummary.average_percentage) }}%</strong>
+                <em>按当前评分配置</em>
+              </div>
+            </div>
             <div v-if="!hasSubmissions" class="stats-empty-state">
               <div class="empty-icon">
                 <i class="ri-bar-chart-line"></i>
@@ -242,7 +273,7 @@
               <h4>暂无统计数据</h4>
               <p>分发问卷并收集回复后，统计数据将在这里显示</p>
             </div>
-            <div v-if="isScored && completedSubmissions.length > 0" class="grade-distribution">
+            <div v-if="isScored && (scoreSummary || completedSubmissions.length > 0)" class="grade-distribution">
               <h4><i class="ri-bar-chart-grouped-line"></i> 得分分布</h4>
               <div class="grade-bars">
                 <div v-for="gradeInfo in [ { grade: 'A', label: '优秀', color: '#10b981' }, { grade: 'B', label: '良好', color: '#3b82f6' }, { grade: 'C', label: '及格', color: '#f59e0b' }, { grade: 'D', label: '待提升', color: '#ef4444' } ]" :key="gradeInfo.grade" class="grade-bar" >
@@ -315,6 +346,10 @@
                       <span class="question-type-badge" :class="`type-${q.type}`">
                         {{ getQuestionTypeLabel(q.type) }}
                       </span>
+                      <span v-if="q.score_stats" class="question-score-pill">
+                        <i class="ri-medal-line"></i>
+                        {{ formatScoreValue(q.score_stats.average_score) }}/{{ formatScoreValue(q.score_stats.max_score) }}分
+                      </span>
                       <span v-if="isSingleChoiceQuestion(q.type) && q.options.length > 0"
                         class="question-type-toggle"
                       >
@@ -363,6 +398,24 @@
                                 升序
                               </button>
                             </div>
+                          </div>
+                        </div>
+                        <div v-if="q.score_stats" class="question-score-summary">
+                          <div>
+                            <span>原始均分</span>
+                            <strong>{{ formatScoreValue(q.score_stats.average_raw_score) }}/{{ formatScoreValue(q.score_stats.max_raw_score) }}</strong>
+                          </div>
+                          <div>
+                            <span>折算均分</span>
+                            <strong>{{ formatScoreValue(q.score_stats.average_score) }}/{{ formatScoreValue(q.score_stats.max_score) }}</strong>
+                          </div>
+                          <div>
+                            <span>得分率</span>
+                            <strong>{{ formatScoreValue(q.score_stats.average_percentage) }}%</strong>
+                          </div>
+                          <div>
+                            <span>计分回答</span>
+                            <strong>{{ q.score_stats.scored_answer_count }}人</strong>
                           </div>
                         </div>
                         <div class="option-detail-list">
@@ -448,5 +501,38 @@
       </div>
     </div>
   </div>
-  <QuestionnaireStatsExportReport v-if="renderStatsExportReport" ref="statsExportReportRef" :questionnaire="questionnaire" :question-stats="questionStats" :actual-submission-count="actualSubmissionCount" :is-scored="isScored" :completed-submissions="completedSubmissions" :grade-distribution="gradeDistribution" :high-score-rate="highScoreRate" :average-score="averageScore" :trend-range-label="trendRangeLabel" :trend-series="trendSeries" :stats-export-chart-images="statsExportChartImages" :get-export-date-text="getExportDateText" :get-grade-count="getGradeCount" :get-grade-percent="getGradePercent" :get-grade-percent-label="getGradePercentLabel" :format-trend-date="formatTrendDate" :is-text-question="isTextQuestion" :get-question-visual-label="getQuestionVisualLabel" :get-question-export-chart-key="getQuestionExportChartKey" :get-question-visual-mode="getQuestionVisualMode" :get-question-option-color="getQuestionOptionColor" :normalize-percentage="normalizePercentage" :get-question-export-option-width="getQuestionExportOptionWidth" :get-sorted-question-options="getSortedQuestionOptions" :get-text-tags="getTextTags" :get-text-empty-count="getTextEmptyCount" :get-text-long-answers="getTextLongAnswers" />
+  <QuestionnaireStatsExportReport
+    v-if="renderStatsExportReport"
+    ref="statsExportReportRef"
+    :questionnaire="questionnaire"
+    :question-stats="questionStats"
+    :actual-submission-count="actualSubmissionCount"
+    :is-scored="isScored"
+    :completed-submissions="completedSubmissions"
+    :grade-distribution="gradeDistribution"
+    :high-score-rate="highScoreRate"
+    :average-score="averageScore"
+    :trend-range-label="trendRangeLabel"
+    :trend-series="trendSeries"
+    :stats-export-chart-images="statsExportChartImages"
+    :get-export-date-text="getExportDateText"
+    :get-grade-count="getGradeCount"
+    :get-grade-percent="getGradePercent"
+    :get-grade-percent-label="getGradePercentLabel"
+    :format-trend-date="formatTrendDate"
+    :get-trend-bar-height="getTrendBarHeight"
+    :is-text-question="isTextQuestion"
+    :get-question-type-label="getQuestionTypeLabel"
+    :get-question-response-text="getQuestionResponseText"
+    :get-question-visual-label="getQuestionVisualLabel"
+    :get-question-export-chart-key="getQuestionExportChartKey"
+    :get-question-visual-mode="getQuestionVisualMode"
+    :get-question-option-color="getQuestionOptionColor"
+    :normalize-percentage="normalizePercentage"
+    :get-question-export-option-width="getQuestionExportOptionWidth"
+    :get-sorted-question-options="getSortedQuestionOptions"
+    :get-text-tags="getTextTags"
+    :get-text-empty-count="getTextEmptyCount"
+    :get-text-long-answers="getTextLongAnswers"
+  />
   <QuestionnaireDetailExportModals v-model:stats-export-format="statsExportFormat" v-model:export-format="exportFormat" :show-stats-export-modal="showStatsExportModal" :stats-export-loading="statsExportLoading" :question-stats="questionStats" :show-export-modal="showExportModal" :export-loading="exportLoading" :submissions="submissions" :show-export-success-toast="showExportSuccessToast" :show-stats-export-toast="showStatsExportToast" :stats-export-toast-type="statsExportToastType" :stats-export-toast-message="statsExportToastMessage" :show-batch-delete-modal="showBatchDeleteModal" :selected-submissions="selectedSubmissions" :format-date="formatDate" @close-stats-export-modal="closeStatsExportModal" @execute-stats-export="executeStatsExport" @close-export-modal="closeExportModal" @execute-export="executeExport" @close-batch-delete-modal="showBatchDeleteModal = false" @confirm-batch-delete="confirmBatchDelete" />

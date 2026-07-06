@@ -119,6 +119,18 @@ async def copy_questionnaire(
     return questionnaire
 
 
+@router.post("/questionnaires/{questionnaire_id}/recalculate-scores")
+async def recalculate_questionnaire_scores(
+    questionnaire_id: int,
+    session: Session = Depends(get_session)
+):
+    """按当前评分配置重算评分问卷历史提交得分."""
+    result = await service.recalculate_questionnaire_scores(session, questionnaire_id)
+    if result is None:
+        raise HTTPException(status_code=404, detail="问卷不存在")
+    return result
+
+
 @router.delete("/questionnaires/{questionnaire_id}", status_code=204)
 async def delete_questionnaire(
     questionnaire_id: int,

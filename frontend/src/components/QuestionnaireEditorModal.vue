@@ -50,7 +50,51 @@ const scoringEnabled = ref(true)
 const setScoringEnabled = (enabled: boolean) => {
   scoringEnabled.value = enabled
   form.value.category = enabled ? 'scored' : 'survey'
-  form.value.purpose = enabled ? 'assessment' : 'survey'
+  if (!enabled || !form.value.purpose) {
+    form.value.purpose = 'survey'
+  }
+}
+
+const buildScoringConfig = () => {
+  const totalScore = form.value.simpleScoring.totalScore
+  const passingScore = form.value.simpleScoring.passingScore
+  const grades = form.value.gradeConfig.map(item => ({
+    name: item.grade,
+    label: item.label,
+    min_score: item.minScore,
+    max_score: item.maxScore,
+  }))
+
+  if (!scoringEnabled.value) {
+    return { enabled: false, total_score: totalScore, passing_score: passingScore, grades: [] }
+  }
+
+  return {
+    enabled: true,
+    method: 'auto',
+    total_score: totalScore,
+    passing_score: passingScore,
+    grades,
+    totalScore,
+    passingScore,
+    gradeConfig: form.value.gradeConfig,
+  }
+}
+
+const applyScoringConfig = (scoringConfig: any) => {
+  const totalScore = scoringConfig?.total_score ?? scoringConfig?.totalScore
+  const passingScore = scoringConfig?.passing_score ?? scoringConfig?.passingScore
+  const gradeConfig = scoringConfig?.gradeConfig ?? scoringConfig?.grades?.map((item: any) => ({
+    grade: item.name ?? item.grade,
+    label: item.label,
+    minScore: item.min_score ?? item.minScore,
+    maxScore: item.max_score ?? item.maxScore,
+  }))
+  if (totalScore != null) form.value.simpleScoring.totalScore = totalScore
+  if (passingScore != null) form.value.simpleScoring.passingScore = passingScore
+  if (Array.isArray(gradeConfig) && gradeConfig.length > 0) {
+    form.value.gradeConfig = gradeConfig
+  }
 }
 
 // 题目列表
@@ -323,11 +367,7 @@ const save = async () => {
     // 是否启用评分配置
     const category = scoringEnabled.value ? 'scored' : 'survey'
     const customType = scoringEnabled.value ? 'scored' : 'non_scored'
-    const scoringConfig = scoringEnabled.value ? {
-      totalScore: form.value.simpleScoring.totalScore,
-      passingScore: form.value.simpleScoring.passingScore,
-      gradeConfig: form.value.gradeConfig,
-    } : {}
+    const scoringConfig = buildScoringConfig()
 
     const data: QuestionnaireCreate = {
       name: form.value.name,
@@ -346,7 +386,7 @@ const save = async () => {
       scoring_rules: {},
       custom_type: customType,
       scoring_config: scoringConfig,
-      purpose: scoringEnabled.value ? 'assessment' : 'survey',
+      purpose: form.value.purpose || 'survey',
     }
 
     if (isEdit.value && props.questionnaire) {
@@ -423,6 +463,8 @@ onMounted(async () => {
     // 编辑模式：加载问卷详情
     form.value.name = props.questionnaire.name
     form.value.type = props.questionnaire.type || 'CUSTOM'
+    form.value.category = props.questionnaire.category || 'survey'
+    form.value.purpose = props.questionnaire.purpose || 'survey'
     form.value.description = (props.questionnaire as any).description || ''
     form.value.estimated_minutes = props.questionnaire.estimated_minutes || 10
 
@@ -457,15 +499,7 @@ onMounted(async () => {
       // 加载评分配置
       const scoringConfig = (detail as any).scoring_config
       if (scored && scoringConfig) {
-        if (scoringConfig.totalScore) {
-          form.value.simpleScoring.totalScore = scoringConfig.totalScore
-        }
-        if (scoringConfig.passingScore) {
-          form.value.simpleScoring.passingScore = scoringConfig.passingScore
-        }
-        if (scoringConfig.gradeConfig) {
-          form.value.gradeConfig = scoringConfig.gradeConfig
-        }
+        applyScoringConfig(scoringConfig)
       }
     } catch (error) {
       console.error('加载问卷详情失败:', error)

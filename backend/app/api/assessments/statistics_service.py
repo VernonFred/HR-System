@@ -6,6 +6,10 @@ from sqlmodel import Session, select
 
 from app.models_assessment import Questionnaire, Submission
 from app.api.assessments.answer_export_service import _select_export_submissions
+from app.api.assessments.scoring_statistics import (
+    build_question_score_stats_map,
+    build_score_summary,
+)
 from app.api.assessments.statistics_normalizers import (
     _normalize_questionnaire_questions,
     _normalize_submission_answers,
@@ -192,10 +196,12 @@ async def get_question_answer_statistics(
             "average_duration_minutes": None,
             "questions": [],
             "daily_trend": [],
-            "grade_distribution": {"A": 0, "B": 0, "C": 0, "D": 0}
+            "grade_distribution": {"A": 0, "B": 0, "C": 0, "D": 0},
+            "score_summary": None,
         }
 
     questions_data = _normalize_questionnaire_questions(questionnaire)
+    question_score_stats = build_question_score_stats_map(questionnaire, questions_data, submissions)
 
     # 统计每道题的答案分布
     question_stats = []
@@ -362,11 +368,13 @@ async def get_question_answer_statistics(
             "total_answers": total_answers,
             "total_selections": total_selections,
             "options": option_stats,
-            "text_summary": text_summary
+            "text_summary": text_summary,
+            "score_stats": question_score_stats.get(str(q_id))
         })
 
     # 计算平均分（仅评分问卷）
     average_score = None
+    score_summary = build_score_summary(questionnaire, submissions)
     if questionnaire.category == "scored":
         valid_scores = [s.total_score for s in submissions if s.total_score is not None]
         if valid_scores:
@@ -442,6 +450,7 @@ async def get_question_answer_statistics(
         "questions": question_stats,
         "daily_trend": daily_trend,
         "grade_distribution": grade_distribution,
+        "score_summary": score_summary,
         "grade_percentages": {
             grade: round(count / total_submissions * 100, 1) if total_submissions > 0 else 0
             for grade, count in grade_distribution.items()

@@ -87,6 +87,37 @@
 }
 
 
+.question-score-summary {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+
+.question-score-summary div {
+  min-width: 0;
+  padding: 10px;
+  border: 1px solid #dbeafe;
+  border-radius: 10px;
+  background: #f8fbff;
+}
+
+
+.question-score-summary span {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 11px;
+  color: #64748b;
+}
+
+
+.question-score-summary strong {
+  font-size: 14px;
+  color: #0f172a;
+}
+
+
 .option-detail-list {
   display: flex;
   flex-direction: column;

@@ -24,6 +24,8 @@ import type {
   QuestionOptionStat,
   TextAnswerGroup,
   TextSummary,
+  ScoreSummary,
+  QuestionScoreStats,
   QuestionStat,
   DailyTrend,
   QuestionnaireQuestionStats,
@@ -52,6 +54,8 @@ export type {
   QuestionOptionStat,
   TextAnswerGroup,
   TextSummary,
+  ScoreSummary,
+  QuestionScoreStats,
   QuestionStat,
   DailyTrend,
   QuestionnaireQuestionStats,
@@ -160,6 +164,20 @@ export const copyQuestionnaire = (id: number) => {
     path: `/api/assessments/questionnaires/${id}/copy`,
     method: "POST",
     auth: false,
+  });
+};
+
+export const recalculateQuestionnaireScores = (id: number) => {
+  return apiRequestWithBody<{
+    questionnaire_id: number;
+    updated_count: number;
+    skipped_count: number;
+    average_score: number | null;
+    score_summary?: ScoreSummary | null;
+  }>({
+    path: `/api/assessments/questionnaires/${id}/recalculate-scores`,
+    method: "POST",
+    auth: true,
   });
 };
 
@@ -373,7 +391,8 @@ export const fetchQuestionnaireQuestionStats = (questionnaireId: number, range: 
       questions: [],
       daily_trend: [],
       grade_distribution: { A: 0, B: 0, C: 0, D: 0 },
-      grade_percentages: { A: 0, B: 0, C: 0, D: 0 }
+      grade_percentages: { A: 0, B: 0, C: 0, D: 0 },
+      score_summary: null,
     },
     auth: false,
   });

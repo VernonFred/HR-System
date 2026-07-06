@@ -139,6 +139,8 @@ export interface Submission {
   questionnaire_name?: string;
   questionnaire_type?: string;
   total_score?: number;
+  max_score?: number;
+  score_percentage?: number;
   grade?: string;
   status: string;
   started_at: string;
@@ -220,6 +222,24 @@ export interface TextSummary {
   total_answers?: number;
 }
 
+export interface ScoreSummary {
+  scored_submission_count: number;
+  max_score: number | null;
+  average_score: number | null;
+  highest_score: number | null;
+  lowest_score: number | null;
+  average_percentage: number | null;
+}
+
+export interface QuestionScoreStats {
+  scored_answer_count: number;
+  average_raw_score: number | null;
+  max_raw_score: number | null;
+  average_score: number | null;
+  max_score: number | null;
+  average_percentage: number | null;
+}
+
 export interface QuestionStat {
   id: string;
   index: number;
@@ -229,6 +249,7 @@ export interface QuestionStat {
   total_selections?: number;
   options: QuestionOptionStat[];
   text_summary?: TextSummary;
+  score_stats?: QuestionScoreStats | null;
 }
 
 export interface DailyTrend {
@@ -249,6 +270,7 @@ export interface QuestionnaireQuestionStats {
   daily_trend: DailyTrend[];
   grade_distribution: Record<string, number>;
   grade_percentages: Record<string, number>;
+  score_summary?: ScoreSummary | null;
 }
 
 export interface PublicAssessmentInfo {

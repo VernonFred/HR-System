@@ -64,6 +64,7 @@ dist-ssr/
 # Test files
 test_*.py
 *_test.py
+!backend/tests/test_custom_questionnaire_scoring.py
 !backend/tests/meeting_system_integration_test.py
 *.test.js
 

@@ -17,7 +17,7 @@ export const createDefaultQuestionnaireForm = () => ({
   category: 'scored',
   description: '',
   estimated_minutes: 10,
-  purpose: 'assessment' as 'survey' | 'assessment',
+  purpose: 'survey' as 'survey' | 'assessment',
   simpleScoring: {
     totalScore: 100,
     passingScore: 60,

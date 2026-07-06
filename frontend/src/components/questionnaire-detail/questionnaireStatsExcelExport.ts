@@ -26,16 +26,30 @@ interface ExportStatsAsExcelOptions {
   downloadBlob: (blob: Blob, fileName: string) => void
 }
 
-const getStatsOverviewRows = (options: ExportStatsAsExcelOptions) => [
-  { '指标': '问卷名称', '数值': options.questionnaire?.name || options.questionStats?.questionnaire_name || '' },
-  { '指标': '导出时间', '数值': options.exportDateText },
-  { '指标': '参与人数', '数值': options.actualSubmissionCount },
-  { '指标': '完成率', '数值': `${options.actualSubmissionCount > 0 ? (options.questionStats?.completion_rate ?? 100) : 0}%` },
-  { '指标': '题目数', '数值': options.questionStats?.questions.length || 0 },
-  { '指标': '平均分', '数值': (options.questionStats?.average_score ?? options.averageScore) || '' },
-  { '指标': '平均用时', '数值': options.questionStats?.average_duration_minutes ? `${options.questionStats.average_duration_minutes}分钟` : '' },
-  { '指标': '趋势范围', '数值': options.trendRangeLabel },
-]
+const getStatsOverviewRows = (options: ExportStatsAsExcelOptions) => {
+  const rows = [
+    { '指标': '问卷名称', '数值': options.questionnaire?.name || options.questionStats?.questionnaire_name || '' },
+    { '指标': '导出时间', '数值': options.exportDateText },
+    { '指标': '参与人数', '数值': options.actualSubmissionCount },
+    { '指标': '完成率', '数值': `${options.actualSubmissionCount > 0 ? (options.questionStats?.completion_rate ?? 100) : 0}%` },
+    { '指标': '题目数', '数值': options.questionStats?.questions.length || 0 },
+    { '指标': '平均分', '数值': (options.questionStats?.average_score ?? options.averageScore) || '' },
+  ]
+  const summary = options.questionStats?.score_summary
+  if (options.isScored && summary) {
+    rows.push(
+      { '指标': '计分人数', '数值': summary.scored_submission_count },
+      { '指标': '最高分', '数值': summary.highest_score ?? '' },
+      { '指标': '最低分', '数值': summary.lowest_score ?? '' },
+      { '指标': '平均得分率', '数值': summary.average_percentage != null ? `${summary.average_percentage}%` : '' },
+    )
+  }
+  rows.push(
+    { '指标': '平均用时', '数值': options.questionStats?.average_duration_minutes ? `${options.questionStats.average_duration_minutes}分钟` : '' },
+    { '指标': '趋势范围', '数值': options.trendRangeLabel },
+  )
+  return rows
+}
 
 const getStatsTrendRows = (options: ExportStatsAsExcelOptions) => {
   return options.trendSeries.map(day => ({

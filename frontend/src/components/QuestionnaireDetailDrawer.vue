@@ -248,8 +248,42 @@ const averageScore = computed(() => {
   return Math.round(scores.reduce((a, b) => a + b, 0) / scores.length * 10) / 10
 })
 
+const scoreSummary = computed(() => questionStats.value?.score_summary ?? null)
+
+const formatScoreValue = (value: number | null | undefined) => {
+  if (value === null || value === undefined) return '-'
+  return Number.isInteger(value) ? String(value) : value.toFixed(1)
+}
+
+const scoredSubmissionCount = computed(() => {
+  if (scoreSummary.value?.scored_submission_count !== undefined) {
+    return scoreSummary.value.scored_submission_count
+  }
+  return completedSubmissions.value.filter(s => s.total_score !== null && s.total_score !== undefined).length
+})
+
+const averageScoreDisplay = computed(() =>
+  scoreSummary.value?.average_score ?? questionStats.value?.average_score ?? averageScore.value
+)
+
+const scoreMaxDisplay = computed(() => scoreSummary.value?.max_score ?? 100)
+
+const scoreCompletionRate = computed(() => {
+  if (actualSubmissionCount.value === 0) return 0
+  return Math.round(scoredSubmissionCount.value / actualSubmissionCount.value * 100)
+})
+
 const gradeDistribution = computed(() => {
   const dist = { A: 0, B: 0, C: 0, D: 0 }
+  const apiDist = questionStats.value?.grade_distribution
+  if (apiDist && Object.values(apiDist).some(count => Number(count) > 0)) {
+    return {
+      A: apiDist.A || 0,
+      B: apiDist.B || 0,
+      C: apiDist.C || 0,
+      D: apiDist.D || 0,
+    }
+  }
   completedSubmissions.value.forEach(s => {
     const grade = (s.grade || 'D').toUpperCase() as keyof typeof dist
     if (grade in dist) dist[grade]++
@@ -263,8 +297,9 @@ const getGradeCount = (grade: string) => {
 }
 
 const getGradePercent = (grade: string) => {
-  if (completedSubmissions.value.length === 0) return 0
-  return getGradeCount(grade) / completedSubmissions.value.length * 100
+  const total = scoredSubmissionCount.value || completedSubmissions.value.length
+  if (total === 0) return 0
+  return getGradeCount(grade) / total * 100
 }
 
 const getGradePercentLabel = (grade: string) => Math.round(getGradePercent(grade))
@@ -290,7 +325,7 @@ const questionTotalPages = computed(() => {
 // ⭐ V43: 更有意义的统计指标
 const highScoreRate = computed(() => {
   // 优良率 = (A+B等级) / 总完成数
-  const total = completedSubmissions.value.length
+  const total = scoredSubmissionCount.value || completedSubmissions.value.length
   if (total === 0) return 0
   const highCount = gradeDistribution.value.A + gradeDistribution.value.B
   return Math.round((highCount / total) * 100)

@@ -101,6 +101,10 @@
     padding-left: 44px;
   }
 
+  .question-score-summary {
+    grid-template-columns: 1fr;
+  }
+
   .detail-panel-title {
     align-items: flex-start;
     flex-direction: column;
