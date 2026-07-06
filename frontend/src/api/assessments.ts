@@ -393,6 +393,10 @@ export const fetchQuestionnaireQuestionStats = (questionnaireId: number, range: 
       grade_distribution: { A: 0, B: 0, C: 0, D: 0 },
       grade_percentages: { A: 0, B: 0, C: 0, D: 0 },
       score_summary: null,
+      scoring_enabled: false,
+      score_status: 'not_scored',
+      scored_submission_count: 0,
+      unscored_submission_count: 0,
     },
     auth: false,
   });

@@ -14,7 +14,11 @@ import type {
   Questionnaire,
   Submission,
 } from '../api/assessments'
-import { fetchQuestionnaireQuestionStats, type QuestionnaireQuestionStats } from '../api/assessments'
+import {
+  fetchQuestionnaireQuestionStats,
+  recalculateQuestionnaireScores,
+  type QuestionnaireQuestionStats,
+} from '../api/assessments'
 import {
   getQuestionTypeLabel,
   isSingleChoiceQuestionType as isSingleChoiceQuestion,
@@ -151,6 +155,7 @@ const questionStats = ref<QuestionnaireQuestionStats | null>(null)
 const statsLoading = ref(false)
 const statsError = ref<string | null>(null)
 const trendRange = ref<'week' | 'month'>('week')
+const scoreRecalculating = ref(false)
 
 // ⭐ V43: 题目分析分页
 const questionPageSize = 10
@@ -239,6 +244,17 @@ const actualSubmissionCount = computed(() => {
   return completedSubmissions.value.length || props.submissions.length
 })
 
+const totalRecordCount = computed(() =>
+  props.submissions.length || actualSubmissionCount.value
+)
+
+const completionRateDisplay = computed(() => {
+  if (totalRecordCount.value > 0) {
+    return Math.round(actualSubmissionCount.value / totalRecordCount.value * 100)
+  }
+  return actualSubmissionCount.value > 0 ? (questionStats.value?.completion_rate ?? 100) : 0
+})
+
 const averageScore = computed(() => {
   const scores = completedSubmissions.value
     .filter(s => s.total_score !== null && s.total_score !== undefined)
@@ -249,6 +265,9 @@ const averageScore = computed(() => {
 })
 
 const scoreSummary = computed(() => questionStats.value?.score_summary ?? null)
+const hasScoreSummary = computed(() =>
+  Boolean(scoreSummary.value && (scoreSummary.value.scored_submission_count ?? 0) > 0)
+)
 
 const formatScoreValue = (value: number | null | undefined) => {
   if (value === null || value === undefined) return '-'
@@ -259,12 +278,15 @@ const scoredSubmissionCount = computed(() => {
   if (scoreSummary.value?.scored_submission_count !== undefined) {
     return scoreSummary.value.scored_submission_count
   }
+  if (questionStats.value?.scored_submission_count !== undefined) {
+    return questionStats.value.scored_submission_count
+  }
   return completedSubmissions.value.filter(s => s.total_score !== null && s.total_score !== undefined).length
 })
 
-const averageScoreDisplay = computed(() =>
-  scoreSummary.value?.average_score ?? questionStats.value?.average_score ?? averageScore.value
-)
+const averageScoreDisplay = computed(() => (
+  hasScoreSummary.value ? scoreSummary.value?.average_score ?? null : null
+))
 
 const scoreMaxDisplay = computed(() => scoreSummary.value?.max_score ?? 100)
 
@@ -275,8 +297,19 @@ const scoreCompletionRate = computed(() => {
 
 const gradeDistribution = computed(() => {
   const dist = { A: 0, B: 0, C: 0, D: 0 }
+  const summaryDist = scoreSummary.value?.grade_distribution
+  if (summaryDist) {
+    return {
+      A: summaryDist.A || 0,
+      B: summaryDist.B || 0,
+      C: summaryDist.C || 0,
+      D: summaryDist.D || 0,
+    }
+  }
+  if (isScored.value && !hasScoreSummary.value) return dist
+
   const apiDist = questionStats.value?.grade_distribution
-  if (apiDist && Object.values(apiDist).some(count => Number(count) > 0)) {
+  if (apiDist) {
     return {
       A: apiDist.A || 0,
       B: apiDist.B || 0,
@@ -284,10 +317,6 @@ const gradeDistribution = computed(() => {
       D: apiDist.D || 0,
     }
   }
-  completedSubmissions.value.forEach(s => {
-    const grade = (s.grade || 'D').toUpperCase() as keyof typeof dist
-    if (grade in dist) dist[grade]++
-  })
   return dist
 })
 
@@ -297,7 +326,7 @@ const getGradeCount = (grade: string) => {
 }
 
 const getGradePercent = (grade: string) => {
-  const total = scoredSubmissionCount.value || completedSubmissions.value.length
+  const total = scoredSubmissionCount.value
   if (total === 0) return 0
   return getGradeCount(grade) / total * 100
 }
@@ -308,6 +337,29 @@ const getGradePercentLabel = (grade: string) => Math.round(getGradePercent(grade
 const isScored = computed(() => {
   return (props.questionnaire as any)?.category === 'scored' ||
          (props.questionnaire as any)?.custom_type === 'scored'
+})
+
+const scoreStatus = computed(() => {
+  if (!isScored.value) return 'not_scored'
+  if (questionStats.value?.score_status) return questionStats.value.score_status
+  if (hasScoreSummary.value) return 'scored'
+  return actualSubmissionCount.value > 0 ? 'pending_recalculation' : 'no_submissions'
+})
+
+const shouldShowScoreNotice = computed(() =>
+  isScored.value && ['pending_recalculation', 'partially_scored'].includes(scoreStatus.value)
+)
+
+const scoreNoticeTitle = computed(() =>
+  scoreStatus.value === 'partially_scored' ? '部分答卷尚未计分' : '历史答卷尚未计分'
+)
+
+const scoreNoticeMessage = computed(() => {
+  const count = questionStats.value?.unscored_submission_count ?? actualSubmissionCount.value
+  if (scoreStatus.value === 'partially_scored') {
+    return `还有 ${count} 份完成答卷未生成分数，重算后平均分、优良率和分布会按全部已计分答卷更新。`
+  }
+  return `已启用评分配置，但 ${count} 份完成答卷尚未生成分数。请重算历史得分后查看平均分、优良率和得分分布。`
 })
 
 // ⭐ V43: 题目分析分页计算
@@ -323,13 +375,20 @@ const questionTotalPages = computed(() => {
 })
 
 // ⭐ V43: 更有意义的统计指标
-const highScoreRate = computed(() => {
-  // 优良率 = (A+B等级) / 总完成数
-  const total = scoredSubmissionCount.value || completedSubmissions.value.length
-  if (total === 0) return 0
+const highScoreRate = computed<number | null>(() => {
+  if (!hasScoreSummary.value) return null
+  if (scoreSummary.value?.high_score_rate !== null && scoreSummary.value?.high_score_rate !== undefined) {
+    return Math.round(scoreSummary.value.high_score_rate)
+  }
   const highCount = gradeDistribution.value.A + gradeDistribution.value.B
+  const total = scoredSubmissionCount.value
+  if (total === 0) return null
   return Math.round((highCount / total) * 100)
 })
+
+const highScoreRateLabel = computed(() =>
+  highScoreRate.value === null ? '-' : `${highScoreRate.value}%`
+)
 
 const {
   questionChartSetOptionOpts,
@@ -408,6 +467,20 @@ const selectSubmission = (sub: Submission) => {
 
 const handleDeleteSubmission = (sub: Submission) => {
   emit('delete-submission', sub)
+}
+
+const handleRecalculateScores = async () => {
+  if (!props.questionnaire?.id || scoreRecalculating.value) return
+  scoreRecalculating.value = true
+  try {
+    await recalculateQuestionnaireScores(props.questionnaire.id)
+    await loadQuestionStats()
+  } catch (error) {
+    console.error('重算历史得分失败:', error)
+    alert('重算历史得分失败，请稍后重试')
+  } finally {
+    scoreRecalculating.value = false
+  }
 }
 
 // 切换候选人展开状态

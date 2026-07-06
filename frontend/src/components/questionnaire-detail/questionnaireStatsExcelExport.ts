@@ -27,13 +27,16 @@ interface ExportStatsAsExcelOptions {
 }
 
 const getStatsOverviewRows = (options: ExportStatsAsExcelOptions) => {
+  const averageScore = options.questionStats?.score_summary?.average_score
+    ?? options.questionStats?.average_score
+    ?? null
   const rows = [
     { '指标': '问卷名称', '数值': options.questionnaire?.name || options.questionStats?.questionnaire_name || '' },
     { '指标': '导出时间', '数值': options.exportDateText },
     { '指标': '参与人数', '数值': options.actualSubmissionCount },
     { '指标': '完成率', '数值': `${options.actualSubmissionCount > 0 ? (options.questionStats?.completion_rate ?? 100) : 0}%` },
     { '指标': '题目数', '数值': options.questionStats?.questions.length || 0 },
-    { '指标': '平均分', '数值': (options.questionStats?.average_score ?? options.averageScore) || '' },
+    { '指标': '平均分', '数值': averageScore ?? '' },
   ]
   const summary = options.questionStats?.score_summary
   if (options.isScored && summary) {
@@ -60,6 +63,7 @@ const getStatsTrendRows = (options: ExportStatsAsExcelOptions) => {
 }
 
 const getStatsGradeRows = (options: ExportStatsAsExcelOptions) => {
+  const scoredTotal = options.questionStats?.score_summary?.scored_submission_count ?? 0
   return [
     { grade: 'A', label: '优秀' },
     { grade: 'B', label: '良好' },
@@ -67,8 +71,8 @@ const getStatsGradeRows = (options: ExportStatsAsExcelOptions) => {
     { grade: 'D', label: '待提升' },
   ].map(item => {
     const count = options.gradeDistribution[item.grade as keyof GradeDistribution] || 0
-    const percentage = options.completedSubmissions.length > 0
-      ? Math.round(count / options.completedSubmissions.length * 100)
+    const percentage = scoredTotal > 0
+      ? Math.round(count / scoredTotal * 100)
       : 0
     return {
       '等级': item.grade,
@@ -102,7 +106,7 @@ export function exportStatsAsExcel(options: ExportStatsAsExcelOptions) {
   XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(getStatsOverviewRows(options)), '统计概览')
   XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(getStatsTrendRows(options)), '提交趋势')
 
-  if (options.isScored) {
+  if (options.isScored && options.questionStats?.score_summary) {
     XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(getStatsGradeRows(options)), '得分分布')
   }
 

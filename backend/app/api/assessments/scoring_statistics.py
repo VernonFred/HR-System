@@ -7,6 +7,9 @@ from app.custom_scoring import normalize_scoring_config, score_question_answer
 from app.models_assessment import Questionnaire, Submission
 
 
+GRADE_KEYS = ("A", "B", "C", "D")
+
+
 def _clean_number(value: Optional[float], precision: int = 1) -> Optional[float | int]:
     if value is None:
         return None
@@ -16,6 +19,37 @@ def _clean_number(value: Optional[float], precision: int = 1) -> Optional[float 
 
 def _is_completed(submission: Submission) -> bool:
     return submission.status in COMPLETED_SUBMISSION_STATUSES
+
+
+def empty_grade_distribution() -> Dict[str, int]:
+    return {grade: 0 for grade in GRADE_KEYS}
+
+
+def _is_scored_submission(submission: Submission) -> bool:
+    return _is_completed(submission) and submission.total_score is not None
+
+
+def build_grade_distribution(submissions: List[Submission]) -> Dict[str, int]:
+    distribution = empty_grade_distribution()
+    for submission in submissions:
+        if not _is_scored_submission(submission):
+            continue
+        grade = (submission.grade or "").upper()
+        if grade in distribution:
+            distribution[grade] += 1
+    return distribution
+
+
+def build_grade_percentages(
+    grade_distribution: Dict[str, int],
+    denominator: int,
+) -> Dict[str, float | int]:
+    if denominator <= 0:
+        return {grade: 0 for grade in GRADE_KEYS}
+    return {
+        grade: _clean_number(count / denominator * 100)
+        for grade, count in grade_distribution.items()
+    }
 
 
 def _lookup_answer(answers: Dict[str, Any], question_id: Any, question_index: int) -> tuple[bool, Any]:
@@ -30,6 +64,31 @@ def _is_scoring_enabled(questionnaire: Questionnaire) -> bool:
     config = normalize_scoring_config(questionnaire.scoring_config, questionnaire.custom_type)
     is_scored = questionnaire.custom_type == "scored" or questionnaire.category == "scored"
     return is_scored and bool(config.get("enabled"))
+
+
+def build_score_state(questionnaire: Questionnaire, submissions: List[Submission]) -> Dict[str, Any]:
+    scoring_enabled = _is_scoring_enabled(questionnaire)
+    completed_count = sum(1 for submission in submissions if _is_completed(submission))
+    scored_count = sum(1 for submission in submissions if _is_scored_submission(submission))
+    unscored_count = max(completed_count - scored_count, 0)
+
+    if not scoring_enabled:
+        score_status = "not_scored"
+    elif completed_count == 0:
+        score_status = "no_submissions"
+    elif scored_count == 0:
+        score_status = "pending_recalculation"
+    elif unscored_count > 0:
+        score_status = "partially_scored"
+    else:
+        score_status = "scored"
+
+    return {
+        "scoring_enabled": scoring_enabled,
+        "score_status": score_status,
+        "scored_submission_count": scored_count,
+        "unscored_submission_count": unscored_count,
+    }
 
 
 def build_score_summary(questionnaire: Questionnaire, submissions: List[Submission]) -> Optional[Dict[str, Any]]:
@@ -65,6 +124,9 @@ def build_score_summary(questionnaire: Questionnaire, submissions: List[Submissi
     if not percentages and max_score > 0:
         percentages = [score / max_score * 100 for score in scores]
 
+    grade_distribution = build_grade_distribution(scored_submissions)
+    high_score_count = grade_distribution["A"] + grade_distribution["B"]
+
     return {
         "scored_submission_count": len(scored_submissions),
         "max_score": _clean_number(max_score),
@@ -72,6 +134,9 @@ def build_score_summary(questionnaire: Questionnaire, submissions: List[Submissi
         "highest_score": _clean_number(max(scores)),
         "lowest_score": _clean_number(min(scores)),
         "average_percentage": _clean_number(sum(percentages) / len(percentages)) if percentages else None,
+        "grade_distribution": grade_distribution,
+        "grade_percentages": build_grade_percentages(grade_distribution, len(scored_submissions)),
+        "high_score_rate": _clean_number(high_score_count / len(scored_submissions) * 100),
     }
 
 

@@ -199,7 +199,14 @@ def test_recalculate_questionnaire_scores_updates_completed_submissions_and_stat
             "highest_score": 80,
             "lowest_score": 60,
             "average_percentage": 70,
+            "grade_distribution": {"A": 0, "B": 1, "C": 1, "D": 0},
+            "grade_percentages": {"A": 0, "B": 50, "C": 50, "D": 0},
+            "high_score_rate": 50,
         }
+        assert stats["score_status"] == "scored"
+        assert stats["scored_submission_count"] == 2
+        assert stats["unscored_submission_count"] == 0
+        assert stats["grade_distribution"] == {"A": 0, "B": 1, "C": 1, "D": 0}
         assert stats["questions"][0]["score_stats"] == {
             "scored_answer_count": 2,
             "average_raw_score": 3.5,

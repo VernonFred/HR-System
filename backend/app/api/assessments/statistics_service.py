@@ -7,8 +7,12 @@ from sqlmodel import Session, select
 from app.models_assessment import Questionnaire, Submission
 from app.api.assessments.answer_export_service import _select_export_submissions
 from app.api.assessments.scoring_statistics import (
+    build_grade_distribution,
+    build_grade_percentages,
+    build_score_state,
     build_question_score_stats_map,
     build_score_summary,
+    empty_grade_distribution,
 )
 from app.api.assessments.statistics_normalizers import (
     _normalize_questionnaire_questions,
@@ -81,12 +85,9 @@ async def get_submission_statistics(
     pass_count = len([s for s in valid_scores if s >= 60])
     pass_rate = (pass_count / len(valid_scores) * 100) if valid_scores else 0
 
-    # 计算等级分布
-    grade_distribution = {"A": 0, "B": 0, "C": 0, "D": 0}
-    for s in all_submissions:
-        grade = (s.grade or "D").upper()
-        if grade in grade_distribution:
-            grade_distribution[grade] += 1
+    # 只统计真实已计分且有等级的提交，未计分不能默认归为 D。
+    grade_distribution = build_grade_distribution(all_submissions)
+    scored_total = len(valid_scores)
 
     # 构建返回数据
     return {
@@ -94,10 +95,7 @@ async def get_submission_statistics(
         "average_score": round(average_score, 2),
         "pass_rate": round(pass_rate, 2),
         "grade_distribution": grade_distribution,
-        "grade_percentages": {
-            grade: round(count / total * 100, 1) if total > 0 else 0
-            for grade, count in grade_distribution.items()
-        },
+        "grade_percentages": build_grade_percentages(grade_distribution, scored_total),
         "submissions": [
             {
                 "id": s.id,
@@ -196,8 +194,10 @@ async def get_question_answer_statistics(
             "average_duration_minutes": None,
             "questions": [],
             "daily_trend": [],
-            "grade_distribution": {"A": 0, "B": 0, "C": 0, "D": 0},
+            "grade_distribution": empty_grade_distribution(),
+            "grade_percentages": empty_grade_distribution(),
             "score_summary": None,
+            **build_score_state(questionnaire, []),
         }
 
     questions_data = _normalize_questionnaire_questions(questionnaire)
@@ -431,12 +431,9 @@ async def get_question_answer_statistics(
             "count": count
         })
 
-    # 等级分布
-    grade_distribution = {"A": 0, "B": 0, "C": 0, "D": 0}
-    for sub in submissions:
-        grade = (sub.grade or "D").upper()
-        if grade in grade_distribution:
-            grade_distribution[grade] += 1
+    # 等级分布只统计真实已计分提交，未重算的历史提交不能默认归为 D。
+    grade_distribution = build_grade_distribution(submissions)
+    scored_total = score_summary["scored_submission_count"] if score_summary else 0
 
     return {
         "questionnaire_id": questionnaire_id,
@@ -451,8 +448,6 @@ async def get_question_answer_statistics(
         "daily_trend": daily_trend,
         "grade_distribution": grade_distribution,
         "score_summary": score_summary,
-        "grade_percentages": {
-            grade: round(count / total_submissions * 100, 1) if total_submissions > 0 else 0
-            for grade, count in grade_distribution.items()
-        }
+        "grade_percentages": build_grade_percentages(grade_distribution, scored_total),
+        **build_score_state(questionnaire, submissions),
     }

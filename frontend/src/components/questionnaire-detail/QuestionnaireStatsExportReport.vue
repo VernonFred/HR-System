@@ -19,7 +19,7 @@ defineProps<{
   isScored: boolean
   completedSubmissions: Submission[]
   gradeDistribution: GradeDistribution
-  highScoreRate: number
+  highScoreRate: number | null
   averageScore: number
   trendRangeLabel: string
   trendSeries: TrendDay[]
@@ -82,7 +82,7 @@ defineExpose({
         </div>
         <div class="stats-export-metric">
           <span>{{ isScored ? '优良率' : '题目数' }}</span>
-          <strong>{{ isScored ? `${highScoreRate}%` : (questionStats?.questions?.length || 0) }}</strong>
+          <strong>{{ isScored ? (highScoreRate === null ? '-' : `${highScoreRate}%`) : (questionStats?.questions?.length || 0) }}</strong>
         </div>
         <div class="stats-export-metric">
           <span>平均用时</span>
@@ -91,7 +91,7 @@ defineExpose({
       </div>
     </section>
 
-    <section v-if="isScored && completedSubmissions.length > 0" class="stats-export-section">
+    <section v-if="isScored && questionStats?.score_summary" class="stats-export-section">
       <div class="stats-export-section-title">
         <h2>得分分布</h2>
         <span>按等级汇总</span>
@@ -115,7 +115,7 @@ defineExpose({
             <div
               class="stats-export-grade-fill"
               :style="{
-                width: completedSubmissions.length > 0
+                width: (questionStats?.score_summary?.scored_submission_count ?? 0) > 0
                   ? `${getGradePercent(gradeInfo.grade)}%`
                   : '0%',
                 background: gradeInfo.color

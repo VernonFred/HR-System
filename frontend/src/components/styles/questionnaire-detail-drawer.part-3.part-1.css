@@ -263,6 +263,11 @@
   white-space: nowrap;
 }
 
+.question-score-pill.muted {
+  background: #f1f5f9;
+  color: #64748b;
+}
+
 
 /* 选项分布 */
 

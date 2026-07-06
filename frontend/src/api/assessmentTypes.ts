@@ -229,6 +229,9 @@ export interface ScoreSummary {
   highest_score: number | null;
   lowest_score: number | null;
   average_percentage: number | null;
+  grade_distribution?: Record<string, number>;
+  grade_percentages?: Record<string, number>;
+  high_score_rate?: number | null;
 }
 
 export interface QuestionScoreStats {
@@ -271,6 +274,10 @@ export interface QuestionnaireQuestionStats {
   grade_distribution: Record<string, number>;
   grade_percentages: Record<string, number>;
   score_summary?: ScoreSummary | null;
+  scoring_enabled?: boolean;
+  score_status?: 'not_scored' | 'no_submissions' | 'pending_recalculation' | 'partially_scored' | 'scored';
+  scored_submission_count?: number;
+  unscored_submission_count?: number;
 }
 
 export interface PublicAssessmentInfo {

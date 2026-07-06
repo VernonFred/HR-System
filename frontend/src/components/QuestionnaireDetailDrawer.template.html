@@ -194,8 +194,8 @@
                   <i class="ri-group-line"></i>
                 </div>
                 <div class="stat-data">
-                  <span class="stat-value">{{ actualSubmissionCount }}</span>
-                  <span class="stat-label">参与人数</span>
+                  <span class="stat-value">{{ totalRecordCount }}</span>
+                  <span class="stat-label">答题记录</span>
                 </div>
               </div>
               <div class="stat-card">
@@ -203,8 +203,8 @@
                   <i class="ri-checkbox-circle-line"></i>
                 </div>
                 <div class="stat-data">
-                  <span class="stat-value">{{ actualSubmissionCount > 0 ? (questionStats?.completion_rate ?? 100) : 0 }}%</span>
-                  <span class="stat-label">完成率</span>
+                  <span class="stat-value">{{ actualSubmissionCount }}<small>{{ completionRateDisplay }}%</small></span>
+                  <span class="stat-label">完成答卷</span>
                 </div>
               </div>
               <div class="stat-card" v-if="isScored">
@@ -212,7 +212,8 @@
                   <i class="ri-line-chart-line"></i>
                 </div>
                 <div class="stat-data">
-                  <span class="stat-value">{{ formatScoreValue(averageScoreDisplay) }}<small>/{{ formatScoreValue(scoreMaxDisplay) }}</small></span>
+                  <span v-if="hasScoreSummary" class="stat-value">{{ formatScoreValue(averageScoreDisplay) }}<small>/{{ formatScoreValue(scoreMaxDisplay) }}</small></span>
+                  <span v-else class="stat-value muted">待重算</span>
                   <span class="stat-label">平均分</span>
                 </div>
               </div>
@@ -221,7 +222,7 @@
                   <i class="ri-star-line"></i>
                 </div>
                 <div class="stat-data">
-                  <span class="stat-value">{{ highScoreRate }}%</span>
+                  <span class="stat-value" :class="{ muted: !hasScoreSummary }">{{ highScoreRateLabel }}</span>
                   <span class="stat-label">优良率</span>
                 </div>
               </div>
@@ -243,6 +244,19 @@
                   <span class="stat-label">平均用时</span>
                 </div>
               </div>
+            </div>
+            <div v-if="shouldShowScoreNotice" class="score-status-panel">
+              <div class="score-status-icon">
+                <i class="ri-refresh-line"></i>
+              </div>
+              <div class="score-status-content">
+                <h4>{{ scoreNoticeTitle }}</h4>
+                <p>{{ scoreNoticeMessage }}</p>
+              </div>
+              <button class="score-recalculate-btn" :disabled="scoreRecalculating" @click="handleRecalculateScores">
+                <i :class="scoreRecalculating ? 'ri-loader-4-line spin' : 'ri-calculator-line'"></i>
+                {{ scoreRecalculating ? '重算中' : '重算历史得分' }}
+              </button>
             </div>
             <div v-if="isScored && scoreSummary" class="score-summary-panel">
               <div class="score-summary-item">
@@ -273,7 +287,7 @@
               <h4>暂无统计数据</h4>
               <p>分发问卷并收集回复后，统计数据将在这里显示</p>
             </div>
-            <div v-if="isScored && (scoreSummary || completedSubmissions.length > 0)" class="grade-distribution">
+            <div v-if="isScored && hasScoreSummary" class="grade-distribution">
               <h4><i class="ri-bar-chart-grouped-line"></i> 得分分布</h4>
               <div class="grade-bars">
                 <div v-for="gradeInfo in [ { grade: 'A', label: '优秀', color: '#10b981' }, { grade: 'B', label: '良好', color: '#3b82f6' }, { grade: 'C', label: '及格', color: '#f59e0b' }, { grade: 'D', label: '待提升', color: '#ef4444' } ]" :key="gradeInfo.grade" class="grade-bar" >
@@ -349,6 +363,9 @@
                       <span v-if="q.score_stats" class="question-score-pill">
                         <i class="ri-medal-line"></i>
                         {{ formatScoreValue(q.score_stats.average_score) }}/{{ formatScoreValue(q.score_stats.max_score) }}分
+                      </span>
+                      <span v-else-if="isScored" class="question-score-pill muted">
+                        不计分
                       </span>
                       <span v-if="isSingleChoiceQuestion(q.type) && q.options.length > 0"
                         class="question-type-toggle"
