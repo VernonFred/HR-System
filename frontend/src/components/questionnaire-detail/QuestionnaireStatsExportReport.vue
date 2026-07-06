@@ -237,7 +237,6 @@ defineExpose({
                 </div>
               </div>
             </template>
-
             <template v-else>
               <div class="stats-export-detail-box">
                 <div class="detail-panel-title">
@@ -285,3 +284,7 @@ defineExpose({
 </div>
 
 </template>
+
+<style>
+@import '../styles/questionnaire-stats-export-report.css';
+</style>
