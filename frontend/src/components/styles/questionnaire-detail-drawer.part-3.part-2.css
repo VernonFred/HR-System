@@ -90,17 +90,29 @@
 .question-score-summary {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 8px;
-  margin-bottom: 12px;
+  gap: 10px 16px;
+  margin: 0 0 14px;
+  padding: 10px 0 12px;
+  border-top: 1px solid #e2e8f0;
+  border-bottom: 1px solid #e2e8f0;
 }
 
 
 .question-score-summary div {
+  position: relative;
   min-width: 0;
-  padding: 10px;
-  border: 1px solid #dbeafe;
-  border-radius: 10px;
-  background: #f8fbff;
+  padding: 0 0 0 10px;
+}
+
+.question-score-summary div::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 3px;
+  bottom: 3px;
+  width: 2px;
+  border-radius: 999px;
+  background: #bfdbfe;
 }
 
 

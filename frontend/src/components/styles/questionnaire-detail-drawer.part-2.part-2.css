@@ -80,12 +80,11 @@
 .score-summary-strip {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-  gap: 0;
-  margin: -8px 0 24px;
-  border: 1px solid #dbe3ef;
-  border-radius: 12px;
-  background: #ffffff;
-  overflow: hidden;
+  gap: 18px;
+  margin: -4px 0 26px;
+  padding: 4px 2px 18px;
+  border-bottom: 1px solid #dbe3ef;
+  background: transparent;
 }
 
 .score-status-panel {
@@ -160,27 +159,50 @@
 
 
 .score-summary-cell {
+  position: relative;
   display: flex;
   flex-direction: column;
   gap: 6px;
   min-width: 0;
-  padding: 14px 18px;
-  border-right: 1px solid #e2e8f0;
+  padding: 0 0 0 14px;
+  border-right: none;
 }
 
-.score-summary-cell:last-child {
-  border-right: none;
+.score-summary-cell::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 3px;
+  bottom: 4px;
+  width: 3px;
+  border-radius: 999px;
+  background: var(--score-metric-accent, #7c3aed);
+}
+
+.score-summary-cell:nth-child(1) { --score-metric-accent: #2563eb; }
+
+.score-summary-cell:nth-child(2) { --score-metric-accent: #10b981; }
+
+.score-summary-cell:nth-child(3) { --score-metric-accent: #f59e0b; }
+
+.score-summary-cell:nth-child(4) { --score-metric-accent: #7c3aed; }
+
+.score-summary-cell span,
+.score-summary-cell em {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .score-summary-cell span {
   font-size: 12px;
-  font-weight: 600;
+  font-weight: 700;
   color: #64748b;
 }
 
 
 .score-summary-cell strong {
-  font-size: 22px;
+  font-size: 24px;
   line-height: 1;
   color: #0f172a;
 }
@@ -229,19 +251,43 @@
 /* V43: 优化得分分布标签布局 */
 
 .grade-label-wrap {
-  width: 118px;
+  width: 142px;
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: 2px;
+  gap: 4px;
   flex-shrink: 0;
 }
 
+.grade-heading {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.grade-code {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+  border: 1px solid currentColor;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1;
+}
 
 .grade-text {
+  min-width: 0;
   font-size: 13px;
   font-weight: 700;
   opacity: 0.85;
+  overflow: hidden;
+  text-overflow: ellipsis;
   white-space: nowrap;
 }
 

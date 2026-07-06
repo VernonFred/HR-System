@@ -106,7 +106,7 @@ defineExpose({
           class="stats-export-grade-row"
         >
           <div class="stats-export-grade-label" :style="{ color: gradeInfo.color }">
-            <strong>{{ gradeInfo.label }}</strong>
+            <strong>{{ gradeInfo.grade }} {{ gradeInfo.label }}</strong>
             <span>{{ gradeInfo.minScore }}-{{ gradeInfo.maxScore }}</span>
           </div>
           <div class="stats-export-grade-track">

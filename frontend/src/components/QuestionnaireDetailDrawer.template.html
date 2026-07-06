@@ -292,7 +292,10 @@
               <div class="grade-bars">
                 <div v-for="gradeInfo in distributionRows" :key="gradeInfo.grade" class="grade-bar" >
                   <div class="grade-label-wrap" :style="{ color: gradeInfo.color }">
-                    <span class="grade-text">{{ gradeInfo.label }}</span>
+                    <span class="grade-heading">
+                      <span class="grade-code" :style="{ borderColor: gradeInfo.color }">{{ gradeInfo.grade }}</span>
+                      <span class="grade-text">{{ gradeInfo.label }}</span>
+                    </span>
                     <span class="grade-range">{{ gradeInfo.minScore }}-{{ gradeInfo.maxScore }}</span>
                   </div>
                   <div class="grade-track">

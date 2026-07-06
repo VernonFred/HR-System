@@ -74,6 +74,7 @@ const getStatsGradeRows = (options: ExportStatsAsExcelOptions) => {
       ? Math.round(count / scoredTotal * 100)
       : 0
     return {
+      '等级': item.grade,
       '分数区间': `${item.minScore}-${item.maxScore}`,
       '说明': item.label,
       [`数量(${options.scoringDisplayConfig.unitLabel})`]: count,
