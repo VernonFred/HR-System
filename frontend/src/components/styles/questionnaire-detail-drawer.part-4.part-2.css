@@ -63,6 +63,12 @@
 
 /* 响应式 */
 
+@media (max-width: 1280px) {
+  .stats-overview {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
 @media (max-width: 900px) {
   .drawer-panel {
     width: 100vw;
@@ -79,7 +85,19 @@
   }
 
   .stats-overview {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .score-summary-strip {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .score-summary-cell:nth-child(2n) {
+    border-right: none;
+  }
+
+  .score-summary-cell:nth-child(n + 3) {
+    border-top: 1px solid #e2e8f0;
   }
 
   .group-stats {
@@ -126,6 +144,33 @@
 
   .stats-format-options {
     flex-direction: column;
+  }
+}
+
+@media (max-width: 560px) {
+  .stats-overview,
+  .score-summary-strip {
+    grid-template-columns: 1fr;
+  }
+
+  .score-summary-cell,
+  .score-summary-cell:nth-child(2n) {
+    border-right: none;
+  }
+
+  .score-summary-cell + .score-summary-cell {
+    border-top: 1px solid #e2e8f0;
+  }
+
+  .grade-bar {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .grade-label-wrap,
+  .grade-count {
+    width: 100%;
+    text-align: left;
   }
 }
 

@@ -123,6 +123,41 @@
                   </div>
                 </div>
 
+                <div class="display-config">
+                  <label class="form-label">统计展示口径</label>
+                  <div class="display-preset-grid">
+                    <button
+                      v-for="option in displayPresetOptions"
+                      :key="option.preset"
+                      type="button"
+                      class="display-preset-btn"
+                      :class="{ active: form.displayConfig.preset === option.preset }"
+                      @click="setDisplayPreset(option.preset)"
+                    >
+                      <i :class="option.icon"></i>
+                      <span>{{ option.title }}</span>
+                    </button>
+                  </div>
+                  <div class="config-row display-copy-row">
+                    <div class="form-group">
+                      <label class="form-label">分布标题</label>
+                      <input type="text" class="form-input" v-model="form.displayConfig.distributionTitle" />
+                    </div>
+                    <div class="form-group">
+                      <label class="form-label">比率名称</label>
+                      <input type="text" class="form-input" v-model="form.displayConfig.rateLabel" />
+                    </div>
+                    <div class="form-group">
+                      <label class="form-label">统计单位</label>
+                      <input type="text" class="form-input" v-model="form.displayConfig.unitLabel" />
+                    </div>
+                    <div class="form-group">
+                      <label class="form-label">均分名称</label>
+                      <input type="text" class="form-input" v-model="form.displayConfig.averageLabel" />
+                    </div>
+                  </div>
+                </div>
+
                 <!-- 等级配置 -->
                 <div class="grade-config">
                   <label class="form-label">等级配置</label>

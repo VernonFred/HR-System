@@ -1,4 +1,5 @@
 import type { EditorQuestion } from './QuestionEditDialog.vue'
+import { createDefaultDisplayConfig, createDefaultGradeConfig } from '../utils/scoringDisplayConfig'
 
 export const questionControls: Array<{ type: EditorQuestion['type']; label: string; icon: string }> = [
   { type: 'radio', label: '单选题', icon: 'ri-radio-button-line' },
@@ -17,17 +18,13 @@ export const createDefaultQuestionnaireForm = () => ({
   category: 'scored',
   description: '',
   estimated_minutes: 10,
-  purpose: 'survey' as 'survey' | 'assessment',
+  purpose: 'survey' as 'survey' | 'assessment' | 'exam',
   simpleScoring: {
     totalScore: 100,
     passingScore: 60,
   },
-  gradeConfig: [
-    { grade: 'A', label: '优秀', minScore: 90, maxScore: 100 },
-    { grade: 'B', label: '良好', minScore: 75, maxScore: 89 },
-    { grade: 'C', label: '中等', minScore: 60, maxScore: 74 },
-    { grade: 'D', label: '待提升', minScore: 0, maxScore: 59 },
-  ],
+  displayConfig: createDefaultDisplayConfig('survey'),
+  gradeConfig: createDefaultGradeConfig('survey'),
 })
 
 export const mapImportedQuestionType = (importType: string): string => {

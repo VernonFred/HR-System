@@ -3,6 +3,7 @@ import type { QuestionStat, Questionnaire, Submission } from '../../api/assessme
 import type { QuestionnaireQuestionStats } from '../../api/assessments'
 import { isTextQuestionType as isTextQuestion } from '../../utils/questionnaireQuestionTypes'
 import { buildQuestionStatsRows } from '../../utils/questionnaireSubmissionExport'
+import type { DistributionRow, ScoringDisplayConfig } from '../../utils/scoringDisplayConfig'
 
 type GradeDistribution = { A: number; B: number; C: number; D: number }
 type TrendDay = { date: string; count: number }
@@ -14,6 +15,8 @@ interface ExportStatsAsExcelOptions {
   actualSubmissionCount: number
   averageScore: number
   gradeDistribution: GradeDistribution
+  scoringDisplayConfig: ScoringDisplayConfig
+  distributionRows: DistributionRow[]
   completedSubmissions: Submission[]
   isScored: boolean
   trendRangeLabel: string
@@ -36,12 +39,13 @@ const getStatsOverviewRows = (options: ExportStatsAsExcelOptions) => {
     { '指标': '参与人数', '数值': options.actualSubmissionCount },
     { '指标': '完成率', '数值': `${options.actualSubmissionCount > 0 ? (options.questionStats?.completion_rate ?? 100) : 0}%` },
     { '指标': '题目数', '数值': options.questionStats?.questions.length || 0 },
-    { '指标': '平均分', '数值': averageScore ?? '' },
+    { '指标': options.isScored ? options.scoringDisplayConfig.averageLabel : '平均分', '数值': averageScore ?? '' },
   ]
   const summary = options.questionStats?.score_summary
   if (options.isScored && summary) {
     rows.push(
-      { '指标': '计分人数', '数值': summary.scored_submission_count },
+      { '指标': `已计分${options.scoringDisplayConfig.unitLabel}`, '数值': summary.scored_submission_count },
+      { '指标': options.scoringDisplayConfig.rateLabel, '数值': summary.high_score_rate != null ? `${summary.high_score_rate}%` : '' },
       { '指标': '最高分', '数值': summary.highest_score ?? '' },
       { '指标': '最低分', '数值': summary.lowest_score ?? '' },
       { '指标': '平均得分率', '数值': summary.average_percentage != null ? `${summary.average_percentage}%` : '' },
@@ -64,20 +68,15 @@ const getStatsTrendRows = (options: ExportStatsAsExcelOptions) => {
 
 const getStatsGradeRows = (options: ExportStatsAsExcelOptions) => {
   const scoredTotal = options.questionStats?.score_summary?.scored_submission_count ?? 0
-  return [
-    { grade: 'A', label: '优秀' },
-    { grade: 'B', label: '良好' },
-    { grade: 'C', label: '及格' },
-    { grade: 'D', label: '待提升' },
-  ].map(item => {
+  return options.distributionRows.map(item => {
     const count = options.gradeDistribution[item.grade as keyof GradeDistribution] || 0
     const percentage = scoredTotal > 0
       ? Math.round(count / scoredTotal * 100)
       : 0
     return {
-      '等级': item.grade,
+      '分数区间': `${item.minScore}-${item.maxScore}`,
       '说明': item.label,
-      '人数': count,
+      [`数量(${options.scoringDisplayConfig.unitLabel})`]: count,
       '占比': `${percentage}%`,
     }
   })
@@ -107,7 +106,11 @@ export function exportStatsAsExcel(options: ExportStatsAsExcelOptions) {
   XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(getStatsTrendRows(options)), '提交趋势')
 
   if (options.isScored && options.questionStats?.score_summary) {
-    XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(getStatsGradeRows(options)), '得分分布')
+    XLSX.utils.book_append_sheet(
+      workbook,
+      XLSX.utils.json_to_sheet(getStatsGradeRows(options)),
+      options.scoringDisplayConfig.distributionTitle.slice(0, 31),
+    )
   }
 
   const questionRows = buildQuestionStatsRows(options.questionStats)

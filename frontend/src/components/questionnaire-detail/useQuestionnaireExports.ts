@@ -7,6 +7,7 @@ import { exportQuestionnaireSubmissions } from './questionnaireSubmissionExportR
 import { exportStatsAsExcel } from './questionnaireStatsExcelExport'
 import { delay, downloadBlob, downloadHref, pad2, sanitizeFileName } from './questionnaireExportFiles'
 import { renderQuestionChartImage } from './questionnaireChartImageExport'
+import type { DistributionRow, ScoringDisplayConfig } from '../../utils/scoringDisplayConfig'
 
 type GradeDistribution = { A: number; B: number; C: number; D: number }
 
@@ -23,6 +24,8 @@ type UseQuestionnaireExportsOptions = {
   averageScore: ComputedRef<number>
   completedSubmissions: ComputedRef<Submission[]>
   gradeDistribution: ComputedRef<GradeDistribution>
+  scoringDisplayConfig: ComputedRef<ScoringDisplayConfig>
+  distributionRows: ComputedRef<DistributionRow[]>
   isScored: ComputedRef<boolean>
   trendRangeLabel: ComputedRef<string>
   trendSeries: ComputedRef<TrendDay[]>
@@ -48,6 +51,8 @@ export function useQuestionnaireExports(options: UseQuestionnaireExportsOptions)
     averageScore,
     completedSubmissions,
     gradeDistribution,
+    scoringDisplayConfig,
+    distributionRows,
     isScored,
     trendRangeLabel,
     trendSeries,
@@ -195,6 +200,8 @@ export function useQuestionnaireExports(options: UseQuestionnaireExportsOptions)
       actualSubmissionCount: actualSubmissionCount.value,
       averageScore: averageScore.value,
       gradeDistribution: gradeDistribution.value,
+      scoringDisplayConfig: scoringDisplayConfig.value,
+      distributionRows: distributionRows.value,
       completedSubmissions: completedSubmissions.value,
       isScored: isScored.value,
       trendRangeLabel: trendRangeLabel.value,

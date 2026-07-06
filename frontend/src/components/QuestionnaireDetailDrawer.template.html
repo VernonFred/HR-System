@@ -214,7 +214,7 @@
                 <div class="stat-data">
                   <span v-if="hasScoreSummary" class="stat-value">{{ formatScoreValue(averageScoreDisplay) }}<small>/{{ formatScoreValue(scoreMaxDisplay) }}</small></span>
                   <span v-else class="stat-value muted">待重算</span>
-                  <span class="stat-label">平均分</span>
+                  <span class="stat-label">{{ scoringDisplayConfig.averageLabel }}</span>
                 </div>
               </div>
               <div class="stat-card" v-if="isScored">
@@ -223,7 +223,7 @@
                 </div>
                 <div class="stat-data">
                   <span class="stat-value" :class="{ muted: !hasScoreSummary }">{{ highScoreRateLabel }}</span>
-                  <span class="stat-label">优良率</span>
+                  <span class="stat-label">{{ scoringDisplayConfig.rateLabel }}</span>
                 </div>
               </div>
               <div class="stat-card" v-else>
@@ -258,23 +258,23 @@
                 {{ scoreRecalculating ? '重算中' : '重算历史得分' }}
               </button>
             </div>
-            <div v-if="isScored && scoreSummary" class="score-summary-panel">
-              <div class="score-summary-item">
-                <span>计分人数</span>
-                <strong>{{ scoredSubmissionCount }}</strong>
-                <em>{{ scoreCompletionRate }}% 已计分</em>
+            <div v-if="isScored && scoreSummary" class="score-summary-strip">
+              <div class="score-summary-cell">
+                <span>已计分</span>
+                <strong>{{ scoredSubmissionCount }}{{ scoringDisplayConfig.unitLabel }}</strong>
+                <em>{{ scoreCompletionRate }}%</em>
               </div>
-              <div class="score-summary-item">
+              <div class="score-summary-cell">
                 <span>最高分</span>
                 <strong>{{ formatScoreValue(scoreSummary.highest_score) }}</strong>
                 <em>/ {{ formatScoreValue(scoreSummary.max_score) }}</em>
               </div>
-              <div class="score-summary-item">
+              <div class="score-summary-cell">
                 <span>最低分</span>
                 <strong>{{ formatScoreValue(scoreSummary.lowest_score) }}</strong>
                 <em>/ {{ formatScoreValue(scoreSummary.max_score) }}</em>
               </div>
-              <div class="score-summary-item">
+              <div class="score-summary-cell">
                 <span>平均得分率</span>
                 <strong>{{ formatScoreValue(scoreSummary.average_percentage) }}%</strong>
                 <em>按当前评分配置</em>
@@ -288,19 +288,19 @@
               <p>分发问卷并收集回复后，统计数据将在这里显示</p>
             </div>
             <div v-if="isScored && hasScoreSummary" class="grade-distribution">
-              <h4><i class="ri-bar-chart-grouped-line"></i> 得分分布</h4>
+              <h4><i class="ri-bar-chart-grouped-line"></i> {{ scoringDisplayConfig.distributionTitle }}</h4>
               <div class="grade-bars">
-                <div v-for="gradeInfo in [ { grade: 'A', label: '优秀', color: '#10b981' }, { grade: 'B', label: '良好', color: '#3b82f6' }, { grade: 'C', label: '及格', color: '#f59e0b' }, { grade: 'D', label: '待提升', color: '#ef4444' } ]" :key="gradeInfo.grade" class="grade-bar" >
+                <div v-for="gradeInfo in distributionRows" :key="gradeInfo.grade" class="grade-bar" >
                   <div class="grade-label-wrap" :style="{ color: gradeInfo.color }">
-                    <span class="grade-letter">{{ gradeInfo.grade }}</span>
                     <span class="grade-text">{{ gradeInfo.label }}</span>
+                    <span class="grade-range">{{ gradeInfo.minScore }}-{{ gradeInfo.maxScore }}</span>
                   </div>
                   <div class="grade-track">
-                    <div class="grade-fill" :class="`grade-${gradeInfo.grade.toLowerCase()}`" :style="{ width: getGradePercent(gradeInfo.grade) + '%' }" ></div>
+                    <div class="grade-fill" :style="{ width: getGradePercent(gradeInfo.grade) + '%', background: gradeInfo.color }" ></div>
                   </div>
                   <span class="grade-count">
                     {{ getGradePercentLabel(gradeInfo.grade) }}%
-                    ({{ getGradeCount(gradeInfo.grade) }}人)
+                    ({{ getGradeCount(gradeInfo.grade) }}{{ scoringDisplayConfig.unitLabel }})
                   </span>
                 </div>
               </div>
@@ -527,6 +527,8 @@
     :is-scored="isScored"
     :completed-submissions="completedSubmissions"
     :grade-distribution="gradeDistribution"
+    :scoring-display-config="scoringDisplayConfig"
+    :distribution-rows="distributionRows"
     :high-score-rate="highScoreRate"
     :average-score="averageScore"
     :trend-range-label="trendRangeLabel"

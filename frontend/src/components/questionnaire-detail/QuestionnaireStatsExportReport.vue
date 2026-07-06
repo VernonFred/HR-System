@@ -7,6 +7,7 @@ import type {
   QuestionStat,
   Submission,
 } from '../../api/assessments'
+import type { DistributionRow, ScoringDisplayConfig } from '../../utils/scoringDisplayConfig'
 
 type GradeDistribution = { A: number; B: number; C: number; D: number }
 type TrendDay = { date: string; count: number }
@@ -19,6 +20,8 @@ defineProps<{
   isScored: boolean
   completedSubmissions: Submission[]
   gradeDistribution: GradeDistribution
+  scoringDisplayConfig: ScoringDisplayConfig
+  distributionRows: DistributionRow[]
   highScoreRate: number | null
   averageScore: number
   trendRangeLabel: string
@@ -81,7 +84,7 @@ defineExpose({
           <strong>{{ actualSubmissionCount > 0 ? (questionStats?.completion_rate ?? 100) : 0 }}%</strong>
         </div>
         <div class="stats-export-metric">
-          <span>{{ isScored ? '优良率' : '题目数' }}</span>
+          <span>{{ isScored ? scoringDisplayConfig.rateLabel : '题目数' }}</span>
           <strong>{{ isScored ? (highScoreRate === null ? '-' : `${highScoreRate}%`) : (questionStats?.questions?.length || 0) }}</strong>
         </div>
         <div class="stats-export-metric">
@@ -93,23 +96,18 @@ defineExpose({
 
     <section v-if="isScored && questionStats?.score_summary" class="stats-export-section">
       <div class="stats-export-section-title">
-        <h2>得分分布</h2>
-        <span>按等级汇总</span>
+        <h2>{{ scoringDisplayConfig.distributionTitle }}</h2>
+        <span>按评分区间汇总</span>
       </div>
       <div class="stats-export-grade-list">
         <div
-          v-for="gradeInfo in [
-            { grade: 'A', label: '优秀', color: '#10b981' },
-            { grade: 'B', label: '良好', color: '#3b82f6' },
-            { grade: 'C', label: '及格', color: '#f59e0b' },
-            { grade: 'D', label: '待提升', color: '#ef4444' }
-          ]"
+          v-for="gradeInfo in distributionRows"
           :key="`export-grade-${gradeInfo.grade}`"
           class="stats-export-grade-row"
         >
           <div class="stats-export-grade-label" :style="{ color: gradeInfo.color }">
-            <strong>{{ gradeInfo.grade }}</strong>
-            <span>{{ gradeInfo.label }}</span>
+            <strong>{{ gradeInfo.label }}</strong>
+            <span>{{ gradeInfo.minScore }}-{{ gradeInfo.maxScore }}</span>
           </div>
           <div class="stats-export-grade-track">
             <div
@@ -123,7 +121,7 @@ defineExpose({
             ></div>
           </div>
           <div class="stats-export-grade-count">
-            {{ getGradeCount(gradeInfo.grade) }}人
+            {{ getGradeCount(gradeInfo.grade) }}{{ scoringDisplayConfig.unitLabel }}
           </div>
         </div>
       </div>

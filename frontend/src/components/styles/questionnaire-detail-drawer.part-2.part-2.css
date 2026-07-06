@@ -38,7 +38,7 @@
 
 
 .stat-value small {
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 500;
   color: #64748b;
   margin-left: 2px;
@@ -49,34 +49,43 @@
   display: flex;
   flex-direction: column;
   gap: 4px;
+  min-width: 0;
 }
 
 
 .stat-value {
-  font-size: 28px;
+  font-size: 25px;
   font-weight: 700;
   color: #1e293b;
+  white-space: nowrap;
 }
 
 .stat-value.muted {
   color: #94a3b8;
-  font-size: 24px;
+  font-size: 22px;
 }
 
 
 .stat-label {
-  font-size: 14px;
+  font-size: 13px;
   color: #64748b;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 
 /* 分数摘要 */
 
-.score-summary-panel {
+.score-summary-strip {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-  gap: 12px;
+  gap: 0;
   margin: -8px 0 24px;
+  border: 1px solid #dbe3ef;
+  border-radius: 12px;
+  background: #ffffff;
+  overflow: hidden;
 }
 
 .score-status-panel {
@@ -150,34 +159,34 @@
 }
 
 
-.score-summary-item {
+.score-summary-cell {
   display: flex;
   flex-direction: column;
   gap: 6px;
   min-width: 0;
-  padding: 16px;
-  border: 1px solid #e2e8f0;
-  border-radius: 12px;
-  background: #ffffff;
-  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
+  padding: 14px 18px;
+  border-right: 1px solid #e2e8f0;
 }
 
+.score-summary-cell:last-child {
+  border-right: none;
+}
 
-.score-summary-item span {
+.score-summary-cell span {
   font-size: 12px;
   font-weight: 600;
   color: #64748b;
 }
 
 
-.score-summary-item strong {
-  font-size: 24px;
+.score-summary-cell strong {
+  font-size: 22px;
   line-height: 1;
   color: #0f172a;
 }
 
 
-.score-summary-item em {
+.score-summary-cell em {
   font-style: normal;
   font-size: 12px;
   color: #94a3b8;
@@ -220,25 +229,25 @@
 /* V43: 优化得分分布标签布局 */
 
 .grade-label-wrap {
-  width: 70px;
+  width: 118px;
   display: flex;
-  align-items: center;
-  gap: 6px;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
   flex-shrink: 0;
 }
 
 
-.grade-letter {
-  font-size: 16px;
-  font-weight: 700;
-}
-
-
 .grade-text {
-  font-size: 12px;
-  font-weight: 500;
+  font-size: 13px;
+  font-weight: 700;
   opacity: 0.85;
   white-space: nowrap;
+}
+
+.grade-range {
+  font-size: 11px;
+  color: #94a3b8;
 }
 
 

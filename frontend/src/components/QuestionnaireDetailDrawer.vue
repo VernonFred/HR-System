@@ -35,6 +35,10 @@ import { useQuestionVisuals } from './questionnaire-detail/useQuestionVisuals'
 import { useTrendChart } from './questionnaire-detail/useTrendChart'
 import { useQuestionnaireExports } from './questionnaire-detail/useQuestionnaireExports'
 import { useGroupedSubmissions } from './questionnaire-detail/useGroupedSubmissions'
+import {
+  buildScoringDisplayConfig,
+  getDistributionRows,
+} from '../utils/scoringDisplayConfig'
 
 // ===== Props =====
 const props = defineProps<{
@@ -268,6 +272,11 @@ const scoreSummary = computed(() => questionStats.value?.score_summary ?? null)
 const hasScoreSummary = computed(() =>
   Boolean(scoreSummary.value && (scoreSummary.value.scored_submission_count ?? 0) > 0)
 )
+const scoringConfig = computed(() => (props.questionnaire as any)?.scoring_config || {})
+const scoringDisplayConfig = computed(() => buildScoringDisplayConfig({
+  purpose: props.questionnaire?.purpose,
+  scoringConfig: scoringConfig.value,
+}))
 
 const formatScoreValue = (value: number | null | undefined) => {
   if (value === null || value === undefined) return '-'
@@ -320,6 +329,10 @@ const gradeDistribution = computed(() => {
   return dist
 })
 
+const distributionRows = computed(() =>
+  getDistributionRows(scoringConfig.value, gradeDistribution.value, props.questionnaire?.purpose)
+)
+
 const getGradeCount = (grade: string) => {
   const key = grade.toUpperCase() as keyof typeof gradeDistribution.value
   return gradeDistribution.value[key] || 0
@@ -357,9 +370,9 @@ const scoreNoticeTitle = computed(() =>
 const scoreNoticeMessage = computed(() => {
   const count = questionStats.value?.unscored_submission_count ?? actualSubmissionCount.value
   if (scoreStatus.value === 'partially_scored') {
-    return `还有 ${count} 份完成答卷未生成分数，重算后平均分、优良率和分布会按全部已计分答卷更新。`
+    return `还有 ${count} 份完成答卷未生成分数，重算后平均分、${scoringDisplayConfig.value.rateLabel}和${scoringDisplayConfig.value.distributionTitle}会按全部已计分答卷更新。`
   }
-  return `已启用评分配置，但 ${count} 份完成答卷尚未生成分数。请重算历史得分后查看平均分、优良率和得分分布。`
+  return `已启用评分配置，但 ${count} 份完成答卷尚未生成分数。请重算历史得分后查看平均分、${scoringDisplayConfig.value.rateLabel}和${scoringDisplayConfig.value.distributionTitle}。`
 })
 
 // ⭐ V43: 题目分析分页计算
@@ -569,6 +582,8 @@ const {
   averageScore,
   completedSubmissions,
   gradeDistribution,
+  scoringDisplayConfig,
+  distributionRows,
   isScored,
   trendRangeLabel,
   trendSeries,

@@ -15,6 +15,13 @@ import CandidatePreviewPanel from './CandidatePreviewPanel.vue'
 import QuestionEditDialog, { type EditorQuestion } from './QuestionEditDialog.vue'
 import { createDefaultQuestionnaireForm, mapImportedQuestionType, questionControls } from './questionnaireEditorConfig'
 import {
+  buildScoringDisplayConfig,
+  createDefaultDisplayConfig,
+  createDefaultGradeConfig,
+  normalizeGradeConfig,
+  type ScoringDisplayPreset,
+} from '../utils/scoringDisplayConfig'
+import {
   createQuestionnaire,
   updateQuestionnaire,
   fetchQuestionnaireDetail,
@@ -47,11 +54,39 @@ const form = ref(createDefaultQuestionnaireForm())
 
 const scoringEnabled = ref(true)
 
+const displayPresetOptions: Array<{
+  preset: ScoringDisplayPreset
+  title: string
+  icon: string
+}> = [
+  { preset: 'survey_feedback', title: '课程/服务反馈', icon: 'ri-feedback-line' },
+  { preset: 'assessment_rating', title: '人员测评', icon: 'ri-user-star-line' },
+  { preset: 'exam_score', title: '考试成绩', icon: 'ri-file-list-2-line' },
+  { preset: 'custom', title: '自定义', icon: 'ri-edit-2-line' },
+]
+
 const setScoringEnabled = (enabled: boolean) => {
   scoringEnabled.value = enabled
   form.value.category = enabled ? 'scored' : 'survey'
   if (!enabled || !form.value.purpose) {
     form.value.purpose = 'survey'
+  }
+}
+
+const getPurposeForPreset = (preset: ScoringDisplayPreset) => {
+  if (preset === 'assessment_rating') return 'assessment'
+  if (preset === 'exam_score') return 'exam'
+  return 'survey'
+}
+
+const setDisplayPreset = (preset: ScoringDisplayPreset) => {
+  form.value.displayConfig = {
+    ...createDefaultDisplayConfig(getPurposeForPreset(preset)),
+    preset,
+  }
+  if (preset !== 'custom') {
+    form.value.purpose = getPurposeForPreset(preset)
+    form.value.gradeConfig = createDefaultGradeConfig(form.value.purpose)
   }
 }
 
@@ -66,7 +101,13 @@ const buildScoringConfig = () => {
   }))
 
   if (!scoringEnabled.value) {
-    return { enabled: false, total_score: totalScore, passing_score: passingScore, grades: [] }
+    return {
+      enabled: false,
+      total_score: totalScore,
+      passing_score: passingScore,
+      grades: [],
+      displayConfig: form.value.displayConfig,
+    }
   }
 
   return {
@@ -75,6 +116,7 @@ const buildScoringConfig = () => {
     total_score: totalScore,
     passing_score: passingScore,
     grades,
+    displayConfig: form.value.displayConfig,
     totalScore,
     passingScore,
     gradeConfig: form.value.gradeConfig,
@@ -84,17 +126,21 @@ const buildScoringConfig = () => {
 const applyScoringConfig = (scoringConfig: any) => {
   const totalScore = scoringConfig?.total_score ?? scoringConfig?.totalScore
   const passingScore = scoringConfig?.passing_score ?? scoringConfig?.passingScore
-  const gradeConfig = scoringConfig?.gradeConfig ?? scoringConfig?.grades?.map((item: any) => ({
-    grade: item.name ?? item.grade,
-    label: item.label,
-    minScore: item.min_score ?? item.minScore,
-    maxScore: item.max_score ?? item.maxScore,
+  const gradeConfig = normalizeGradeConfig(scoringConfig, form.value.purpose).map((item, index) => ({
+    grade: item.grade ?? item.name ?? String.fromCharCode(65 + index),
+    label: item.label ?? '',
+    minScore: item.minScore ?? item.min_score,
+    maxScore: item.maxScore ?? item.max_score,
   }))
   if (totalScore != null) form.value.simpleScoring.totalScore = totalScore
   if (passingScore != null) form.value.simpleScoring.passingScore = passingScore
   if (Array.isArray(gradeConfig) && gradeConfig.length > 0) {
     form.value.gradeConfig = gradeConfig
   }
+  form.value.displayConfig = buildScoringDisplayConfig({
+    purpose: form.value.purpose,
+    scoringConfig,
+  })
 }
 
 // 题目列表
