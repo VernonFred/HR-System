@@ -101,12 +101,14 @@
 }
 
 .stats-export-section-title span {
+  flex-shrink: 0;
   padding: 5px 12px;
   border-radius: 999px;
   background: #f1f5f9;
   color: #64748b;
   font-size: 13px;
   font-weight: 700;
+  white-space: nowrap;
 }
 
 .stats-export-overview {
@@ -115,11 +117,21 @@
   gap: 14px;
 }
 
+.stats-export-overview.is-scored {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 10px;
+}
+
 .stats-export-metric {
   padding: 18px;
   border-radius: 18px;
   background: linear-gradient(180deg, #f8fafc 0%, #ffffff 100%);
   border: 1px solid #e2e8f0;
+  min-width: 0;
+}
+
+.stats-export-overview.is-scored .stats-export-metric {
+  padding: 16px;
 }
 
 .stats-export-metric span {
@@ -128,12 +140,17 @@
   color: #64748b;
   font-size: 13px;
   font-weight: 700;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .stats-export-metric strong {
   color: #1e293b;
-  font-size: 28px;
+  font-size: 26px;
   font-weight: 900;
+  line-height: 1.15;
+  white-space: nowrap;
 }
 
 .stats-export-grade-list {
@@ -144,7 +161,7 @@
 
 .stats-export-grade-row {
   display: grid;
-  grid-template-columns: 160px 1fr 120px;
+  grid-template-columns: 220px 1fr 120px;
   align-items: center;
   gap: 14px;
 }
@@ -158,6 +175,8 @@
 
 .stats-export-grade-label strong {
   font-size: 15px;
+  line-height: 1.2;
+  white-space: nowrap;
 }
 
 .stats-export-grade-label span,
@@ -165,6 +184,7 @@
   color: #475569;
   font-size: 13px;
   font-weight: 700;
+  white-space: nowrap;
 }
 
 .stats-export-grade-track {
@@ -240,6 +260,7 @@
   border: 1px solid #dbe4f0;
   background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
   break-inside: avoid;
+  page-break-inside: avoid;
 }
 
 .stats-export-question-head {
@@ -281,6 +302,8 @@
   border-radius: 16px;
   border: 1px solid #e2e8f0;
   background: rgba(255, 255, 255, 0.88);
+  break-inside: avoid;
+  page-break-inside: avoid;
 }
 
 .stats-export-chart-box {
@@ -369,10 +392,11 @@
 .stats-export-static-head,
 .stats-export-report .option-detail-head,
 .stats-export-report .detail-panel-title {
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) max-content;
   align-items: center;
-  justify-content: space-between;
   gap: 14px;
+  min-width: 0;
 }
 
 .stats-export-static-label {
@@ -384,7 +408,10 @@
   font-size: 13px;
   line-height: 1.45;
   font-weight: 700;
-  word-break: break-word;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  word-break: normal;
 }
 
 .stats-export-static-label i {
@@ -401,6 +428,7 @@
   color: #6d28d9;
   font-size: 13px;
   font-weight: 900;
+  white-space: nowrap;
 }
 
 .stats-export-static-track,
@@ -451,10 +479,17 @@
   font-weight: 900;
 }
 
+.stats-export-report .detail-panel-title span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .stats-export-report .detail-panel-title em {
   color: #64748b;
   font-size: 12px;
   font-style: normal;
+  white-space: nowrap;
 }
 
 .stats-export-report .option-detail-list {
@@ -468,9 +503,14 @@
 }
 
 .stats-export-report .option-text {
+  display: block;
+  min-width: 0;
   color: #475569;
   font-size: 13px;
   line-height: 1.45;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .stats-export-report .empty-option-chart {

@@ -13,7 +13,7 @@ type GradeDistribution = { A: number; B: number; C: number; D: number }
 type TrendDay = { date: string; count: number }
 type TextAnswerItem = { text: string; count: number }
 
-defineProps<{
+const props = defineProps<{
   questionnaire: Questionnaire | null
   questionStats: QuestionnaireQuestionStats | null
   actualSubmissionCount: number
@@ -50,6 +50,18 @@ defineProps<{
 
 const reportElementRef = ref<HTMLElement | null>(null)
 
+const formatScore = (value: number | null | undefined) => {
+  if (value === null || value === undefined) return '-'
+  return Number.isInteger(value) ? String(value) : value.toFixed(1)
+}
+
+const getAverageScoreDisplay = () => {
+  const summary = props.questionStats?.score_summary
+  const average = summary?.average_score ?? props.averageScore
+  if (average === null || average === undefined || (average === 0 && !summary)) return '-'
+  return `${formatScore(average)}/${formatScore(summary?.max_score ?? 100)}`
+}
+
 defineExpose({
   getElement: () => reportElementRef.value,
 })
@@ -74,7 +86,7 @@ defineExpose({
         <h2>核心概览</h2>
         <span>{{ actualSubmissionCount }} 份提交</span>
       </div>
-      <div class="stats-export-overview">
+      <div class="stats-export-overview" :class="{ 'is-scored': isScored && questionStats?.score_summary }">
         <div class="stats-export-metric">
           <span>参与人数</span>
           <strong>{{ actualSubmissionCount }}</strong>
@@ -82,6 +94,10 @@ defineExpose({
         <div class="stats-export-metric">
           <span>完成率</span>
           <strong>{{ actualSubmissionCount > 0 ? (questionStats?.completion_rate ?? 100) : 0 }}%</strong>
+        </div>
+        <div v-if="isScored && questionStats?.score_summary" class="stats-export-metric">
+          <span>{{ scoringDisplayConfig.averageLabel }}</span>
+          <strong>{{ getAverageScoreDisplay() }}</strong>
         </div>
         <div class="stats-export-metric">
           <span>{{ isScored ? scoringDisplayConfig.rateLabel : '题目数' }}</span>

@@ -273,22 +273,19 @@ export function useQuestionnaireExports(options: UseQuestionnaireExportsOptions)
   ): StatsExportSliceRange[] => {
     const safeBreakpoints = new Set<number>([0, totalHeight])
     const breakableSelectors = [
-      '.stats-export-hero',
-      '.stats-export-section',
-      '.stats-export-question-card',
-      '.stats-export-question-head',
-      '.stats-export-question-body',
-      '.stats-export-detail-box',
-      '.stats-export-chart-box',
-      '.stats-export-static-row',
-      '.stats-export-text-list .text-answer-item'
+      { selector: '.stats-export-hero' },
+      { selector: '.stats-export-section' },
+      { selector: '.stats-export-question-card', includeTop: false },
+      { selector: '.stats-export-text-list .text-answer-item' }
     ]
 
-    breakableSelectors.forEach(selector => {
+    breakableSelectors.forEach(({ selector, includeTop = true, includeBottom = true }) => {
       element.querySelectorAll<HTMLElement>(selector).forEach(node => {
         const bounds = getElementRelativeBounds(element, node)
-        if (bounds.top > 0 && bounds.top < totalHeight) safeBreakpoints.add(bounds.top)
-        if (bounds.bottom > 0 && bounds.bottom < totalHeight) safeBreakpoints.add(bounds.bottom)
+        if (includeTop && bounds.top > 0 && bounds.top < totalHeight) safeBreakpoints.add(bounds.top)
+        if (includeBottom && bounds.bottom > 0 && bounds.bottom < totalHeight) {
+          safeBreakpoints.add(bounds.bottom)
+        }
       })
     })
 
