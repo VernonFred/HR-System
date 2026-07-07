@@ -288,6 +288,12 @@
 }
 
 
+.tag-limit {
+  background: #ecfdf5;
+  color: #047857;
+}
+
+
 .question-body {
   min-height: 300px;
 }

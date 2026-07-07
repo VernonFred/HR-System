@@ -3,6 +3,10 @@ import { onMounted, ref, computed, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { submitAnswers } from "../api/assessments";
 import CustomAlert from "../components/CustomAlert.vue";
+import {
+  getCheckboxMaxSelections,
+  toggleCheckboxSelection,
+} from "../utils/checkboxSelectionLimit";
 
 const route = useRoute();
 const router = useRouter();
@@ -88,17 +92,27 @@ const handleConfirmAction = () => {
   confirmConfig.value.onConfirm?.();
 };
 
+const hasAnswer = (answer: any) => {
+  if (Array.isArray(answer)) return answer.length > 0;
+  return answer !== undefined && answer !== null && answer !== "";
+};
+
 const currentQuestion = computed(() => questions.value[currentIndex.value]);
+const answeredCount = computed(() => {
+  return questions.value.filter(q => hasAnswer(answers.value[q.id])).length;
+});
 const progress = computed(() => {
   if (questions.value.length === 0) return 0;
-  const answered = Object.keys(answers.value).length;
-  return Math.round((answered / questions.value.length) * 100);
+  return Math.round((answeredCount.value / questions.value.length) * 100);
 });
-const answeredCount = computed(() => Object.keys(answers.value).length);
 const isLastQuestion = computed(() => currentIndex.value === questions.value.length - 1);
 const canGoNext = computed(() => {
   if (!currentQuestion.value) return false;
-  return !!answers.value[currentQuestion.value.id];
+  return hasAnswer(answers.value[currentQuestion.value.id]);
+});
+const currentQuestionMaxSelections = computed(() => {
+  if (currentQuestion.value?.type !== "checkbox") return null;
+  return getCheckboxMaxSelections(currentQuestion.value);
 });
 
 // ⭐ 从 sessionStorage 加载真实题目数据
@@ -183,6 +197,8 @@ const loadQuestions = async () => {
             // 文本题的特殊字段
             placeholder: q.placeholder,
             maxLength: q.maxLength,
+            // 多选题的最多可选数量
+            maxSelections: q.maxSelections ?? q.max_selections ?? null,
           };
         });
       }
@@ -243,16 +259,20 @@ const selectOption = (questionId: string, value: string) => {
 };
 
 // 切换多选选项
-const toggleCheckbox = (questionId: string, value: string) => {
-  if (!answers.value[questionId]) {
-    answers.value[questionId] = [];
+const toggleCheckbox = (question: any, value: string) => {
+  const questionId = String(question.id);
+  const maxSelections = getCheckboxMaxSelections(question);
+  const result = toggleCheckboxSelection(answers.value[questionId], value, maxSelections);
+
+  if (result.limitReached) {
+    showAlert(`本题最多可选择 ${maxSelections} 项`, 'warning', '已达到选择上限');
+    return;
   }
-  const arr = answers.value[questionId] as string[];
-  const idx = arr.indexOf(value);
-  if (idx > -1) {
-    arr.splice(idx, 1);
+
+  if (result.selection.length > 0) {
+    answers.value[questionId] = result.selection;
   } else {
-    arr.push(value);
+    delete answers.value[questionId];
   }
 };
 
@@ -278,7 +298,7 @@ const getEventValue = (event: Event) => {
 // 下一题
 const nextQuestion = () => {
   // ⭐ 检查当前题是否为必答且未完成
-  if (currentQuestion.value?.required && !answers.value[currentQuestion.value.id]) {
+  if (currentQuestion.value?.required && !hasAnswer(answers.value[currentQuestion.value.id])) {
     showAlert('请先完成当前必答题再继续', 'warning', '必答题提醒');
     return;
   }
@@ -309,7 +329,7 @@ const prevQuestion = () => {
 const goToQuestion = (index: number) => {
   if (index !== currentIndex.value) {
     // ⭐ 检查当前题是否为必答且未完成
-    if (currentQuestion.value?.required && !answers.value[currentQuestion.value.id]) {
+    if (currentQuestion.value?.required && !hasAnswer(answers.value[currentQuestion.value.id])) {
       showAlert('请先完成当前必答题再跳转', 'warning', '必答题提醒');
       return;
     }
@@ -326,7 +346,7 @@ const goToQuestion = (index: number) => {
 
 // 提交
 const handleSubmit = async () => {
-  const unanswered = questions.value.filter(q => q.required && !answers.value[q.id]);
+  const unanswered = questions.value.filter(q => q.required && !hasAnswer(answers.value[q.id]));
   if (unanswered.length > 0) {
     // ⭐ 必答题必须完成，不允许跳过
     showAlert(`请先完成所有必答题（还有 ${unanswered.length} 道未完成）`, 'warning', '无法提交');
@@ -348,9 +368,7 @@ const handleSubmit = async () => {
 
 // 检查题目是否已回答
 const isAnswered = (questionId: string) => {
-  const answer = answers.value[questionId];
-  if (Array.isArray(answer)) return answer.length > 0;
-  return !!answer;
+  return hasAnswer(answers.value[questionId]);
 };
 
 onMounted(() => {

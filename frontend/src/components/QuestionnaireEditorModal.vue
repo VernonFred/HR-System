@@ -287,6 +287,9 @@ const addQuestionFromDrag = (rawType: string) => {
       { label: '选项1', value: 'opt1' },
       { label: '选项2', value: 'opt2' },
     ]
+    if (type === 'checkbox') {
+      question.maxSelections = null
+    }
   } else if (type === 'scale') {
     question.scale = { min: 1, max: 5, minLabel: '非常不满意', maxLabel: '非常满意' }
   } else if (type === 'choice') {
@@ -403,6 +406,7 @@ const save = async () => {
         ...opt,
         allow_custom: opt.allowCustom,  // 转换为蛇形命名
       })),
+      maxSelections: q.type === 'checkbox' ? (q.maxSelections ?? undefined) : undefined,
       scale: q.scale,
       optionA: q.optionA,
       optionB: q.optionB,
@@ -482,11 +486,12 @@ onMounted(async () => {
       })) || []
 
       return {
-      id: q.id || generateId(),
+        id: q.id || generateId(),
         type: mappedType as EditorQuestion['type'],
-      text: q.text,
-      required: q.required !== false,
+        text: q.text,
+        required: q.required !== false,
         options: mappedOptions,
+        maxSelections: mappedType === 'checkbox' ? (q.maxSelections ?? q.max_selections ?? null) : undefined,
         // 量表题配置
         scale: mappedType === 'scale' ? { min: 1, max: 5, minLabel: '非常不满意', maxLabel: '非常满意' } : undefined,
       }
@@ -524,6 +529,7 @@ onMounted(async () => {
           text: q.text,
           required: q.required !== false,
           options: q.options,
+          maxSelections: q.type === 'checkbox' ? (q.maxSelections ?? q.max_selections ?? null) : undefined,
           scale: q.scale,
           optionA: q.optionA,
           optionB: q.optionB,

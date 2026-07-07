@@ -386,3 +386,76 @@
   display: flex;
   gap: 8px;
 }
+
+
+.checkbox-limit-editor {
+  margin-top: 14px;
+  padding: 14px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+}
+
+
+.checkbox-limit-label {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: #334155;
+  margin-bottom: 8px;
+}
+
+
+.checkbox-limit-control {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+
+.checkbox-limit-control input {
+  width: 110px;
+  padding: 9px 12px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 14px;
+}
+
+
+.checkbox-limit-control input:focus {
+  outline: none;
+  border-color: #6366f1;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+}
+
+
+.checkbox-limit-control span {
+  font-size: 13px;
+  color: #64748b;
+}
+
+
+.checkbox-limit-control button {
+  padding: 8px 12px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  background: white;
+  color: #475569;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+
+.checkbox-limit-control button:hover {
+  border-color: #6366f1;
+  color: #6366f1;
+}
+
+
+.checkbox-limit-hint {
+  margin: 8px 0 0;
+  font-size: 12px;
+  color: #64748b;
+  line-height: 1.5;
+}

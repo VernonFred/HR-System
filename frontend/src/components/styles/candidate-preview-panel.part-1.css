@@ -337,6 +337,23 @@
 }
 
 
+.cq-checkbox-limit {
+  margin: 0;
+  padding: 8px 10px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  color: #64748b;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+
+.cq-checkbox-limit span {
+  color: #dc2626;
+}
+
+
 .cq-checkbox-card {
   display: flex;
   align-items: center;

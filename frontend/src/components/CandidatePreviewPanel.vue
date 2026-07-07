@@ -8,6 +8,10 @@
  * 3. 模拟答题交互
  */
 import { ref, watch, computed } from 'vue'
+import {
+  getCheckboxMaxSelections,
+  toggleCheckboxSelection,
+} from '../utils/checkboxSelectionLimit'
 
 // ===== 类型定义 =====
 export interface EditorQuestion {
@@ -16,6 +20,7 @@ export interface EditorQuestion {
   text: string
   required: boolean
   options?: { label: string; value: string; score?: number }[]
+  maxSelections?: number | null
   scale?: { min: number; max: number; minLabel: string; maxLabel: string }
   optionA?: string
   optionB?: string
@@ -46,6 +51,7 @@ const previewAnswerMulti = ref<string[]>([])
 const previewScaleValue = ref<number | null>(null)
 const previewYesno = ref('')
 const previewChoice = ref('')
+const previewLimitReached = ref(false)
 
 // ===== 计算属性 =====
 const currentQuestion = computed(() => {
@@ -56,6 +62,11 @@ const scaleRange = computed(() => {
   if (!currentQuestion.value?.scale) return []
   const { min, max } = currentQuestion.value.scale
   return Array.from({ length: max - min + 1 }, (_, i) => min + i)
+})
+
+const currentCheckboxMaxSelections = computed(() => {
+  if (currentQuestion.value?.type !== 'checkbox') return null
+  return getCheckboxMaxSelections(currentQuestion.value)
 })
 
 // ===== 方法 =====
@@ -84,15 +95,17 @@ const resetPreviewAnswers = () => {
   previewScaleValue.value = null
   previewYesno.value = ''
   previewChoice.value = ''
+  previewLimitReached.value = false
 }
 
 const toggleMultiOption = (value: string) => {
-  const idx = previewAnswerMulti.value.indexOf(value)
-  if (idx > -1) {
-    previewAnswerMulti.value.splice(idx, 1)
-  } else {
-    previewAnswerMulti.value.push(value)
-  }
+  const result = toggleCheckboxSelection(
+    previewAnswerMulti.value,
+    value,
+    currentCheckboxMaxSelections.value,
+  )
+  previewLimitReached.value = result.limitReached
+  previewAnswerMulti.value = result.selection
 }
 
 // ===== 监听 =====
@@ -180,6 +193,10 @@ watch(() => props.questions, (newQuestions) => {
 
         <!-- 多选题预览 -->
         <div v-else-if="currentQuestion.type === 'checkbox'" class="cq-checkbox-grid">
+          <p v-if="currentCheckboxMaxSelections" class="cq-checkbox-limit">
+            最多选择 {{ currentCheckboxMaxSelections }} 项
+            <span v-if="previewLimitReached">，已达到上限</span>
+          </p>
           <div 
             v-for="(opt, i) in (currentQuestion.options || [])" 
             :key="i" 

@@ -15,6 +15,7 @@ export interface EditorQuestion {
   text: string
   required: boolean
   options?: { label: string; value: string; score?: number; allowCustom?: boolean; placeholder?: string }[]
+  maxSelections?: number | null
   scale?: { min: number; max: number; minLabel: string; maxLabel: string }
   optionA?: string
   optionB?: string
@@ -50,6 +51,7 @@ export const ASSESSMENT_DIMENSIONS = {
 
 <script setup lang="ts">
 import { ref, watch, computed } from 'vue'
+import { getCheckboxMaxSelections } from '../utils/checkboxSelectionLimit'
 
 // 控件库配置
 const questionControls = [
@@ -123,6 +125,8 @@ const ensureScaleConfig = () => {
 }
 
 const scaleConfig = computed(() => ensureScaleConfig())
+const checkboxOptionCount = computed(() => newQuestion.value.options?.length || 0)
+const checkboxMaxInputMax = computed(() => Math.max(1, checkboxOptionCount.value))
 
 const handleOverlayPressStart = (event: MouseEvent | TouchEvent) => {
   isBackdropPointerDown.value = isBackdropEvent(event)
@@ -215,6 +219,24 @@ const removeQuestionOption = (index: number) => {
   }
 }
 
+const clearMaxSelections = () => {
+  newQuestion.value.maxSelections = null
+}
+
+const normalizeMaxSelections = () => {
+  if (newQuestion.value.type !== 'checkbox') {
+    delete newQuestion.value.maxSelections
+    return
+  }
+
+  const maxSelections = getCheckboxMaxSelections(newQuestion.value)
+  if (maxSelections === null) {
+    delete newQuestion.value.maxSelections
+  } else {
+    newQuestion.value.maxSelections = maxSelections
+  }
+}
+
 // 保存题目
 const saveQuestion = () => {
   if (!canSave.value) return
@@ -230,6 +252,7 @@ const saveQuestion = () => {
       opt.value = `opt${i + 1}`
     })
   }
+  normalizeMaxSelections()
 
   emit('save', JSON.parse(JSON.stringify(newQuestion.value)))
 }
@@ -260,6 +283,10 @@ watch(() => newQuestion.value.type, (newType, oldType) => {
       newQuestion.value.scoreA === undefined) {
     newQuestion.value.scoreA = 0
     newQuestion.value.scoreB = 0
+  }
+
+  if (newType !== 'checkbox') {
+    delete newQuestion.value.maxSelections
   }
 })
 </script>

@@ -61,6 +61,7 @@
                      currentQuestion.type === 'yesno' ? '是非题' :
                      currentQuestion.type === 'choice' ? '二选一' : '题目' }}
                 </span>
+                <span v-if="currentQuestionMaxSelections" class="tag tag-limit">最多 {{ currentQuestionMaxSelections }} 项</span>
               </div>
             </div>
 
@@ -105,6 +106,9 @@
 
               <!-- 多选题 -->
               <div v-else-if="currentQuestion.type === 'checkbox'" class="options-grid checkbox-grid">
+                <p v-if="currentQuestionMaxSelections" class="checkbox-limit-tip">
+                  已选择 {{ (answers[currentQuestion.id] || []).length }} / {{ currentQuestionMaxSelections }} 项
+                </p>
                 <div
                   v-for="option in currentQuestion.options"
                   :key="option.value"
@@ -113,7 +117,7 @@
                   <button
                     class="option-card checkbox-card"
                     :class="{ selected: (answers[currentQuestion.id] || []).includes(option.value) }"
-                    @click="toggleCheckbox(currentQuestion.id, option.value)"
+                    @click="toggleCheckbox(currentQuestion, option.value)"
                   >
                     <span class="checkbox-indicator">
                       <i class="ri-check-line"></i>

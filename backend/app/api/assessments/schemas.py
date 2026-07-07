@@ -27,6 +27,8 @@ class Question(BaseModel):
     text: str  # 问题文本
     type: Optional[str] = None  # 题目类型：radio/checkbox/text/scale等
     options: Optional[List[QuestionOption]] = None  # 选项（单选/多选题）
+    maxSelections: Optional[int] = None  # 多选题最多可选数量（前端驼峰命名）
+    max_selections: Optional[int] = None  # 多选题最多可选数量（兼容蛇形命名）
     dimension: Optional[str] = None  # 所属维度 (E/N/P/L)
     required: Optional[bool] = True  # 是否必答
     scale: Optional[dict] = None  # 量表配置

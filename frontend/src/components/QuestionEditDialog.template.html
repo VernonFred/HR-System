@@ -114,6 +114,21 @@
               添加"其他"选项
             </button>
           </div>
+          <div v-if="newQuestion.type === 'checkbox'" class="checkbox-limit-editor">
+            <label class="checkbox-limit-label">最多可选</label>
+            <div class="checkbox-limit-control">
+              <input
+                type="number"
+                v-model.number="newQuestion.maxSelections"
+                min="1"
+                :max="checkboxMaxInputMax"
+                placeholder="不限制"
+              />
+              <span>项</span>
+              <button type="button" @click="clearMaxSelections">不限</button>
+            </div>
+            <p class="checkbox-limit-hint">留空表示不限制；保存时会自动限制在当前选项数量以内。</p>
+          </div>
         </div>
 
         <!-- 量表设置 -->
