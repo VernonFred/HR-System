@@ -286,10 +286,12 @@ const addQuestionFromDrag = (rawType: string) => {
     question.options = [
       { label: '选项1', value: 'opt1' },
       { label: '选项2', value: 'opt2' },
-    ]
-    if (type === 'checkbox') {
-      question.maxSelections = null
-    }
+      ]
+      if (type === 'checkbox') {
+        question.selectionRule = 'none'
+        question.minSelections = null
+        question.maxSelections = null
+      }
   } else if (type === 'scale') {
     question.scale = { min: 1, max: 5, minLabel: '非常不满意', maxLabel: '非常满意' }
   } else if (type === 'choice') {
@@ -406,6 +408,8 @@ const save = async () => {
         ...opt,
         allow_custom: opt.allowCustom,  // 转换为蛇形命名
       })),
+      selectionRule: q.type === 'checkbox' && q.selectionRule && q.selectionRule !== 'none' ? q.selectionRule : undefined,
+      minSelections: q.type === 'checkbox' ? (q.minSelections ?? undefined) : undefined,
       maxSelections: q.type === 'checkbox' ? (q.maxSelections ?? undefined) : undefined,
       scale: q.scale,
       optionA: q.optionA,
@@ -491,6 +495,8 @@ onMounted(async () => {
         text: q.text,
         required: q.required !== false,
         options: mappedOptions,
+        selectionRule: mappedType === 'checkbox' ? (q.selectionRule ?? q.selection_rule ?? undefined) : undefined,
+        minSelections: mappedType === 'checkbox' ? (q.minSelections ?? q.min_selections ?? null) : undefined,
         maxSelections: mappedType === 'checkbox' ? (q.maxSelections ?? q.max_selections ?? null) : undefined,
         // 量表题配置
         scale: mappedType === 'scale' ? { min: 1, max: 5, minLabel: '非常不满意', maxLabel: '非常满意' } : undefined,
@@ -529,6 +535,8 @@ onMounted(async () => {
           text: q.text,
           required: q.required !== false,
           options: q.options,
+          selectionRule: q.type === 'checkbox' ? (q.selectionRule ?? q.selection_rule ?? undefined) : undefined,
+          minSelections: q.type === 'checkbox' ? (q.minSelections ?? q.min_selections ?? null) : undefined,
           maxSelections: q.type === 'checkbox' ? (q.maxSelections ?? q.max_selections ?? null) : undefined,
           scale: q.scale,
           optionA: q.optionA,

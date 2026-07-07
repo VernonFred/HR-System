@@ -15,6 +15,8 @@ export interface EditorQuestion {
   text: string
   required: boolean
   options?: { label: string; value: string; score?: number; allowCustom?: boolean; placeholder?: string }[]
+  selectionRule?: 'none' | 'max' | 'min' | 'exact' | 'range' | null
+  minSelections?: number | null
   maxSelections?: number | null
   scale?: { min: number; max: number; minLabel: string; maxLabel: string }
   optionA?: string
@@ -51,7 +53,10 @@ export const ASSESSMENT_DIMENSIONS = {
 
 <script setup lang="ts">
 import { ref, watch, computed } from 'vue'
-import { getCheckboxMaxSelections } from '../utils/checkboxSelectionLimit'
+import {
+  getCheckboxSelectionRule,
+  type CheckboxSelectionRuleMode,
+} from '../utils/checkboxSelectionLimit'
 
 // 控件库配置
 const questionControls = [
@@ -127,6 +132,27 @@ const ensureScaleConfig = () => {
 const scaleConfig = computed(() => ensureScaleConfig())
 const checkboxOptionCount = computed(() => newQuestion.value.options?.length || 0)
 const checkboxMaxInputMax = computed(() => Math.max(1, checkboxOptionCount.value))
+const checkboxSelectionRuleMode = computed<CheckboxSelectionRuleMode>({
+  get() {
+    return getCheckboxSelectionRule(newQuestion.value).mode
+  },
+  set(mode) {
+    newQuestion.value.selectionRule = mode
+    if (mode === 'none') {
+      newQuestion.value.minSelections = null
+      newQuestion.value.maxSelections = null
+    } else if (mode === 'max') {
+      newQuestion.value.minSelections = null
+    } else if (mode === 'min') {
+      newQuestion.value.maxSelections = null
+    } else if (mode === 'exact') {
+      newQuestion.value.maxSelections = null
+    }
+    if (mode === 'min' || mode === 'exact' || mode === 'range') {
+      newQuestion.value.required = true
+    }
+  },
+})
 
 const handleOverlayPressStart = (event: MouseEvent | TouchEvent) => {
   isBackdropPointerDown.value = isBackdropEvent(event)
@@ -219,22 +245,88 @@ const removeQuestionOption = (index: number) => {
   }
 }
 
-const clearMaxSelections = () => {
+const clearSelectionRule = () => {
+  newQuestion.value.selectionRule = 'none'
+  newQuestion.value.minSelections = null
   newQuestion.value.maxSelections = null
 }
 
-const normalizeMaxSelections = () => {
+const readSelectionCount = (value: unknown) => {
+  if (value === null || value === undefined || value === '') return null
+  const parsed = Number(value)
+  if (!Number.isFinite(parsed) || parsed < 1) return null
+  return Math.floor(parsed)
+}
+
+const validateSelectionCount = (value: unknown, label: string) => {
+  const parsed = readSelectionCount(value)
+  if (parsed === null) {
+    alert(`请设置${label}`)
+    return null
+  }
+  if (parsed > checkboxOptionCount.value) {
+    alert(`${label}不能大于当前选项数量`)
+    return null
+  }
+  return parsed
+}
+
+const normalizeSelectionRule = () => {
   if (newQuestion.value.type !== 'checkbox') {
+    delete newQuestion.value.selectionRule
+    delete newQuestion.value.minSelections
     delete newQuestion.value.maxSelections
-    return
+    return true
   }
 
-  const maxSelections = getCheckboxMaxSelections(newQuestion.value)
-  if (maxSelections === null) {
+  const mode = checkboxSelectionRuleMode.value
+  if (mode === 'none') {
+    delete newQuestion.value.selectionRule
+    delete newQuestion.value.minSelections
     delete newQuestion.value.maxSelections
-  } else {
-    newQuestion.value.maxSelections = maxSelections
+    return true
   }
+
+  newQuestion.value.selectionRule = mode
+
+  if (mode === 'max') {
+    const maxSelections = validateSelectionCount(newQuestion.value.maxSelections, '最多可选数量')
+    if (maxSelections === null) return false
+    delete newQuestion.value.minSelections
+    newQuestion.value.maxSelections = maxSelections
+    return true
+  }
+
+  if (mode === 'min') {
+    const minSelections = validateSelectionCount(newQuestion.value.minSelections, '至少选择数量')
+    if (minSelections === null) return false
+    newQuestion.value.required = true
+    newQuestion.value.minSelections = minSelections
+    delete newQuestion.value.maxSelections
+    return true
+  }
+
+  if (mode === 'exact') {
+    const exactSelections = validateSelectionCount(newQuestion.value.minSelections, '必须选择数量')
+    if (exactSelections === null) return false
+    newQuestion.value.required = true
+    newQuestion.value.minSelections = exactSelections
+    newQuestion.value.maxSelections = exactSelections
+    return true
+  }
+
+  const minSelections = validateSelectionCount(newQuestion.value.minSelections, '最少选择数量')
+  if (minSelections === null) return false
+  const maxSelections = validateSelectionCount(newQuestion.value.maxSelections, '最多选择数量')
+  if (maxSelections === null) return false
+  if (minSelections > maxSelections) {
+    alert('最少选择数量不能大于最多选择数量')
+    return false
+  }
+  newQuestion.value.required = true
+  newQuestion.value.minSelections = minSelections
+  newQuestion.value.maxSelections = maxSelections
+  return true
 }
 
 // 保存题目
@@ -252,7 +344,7 @@ const saveQuestion = () => {
       opt.value = `opt${i + 1}`
     })
   }
-  normalizeMaxSelections()
+  if (!normalizeSelectionRule()) return
 
   emit('save', JSON.parse(JSON.stringify(newQuestion.value)))
 }
@@ -286,6 +378,8 @@ watch(() => newQuestion.value.type, (newType, oldType) => {
   }
 
   if (newType !== 'checkbox') {
+    delete newQuestion.value.selectionRule
+    delete newQuestion.value.minSelections
     delete newQuestion.value.maxSelections
   }
 })

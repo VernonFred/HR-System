@@ -27,6 +27,10 @@ class Question(BaseModel):
     text: str  # 问题文本
     type: Optional[str] = None  # 题目类型：radio/checkbox/text/scale等
     options: Optional[List[QuestionOption]] = None  # 选项（单选/多选题）
+    selectionRule: Optional[str] = None  # 多选题数量规则（前端驼峰命名）
+    selection_rule: Optional[str] = None  # 多选题数量规则（兼容蛇形命名）
+    minSelections: Optional[int] = None  # 多选题最少/必须可选数量（前端驼峰命名）
+    min_selections: Optional[int] = None  # 多选题最少/必须可选数量（兼容蛇形命名）
     maxSelections: Optional[int] = None  # 多选题最多可选数量（前端驼峰命名）
     max_selections: Optional[int] = None  # 多选题最多可选数量（兼容蛇形命名）
     dimension: Optional[str] = None  # 所属维度 (E/N/P/L)

@@ -9,7 +9,7 @@
  */
 import { ref, watch, computed } from 'vue'
 import {
-  getCheckboxMaxSelections,
+  getCheckboxSelectionRule,
   toggleCheckboxSelection,
 } from '../utils/checkboxSelectionLimit'
 
@@ -20,6 +20,8 @@ export interface EditorQuestion {
   text: string
   required: boolean
   options?: { label: string; value: string; score?: number }[]
+  selectionRule?: 'none' | 'max' | 'min' | 'exact' | 'range' | null
+  minSelections?: number | null
   maxSelections?: number | null
   scale?: { min: number; max: number; minLabel: string; maxLabel: string }
   optionA?: string
@@ -64,9 +66,9 @@ const scaleRange = computed(() => {
   return Array.from({ length: max - min + 1 }, (_, i) => min + i)
 })
 
-const currentCheckboxMaxSelections = computed(() => {
+const currentCheckboxSelectionRule = computed(() => {
   if (currentQuestion.value?.type !== 'checkbox') return null
-  return getCheckboxMaxSelections(currentQuestion.value)
+  return getCheckboxSelectionRule(currentQuestion.value, currentQuestion.value.required)
 })
 
 // ===== 方法 =====
@@ -102,7 +104,7 @@ const toggleMultiOption = (value: string) => {
   const result = toggleCheckboxSelection(
     previewAnswerMulti.value,
     value,
-    currentCheckboxMaxSelections.value,
+    currentCheckboxSelectionRule.value?.maxSelections,
   )
   previewLimitReached.value = result.limitReached
   previewAnswerMulti.value = result.selection
@@ -193,8 +195,9 @@ watch(() => props.questions, (newQuestions) => {
 
         <!-- 多选题预览 -->
         <div v-else-if="currentQuestion.type === 'checkbox'" class="cq-checkbox-grid">
-          <p v-if="currentCheckboxMaxSelections" class="cq-checkbox-limit">
-            最多选择 {{ currentCheckboxMaxSelections }} 项
+          <p v-if="currentCheckboxSelectionRule?.label" class="cq-checkbox-limit">
+            {{ currentCheckboxSelectionRule.label }}
+            ，已选择 {{ previewAnswerMulti.length }} / {{ currentCheckboxSelectionRule.counterText }}
             <span v-if="previewLimitReached">，已达到上限</span>
           </p>
           <div 

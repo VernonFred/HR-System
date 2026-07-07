@@ -115,19 +115,66 @@
             </button>
           </div>
           <div v-if="newQuestion.type === 'checkbox'" class="checkbox-limit-editor">
-            <label class="checkbox-limit-label">最多可选</label>
-            <div class="checkbox-limit-control">
+            <label class="checkbox-limit-label">数量规则</label>
+            <div class="checkbox-rule-control">
+              <select v-model="checkboxSelectionRuleMode">
+                <option value="none">不限制</option>
+                <option value="max">最多选择</option>
+                <option value="min">至少选择</option>
+                <option value="exact">必须选择</option>
+                <option value="range">选择范围</option>
+              </select>
+              <button type="button" @click="clearSelectionRule">不限</button>
+            </div>
+            <div v-if="checkboxSelectionRuleMode === 'max'" class="checkbox-limit-control">
               <input
                 type="number"
                 v-model.number="newQuestion.maxSelections"
                 min="1"
                 :max="checkboxMaxInputMax"
-                placeholder="不限制"
+                placeholder="最多"
               />
               <span>项</span>
-              <button type="button" @click="clearMaxSelections">不限</button>
             </div>
-            <p class="checkbox-limit-hint">留空表示不限制；保存时会自动限制在当前选项数量以内。</p>
+            <div v-else-if="checkboxSelectionRuleMode === 'min'" class="checkbox-limit-control">
+              <input
+                type="number"
+                v-model.number="newQuestion.minSelections"
+                min="1"
+                :max="checkboxMaxInputMax"
+                placeholder="至少"
+              />
+              <span>项</span>
+            </div>
+            <div v-else-if="checkboxSelectionRuleMode === 'exact'" class="checkbox-limit-control">
+              <input
+                type="number"
+                v-model.number="newQuestion.minSelections"
+                min="1"
+                :max="checkboxMaxInputMax"
+                placeholder="必须"
+              />
+              <span>项</span>
+            </div>
+            <div v-else-if="checkboxSelectionRuleMode === 'range'" class="checkbox-range-control">
+              <input
+                type="number"
+                v-model.number="newQuestion.minSelections"
+                min="1"
+                :max="checkboxMaxInputMax"
+                placeholder="最少"
+              />
+              <span>至</span>
+              <input
+                type="number"
+                v-model.number="newQuestion.maxSelections"
+                min="1"
+                :max="checkboxMaxInputMax"
+                placeholder="最多"
+              />
+              <span>项</span>
+            </div>
+            <p class="checkbox-limit-hint">“至少选择”“必须选择”“选择范围”会自动将题目设为必答。</p>
           </div>
         </div>
 

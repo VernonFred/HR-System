@@ -406,14 +406,33 @@
 }
 
 
-.checkbox-limit-control {
+.checkbox-rule-control,
+.checkbox-limit-control,
+.checkbox-range-control {
   display: flex;
   align-items: center;
   gap: 8px;
 }
 
 
-.checkbox-limit-control input {
+.checkbox-rule-control {
+  margin-bottom: 10px;
+}
+
+
+.checkbox-rule-control select {
+  width: 160px;
+  padding: 9px 12px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background: white;
+  font-size: 14px;
+  color: #334155;
+}
+
+
+.checkbox-limit-control input,
+.checkbox-range-control input {
   width: 110px;
   padding: 9px 12px;
   border: 1px solid #e2e8f0;
@@ -422,20 +441,23 @@
 }
 
 
-.checkbox-limit-control input:focus {
+.checkbox-rule-control select:focus,
+.checkbox-limit-control input:focus,
+.checkbox-range-control input:focus {
   outline: none;
   border-color: #6366f1;
   box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
 }
 
 
-.checkbox-limit-control span {
+.checkbox-limit-control span,
+.checkbox-range-control span {
   font-size: 13px;
   color: #64748b;
 }
 
 
-.checkbox-limit-control button {
+.checkbox-rule-control button {
   padding: 8px 12px;
   border: 1px solid #cbd5e1;
   border-radius: 8px;
@@ -447,7 +469,7 @@
 }
 
 
-.checkbox-limit-control button:hover {
+.checkbox-rule-control button:hover {
   border-color: #6366f1;
   color: #6366f1;
 }

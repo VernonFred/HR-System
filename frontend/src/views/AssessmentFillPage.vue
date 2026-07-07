@@ -4,8 +4,9 @@ import { useRoute, useRouter } from "vue-router";
 import { submitAnswers } from "../api/assessments";
 import CustomAlert from "../components/CustomAlert.vue";
 import {
-  getCheckboxMaxSelections,
+  getCheckboxSelectionRule,
   toggleCheckboxSelection,
+  validateCheckboxSelection,
 } from "../utils/checkboxSelectionLimit";
 
 const route = useRoute();
@@ -99,7 +100,14 @@ const hasAnswer = (answer: any) => {
 
 const currentQuestion = computed(() => questions.value[currentIndex.value]);
 const answeredCount = computed(() => {
-  return questions.value.filter(q => hasAnswer(answers.value[q.id])).length;
+  return questions.value.filter(q => {
+    const answer = answers.value[q.id];
+    if (!hasAnswer(answer)) return false;
+    if (q.type === 'checkbox') {
+      return validateCheckboxSelection(q, answer, q.required).valid;
+    }
+    return true;
+  }).length;
 });
 const progress = computed(() => {
   if (questions.value.length === 0) return 0;
@@ -108,11 +116,11 @@ const progress = computed(() => {
 const isLastQuestion = computed(() => currentIndex.value === questions.value.length - 1);
 const canGoNext = computed(() => {
   if (!currentQuestion.value) return false;
-  return hasAnswer(answers.value[currentQuestion.value.id]);
+  return getAnswerValidation(currentQuestion.value).valid;
 });
-const currentQuestionMaxSelections = computed(() => {
+const currentQuestionSelectionRule = computed(() => {
   if (currentQuestion.value?.type !== "checkbox") return null;
-  return getCheckboxMaxSelections(currentQuestion.value);
+  return getCheckboxSelectionRule(currentQuestion.value, currentQuestion.value.required);
 });
 
 // ⭐ 从 sessionStorage 加载真实题目数据
@@ -197,7 +205,9 @@ const loadQuestions = async () => {
             // 文本题的特殊字段
             placeholder: q.placeholder,
             maxLength: q.maxLength,
-            // 多选题的最多可选数量
+            // 多选题的数量规则
+            selectionRule: q.selectionRule ?? q.selection_rule ?? undefined,
+            minSelections: q.minSelections ?? q.min_selections ?? null,
             maxSelections: q.maxSelections ?? q.max_selections ?? null,
           };
         });
@@ -261,11 +271,13 @@ const selectOption = (questionId: string, value: string) => {
 // 切换多选选项
 const toggleCheckbox = (question: any, value: string) => {
   const questionId = String(question.id);
-  const maxSelections = getCheckboxMaxSelections(question);
-  const result = toggleCheckboxSelection(answers.value[questionId], value, maxSelections);
+  const rule = getCheckboxSelectionRule(question, question.required);
+  const result = toggleCheckboxSelection(answers.value[questionId], value, rule.maxSelections);
 
   if (result.limitReached) {
-    showAlert(`本题最多可选择 ${maxSelections} 项`, 'warning', '已达到选择上限');
+    showAlert(rule.mode === 'exact'
+      ? `本题必须选择 ${rule.maxSelections} 项`
+      : `本题最多可选择 ${rule.maxSelections} 项`, 'warning', '已达到选择上限');
     return;
   }
 
@@ -295,11 +307,26 @@ const getEventValue = (event: Event) => {
   return target?.value || '';
 };
 
+const getAnswerValidation = (question: any) => {
+  if (!question) return { valid: true, message: '' };
+
+  if (question.type === 'checkbox') {
+    return validateCheckboxSelection(question, answers.value[question.id], question.required);
+  }
+
+  if (question.required && !hasAnswer(answers.value[question.id])) {
+    return { valid: false, message: '请先完成当前必答题再继续' };
+  }
+
+  return { valid: true, message: '' };
+};
+
 // 下一题
 const nextQuestion = () => {
   // ⭐ 检查当前题是否为必答且未完成
-  if (currentQuestion.value?.required && !hasAnswer(answers.value[currentQuestion.value.id])) {
-    showAlert('请先完成当前必答题再继续', 'warning', '必答题提醒');
+  const validation = getAnswerValidation(currentQuestion.value);
+  if (!validation.valid) {
+    showAlert(validation.message || '请先完成当前题目再继续', 'warning', '答题提醒');
     return;
   }
 
@@ -329,8 +356,9 @@ const prevQuestion = () => {
 const goToQuestion = (index: number) => {
   if (index !== currentIndex.value) {
     // ⭐ 检查当前题是否为必答且未完成
-    if (currentQuestion.value?.required && !hasAnswer(answers.value[currentQuestion.value.id])) {
-      showAlert('请先完成当前必答题再跳转', 'warning', '必答题提醒');
+    const validation = getAnswerValidation(currentQuestion.value);
+    if (!validation.valid) {
+      showAlert(validation.message || '请先完成当前题目再跳转', 'warning', '答题提醒');
       return;
     }
 
@@ -346,10 +374,12 @@ const goToQuestion = (index: number) => {
 
 // 提交
 const handleSubmit = async () => {
-  const unanswered = questions.value.filter(q => q.required && !hasAnswer(answers.value[q.id]));
-  if (unanswered.length > 0) {
+  const invalidQuestions = questions.value
+    .map(q => ({ question: q, validation: getAnswerValidation(q) }))
+    .filter(item => !item.validation.valid);
+  if (invalidQuestions.length > 0) {
     // ⭐ 必答题必须完成，不允许跳过
-    showAlert(`请先完成所有必答题（还有 ${unanswered.length} 道未完成）`, 'warning', '无法提交');
+    showAlert(invalidQuestions[0].validation.message || `请先完成所有必答题（还有 ${invalidQuestions.length} 道未完成）`, 'warning', '无法提交');
       return;
   }
 
@@ -368,6 +398,10 @@ const handleSubmit = async () => {
 
 // 检查题目是否已回答
 const isAnswered = (questionId: string) => {
+  const question = questions.value.find(q => q.id === questionId);
+  if (question?.type === 'checkbox' && hasAnswer(answers.value[questionId])) {
+    return getAnswerValidation(question).valid;
+  }
   return hasAnswer(answers.value[questionId]);
 };
 
