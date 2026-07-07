@@ -132,6 +132,20 @@ const ensureScaleConfig = () => {
 const scaleConfig = computed(() => ensureScaleConfig())
 const checkboxOptionCount = computed(() => newQuestion.value.options?.length || 0)
 const checkboxMaxInputMax = computed(() => Math.max(1, checkboxOptionCount.value))
+const checkboxSelectionRuleOptions: { value: CheckboxSelectionRuleMode; label: string }[] = [
+  { value: 'none', label: '不限制' },
+  { value: 'max', label: '最多' },
+  { value: 'min', label: '至少' },
+  { value: 'exact', label: '必须' },
+  { value: 'range', label: '范围' },
+]
+const checkboxRuleSliderStyle = computed(() => {
+  const index = Math.max(
+    0,
+    checkboxSelectionRuleOptions.findIndex((rule) => rule.value === checkboxSelectionRuleMode.value),
+  )
+  return { '--checkbox-rule-offset': `${index * 100}%` }
+})
 const checkboxSelectionRuleMode = computed<CheckboxSelectionRuleMode>({
   get() {
     return getCheckboxSelectionRule(newQuestion.value).mode
@@ -153,6 +167,14 @@ const checkboxSelectionRuleMode = computed<CheckboxSelectionRuleMode>({
     }
   },
 })
+const checkboxRuleRequiresAnswer = computed(() => (
+  checkboxSelectionRuleMode.value === 'min'
+  || checkboxSelectionRuleMode.value === 'exact'
+  || checkboxSelectionRuleMode.value === 'range'
+))
+const setCheckboxSelectionRuleMode = (mode: CheckboxSelectionRuleMode) => {
+  checkboxSelectionRuleMode.value = mode
+}
 
 const handleOverlayPressStart = (event: MouseEvent | TouchEvent) => {
   isBackdropPointerDown.value = isBackdropEvent(event)
@@ -245,17 +267,49 @@ const removeQuestionOption = (index: number) => {
   }
 }
 
-const clearSelectionRule = () => {
-  newQuestion.value.selectionRule = 'none'
-  newQuestion.value.minSelections = null
-  newQuestion.value.maxSelections = null
-}
-
 const readSelectionCount = (value: unknown) => {
   if (value === null || value === undefined || value === '') return null
   const parsed = Number(value)
   if (!Number.isFinite(parsed) || parsed < 1) return null
   return Math.floor(parsed)
+}
+
+type SelectionCountTarget = 'max' | 'min' | 'exact' | 'rangeMin' | 'rangeMax'
+
+const clampSelectionCount = (value: unknown) => {
+  const parsed = readSelectionCount(value) ?? 1
+  return Math.min(Math.max(parsed, 1), checkboxMaxInputMax.value)
+}
+
+const adjustSelectionCount = (target: SelectionCountTarget, delta: number) => {
+  const applyDelta = (value: unknown) => clampSelectionCount((readSelectionCount(value) ?? 1) + delta)
+
+  if (target === 'max') {
+    newQuestion.value.maxSelections = applyDelta(newQuestion.value.maxSelections)
+    return
+  }
+
+  if (target === 'min' || target === 'exact') {
+    newQuestion.value.minSelections = applyDelta(newQuestion.value.minSelections)
+    return
+  }
+
+  if (target === 'rangeMin') {
+    const minSelections = applyDelta(newQuestion.value.minSelections)
+    newQuestion.value.minSelections = minSelections
+    const maxSelections = clampSelectionCount(newQuestion.value.maxSelections)
+    if (maxSelections < minSelections) {
+      newQuestion.value.maxSelections = minSelections
+    }
+    return
+  }
+
+  const maxSelections = applyDelta(newQuestion.value.maxSelections)
+  newQuestion.value.maxSelections = maxSelections
+  const minSelections = clampSelectionCount(newQuestion.value.minSelections)
+  if (minSelections > maxSelections) {
+    newQuestion.value.minSelections = maxSelections
+  }
 }
 
 const validateSelectionCount = (value: unknown, label: string) => {
