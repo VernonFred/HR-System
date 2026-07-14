@@ -128,7 +128,7 @@ class AssessmentCreate(AssessmentBase):
     # ⭐ 分发机制
     link_type: str = "temporary"  # temporary/permanent
     allow_repeat: bool = True  # 允许重复提交
-    repeat_check_by: str = "phone"  # 重复判断依据
+    repeat_check_by: str = "phone"  # 重复判断依据: phone/name/phone_name
     repeat_interval_hours: int = 0  # 重复提交间隔（小时）
     max_submissions: int = 0  # 最大提交次数（0=不限）
     anonymous_mode: bool = False  # 匿名收集：同设备防重复

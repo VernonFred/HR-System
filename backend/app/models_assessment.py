@@ -75,7 +75,7 @@ class Assessment(SQLModel, table=True):
     link_type: str = Field(default="temporary", max_length=20)  # temporary/permanent
     channel: str = Field(default="public_link", max_length=20)  # 分发渠道（预留扩展）
     allow_repeat: bool = Field(default=True)  # 允许重复提交
-    repeat_check_by: str = Field(default="phone", max_length=20)  # 重复判断依据
+    repeat_check_by: str = Field(default="phone", max_length=20)  # 重复判断依据: phone/name/phone_name
     repeat_interval_hours: int = Field(default=0)  # 重复提交间隔（小时）
     max_submissions: int = Field(default=0)  # 最大提交次数（0=不限）
     anonymous_mode: bool = Field(default=False)  # 匿名收集：使用同设备标识防重复

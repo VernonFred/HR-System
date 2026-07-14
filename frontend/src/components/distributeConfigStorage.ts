@@ -13,6 +13,13 @@ export const isPlainObject = (value: unknown): value is Record<string, any> => {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
 }
 
+const repeatCheckByValues = new Set(['phone', 'phone_name', 'name'])
+
+const normalizeRepeatCheckBy = (value: unknown) => {
+  const normalized = String(value || '')
+  return repeatCheckByValues.has(normalized) ? normalized : 'phone'
+}
+
 export function useDistributeConfigStorage(options: UseDistributeConfigStorageOptions) {
   const { storageKey, form, formFields, pageTexts, routingConfig } = options
 
@@ -48,7 +55,7 @@ export function useDistributeConfigStorage(options: UseDistributeConfigStorageOp
         form.value.validityType = config.form.validityType || 'temporary'
         form.value.expiryDays = config.form.expiryDays || 7
         form.value.allowRepeat = config.form.allowRepeat || false
-        form.value.repeatCheckBy = config.form.repeatCheckBy || 'phone'
+        form.value.repeatCheckBy = normalizeRepeatCheckBy(config.form.repeatCheckBy)
         form.value.repeatIntervalHours = config.form.repeatIntervalHours || 24
         form.value.maxSubmissions = config.form.maxSubmissions || 0
         form.value.anonymousMode = !!config.form.anonymousMode

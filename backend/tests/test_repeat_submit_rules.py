@@ -51,6 +51,7 @@ def _create_assessment(
     session: Session,
     questionnaire_id: int,
     allow_repeat: bool = False,
+    repeat_check_by: str = "phone",
     repeat_interval_hours: int = 24,
     max_submissions: int = 0,
     anonymous_mode: bool = False,
@@ -66,7 +67,7 @@ def _create_assessment(
         page_texts={},
         link_type="temporary",
         allow_repeat=allow_repeat,
-        repeat_check_by="phone",
+        repeat_check_by=repeat_check_by,
         repeat_interval_hours=repeat_interval_hours,
         max_submissions=max_submissions,
         routing_config={},
@@ -137,6 +138,71 @@ def test_final_submit_rechecks_completed_repeat_rule():
 
         with pytest.raises(ValueError, match="不允许重复提交"):
             _run(service.submit_answers(session, second.code, {"q1": {"value": "否"}}))
+
+
+def test_name_repeat_check_blocks_same_name_only():
+    with _build_session() as session:
+        questionnaire = _create_questionnaire(session)
+        assessment = _create_assessment(
+            session,
+            questionnaire.id,
+            allow_repeat=False,
+            repeat_check_by="name",
+        )
+
+        first = _run(
+            service.create_submission(
+                session,
+                assessment.id,
+                {
+                    "candidate_name": "张三",
+                    "candidate_phone": "",
+                    "custom_data": {},
+                },
+                questionnaire_id_override=questionnaire.id,
+            )
+        )
+        _run(service.submit_answers(session, first.code, {"q1": {"value": "是"}}))
+
+        same_name = _run(service.check_can_submit(session, assessment.id, "", "张三"))
+        other_name = _run(service.check_can_submit(session, assessment.id, "", "李四"))
+
+        assert same_name["can_submit"] is False
+        assert "不允许重复提交" in same_name["reason"]
+        assert other_name["can_submit"] is True
+
+
+def test_name_repeat_interval_ignores_empty_phone_for_different_names():
+    with _build_session() as session:
+        questionnaire = _create_questionnaire(session)
+        assessment = _create_assessment(
+            session,
+            questionnaire.id,
+            allow_repeat=True,
+            repeat_check_by="name",
+            repeat_interval_hours=24,
+        )
+
+        first = _run(
+            service.create_submission(
+                session,
+                assessment.id,
+                {
+                    "candidate_name": "张三",
+                    "candidate_phone": "",
+                    "custom_data": {},
+                },
+                questionnaire_id_override=questionnaire.id,
+            )
+        )
+        _run(service.submit_answers(session, first.code, {"q1": {"value": "是"}}))
+
+        same_name = _run(service.check_can_submit(session, assessment.id, "", "张三"))
+        other_name = _run(service.check_can_submit(session, assessment.id, "", "李四"))
+
+        assert same_name["can_submit"] is False
+        assert "距上次提交不足24小时" in same_name["reason"]
+        assert other_name["can_submit"] is True
 
 
 def test_anonymous_in_progress_submission_does_not_block_same_device():

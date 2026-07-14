@@ -107,10 +107,19 @@
               <div v-if="form.allowRepeat" class="repeat-detail">
                 <div class="setting-row">
                   <span class="setting-label">判断依据</span>
-                  <div class="radio-group">
+                  <div class="radio-group inline">
                     <label class="radio-item"><input type="radio" v-model="form.repeatCheckBy" value="phone" /><span>手机号</span></label>
                     <label class="radio-item"><input type="radio" v-model="form.repeatCheckBy" value="phone_name" /><span>手机号+姓名</span></label>
+                    <label class="radio-item"><input type="radio" v-model="form.repeatCheckBy" value="name" /><span>姓名（弱识别）</span></label>
                   </div>
+                </div>
+                <div v-if="form.repeatCheckBy === 'name'" class="repeat-soft-hint">
+                  <i class="ri-information-line"></i>
+                  <span>仅按姓名弱识别，重名人员会被视为同一人；如需准确识别，请启用手机号。</span>
+                </div>
+                <div v-if="repeatCheckByFieldHint" class="repeat-warning-hint">
+                  <i class="ri-error-warning-line"></i>
+                  <span>{{ repeatCheckByFieldHint }}</span>
                 </div>
                 <div class="setting-row">
                   <span class="setting-label">提交间隔</span>

@@ -23,6 +23,8 @@ def _build_repeat_submission_condition(
 
     if assessment.anonymous_mode:
         conditions.append(Submission.anonymous_device_id == (anonymous_device_id or "").strip())
+    elif assessment.repeat_check_by == "name":
+        conditions.append(Submission.candidate_name == name)
     elif assessment.repeat_check_by == "phone_name":
         conditions.extend([
             Submission.candidate_phone == phone,

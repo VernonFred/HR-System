@@ -26,6 +26,8 @@ import FieldConfigPanel from './FieldConfigPanel.vue'
 import { getQuestionnaireCopy } from '../utils/questionnaireCopy'
 import { isPlainObject, useDistributeConfigStorage } from './distributeConfigStorage'
 
+type RepeatCheckBy = 'phone' | 'phone_name' | 'name'
+
 // ===== Props =====
 const props = defineProps<{
   questionnaire: Questionnaire | null
@@ -55,7 +57,7 @@ const form = ref({
   expiryDays: 7,
   customExpiryDate: '',
   allowRepeat: false,
-  repeatCheckBy: 'phone' as 'phone' | 'phone_name',
+  repeatCheckBy: 'phone' as RepeatCheckBy,
   repeatIntervalHours: 24,
   maxSubmissions: 0,
   anonymousMode: false,
@@ -128,10 +130,35 @@ const defaultIdentityFields: FormField[] = [
   { id: 'name', name: 'name', label: '姓名', type: 'text', placeholder: '请输入您的姓名', required: true, enabled: true, builtin: true },
   { id: 'phone', name: 'phone', label: '手机号', type: 'tel', placeholder: '请输入手机号', required: true, enabled: true, builtin: true },
 ]
+const repeatCheckByValues = new Set<RepeatCheckBy>(['phone', 'phone_name', 'name'])
 
 const getFieldKey = (field: FormField) => String(field.name || field.id || '').trim()
 
 const isIdentityField = (field: FormField) => identityFieldNames.has(getFieldKey(field))
+
+const normalizeRepeatCheckBy = (value: unknown): RepeatCheckBy => {
+  return repeatCheckByValues.has(value as RepeatCheckBy) ? value as RepeatCheckBy : 'phone'
+}
+
+const isEnabledFieldKey = (keys: string[]) => {
+  return formFields.value.some((field) => field.enabled !== false && keys.includes(getFieldKey(field)))
+}
+
+const hasEnabledNameField = computed(() => isEnabledFieldKey(['name', 'candidate_name']))
+const hasEnabledPhoneField = computed(() => isEnabledFieldKey(['phone', 'candidate_phone']))
+const repeatCheckByFieldHint = computed(() => {
+  if (form.value.anonymousMode || !form.value.allowRepeat) return ''
+  if (form.value.repeatCheckBy === 'phone' && !hasEnabledPhoneField.value) {
+    return '当前未启用手机号字段，无法可靠按手机号判断重复提交。'
+  }
+  if (form.value.repeatCheckBy === 'phone_name' && (!hasEnabledPhoneField.value || !hasEnabledNameField.value)) {
+    return '当前判断依据需要同时启用姓名和手机号字段。'
+  }
+  if (form.value.repeatCheckBy === 'name' && !hasEnabledNameField.value) {
+    return '当前未启用姓名字段，无法按姓名判断重复提交。'
+  }
+  return ''
+})
 
 const applyAnonymousModeToFields = (enabled: boolean) => {
   if (enabled) {
@@ -431,7 +458,7 @@ const applyAssessmentToForm = () => {
   }
   form.value.allowRepeat = !!current.allow_repeat
   form.value.anonymousMode = !!current.anonymous_mode
-  form.value.repeatCheckBy = (current.repeat_check_by as 'phone' | 'phone_name') || 'phone'
+  form.value.repeatCheckBy = normalizeRepeatCheckBy(current.repeat_check_by)
   form.value.repeatIntervalHours = current.repeat_interval_hours ?? 24
   form.value.maxSubmissions = current.max_submissions ?? 0
 
