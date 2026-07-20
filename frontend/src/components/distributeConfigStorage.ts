@@ -30,7 +30,7 @@ export function useDistributeConfigStorage(options: UseDistributeConfigStorageOp
           validityType: form.value.validityType,
           expiryDays: form.value.expiryDays,
           allowRepeat: form.value.allowRepeat,
-          repeatCheckBy: form.value.repeatCheckBy,
+          repeatCheckBy: form.value.allowRepeat ? normalizeRepeatCheckBy(form.value.repeatCheckBy) : 'phone',
           repeatIntervalHours: form.value.repeatIntervalHours,
           maxSubmissions: form.value.maxSubmissions,
           anonymousMode: form.value.anonymousMode,
@@ -55,7 +55,9 @@ export function useDistributeConfigStorage(options: UseDistributeConfigStorageOp
         form.value.validityType = config.form.validityType || 'temporary'
         form.value.expiryDays = config.form.expiryDays || 7
         form.value.allowRepeat = config.form.allowRepeat || false
-        form.value.repeatCheckBy = normalizeRepeatCheckBy(config.form.repeatCheckBy)
+        form.value.repeatCheckBy = form.value.allowRepeat
+          ? normalizeRepeatCheckBy(config.form.repeatCheckBy)
+          : 'phone'
         form.value.repeatIntervalHours = config.form.repeatIntervalHours || 24
         form.value.maxSubmissions = config.form.maxSubmissions || 0
         form.value.anonymousMode = !!config.form.anonymousMode

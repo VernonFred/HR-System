@@ -9,6 +9,7 @@
     "preview": "vite preview",
     "test:scoring-display": "node scripts/test-scoring-display-config.mjs",
     "test:checkbox-selection-limit": "esbuild scripts/test-checkbox-selection-limit.ts --bundle --platform=node --format=esm --outfile=/tmp/hr-checkbox-selection-limit-test.mjs && node /tmp/hr-checkbox-selection-limit-test.mjs",
+    "test:repeat-submission-config": "esbuild scripts/test-repeat-submission-config.ts --bundle --platform=node --format=esm --outfile=/tmp/hr-repeat-submission-config-test.mjs && node /tmp/hr-repeat-submission-config-test.mjs",
     "lint": "eslint ."
   },
   "dependencies": {

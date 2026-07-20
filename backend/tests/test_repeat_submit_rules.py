@@ -140,7 +140,7 @@ def test_final_submit_rechecks_completed_repeat_rule():
             _run(service.submit_answers(session, second.code, {"q1": {"value": "否"}}))
 
 
-def test_name_repeat_check_blocks_same_name_only():
+def test_no_repeat_uses_phone_even_when_stale_name_rule():
     with _build_session() as session:
         questionnaire = _create_questionnaire(session)
         assessment = _create_assessment(
@@ -156,7 +156,7 @@ def test_name_repeat_check_blocks_same_name_only():
                 assessment.id,
                 {
                     "candidate_name": "张三",
-                    "candidate_phone": "",
+                    "candidate_phone": "13800000000",
                     "custom_data": {},
                 },
                 questionnaire_id_override=questionnaire.id,
@@ -164,12 +164,12 @@ def test_name_repeat_check_blocks_same_name_only():
         )
         _run(service.submit_answers(session, first.code, {"q1": {"value": "是"}}))
 
-        same_name = _run(service.check_can_submit(session, assessment.id, "", "张三"))
-        other_name = _run(service.check_can_submit(session, assessment.id, "", "李四"))
+        same_phone = _run(service.check_can_submit(session, assessment.id, "13800000000", "李四"))
+        other_phone = _run(service.check_can_submit(session, assessment.id, "13900000000", "张三"))
 
-        assert same_name["can_submit"] is False
-        assert "不允许重复提交" in same_name["reason"]
-        assert other_name["can_submit"] is True
+        assert same_phone["can_submit"] is False
+        assert "不允许重复提交" in same_phone["reason"]
+        assert other_phone["can_submit"] is True
 
 
 def test_name_repeat_interval_ignores_empty_phone_for_different_names():

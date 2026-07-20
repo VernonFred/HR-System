@@ -350,7 +350,7 @@ const handleDistribute = async () => {
       link_type: form.value.validityType,
       allow_repeat: form.value.anonymousMode ? false : form.value.allowRepeat,
       anonymous_mode: form.value.anonymousMode,
-      repeat_check_by: form.value.repeatCheckBy,
+      repeat_check_by: form.value.allowRepeat ? form.value.repeatCheckBy : 'phone',
       repeat_interval_hours: form.value.repeatIntervalHours,
       max_submissions: form.value.maxSubmissions,
       routing_config: buildRoutingConfigPayload(),
@@ -458,7 +458,9 @@ const applyAssessmentToForm = () => {
   }
   form.value.allowRepeat = !!current.allow_repeat
   form.value.anonymousMode = !!current.anonymous_mode
-  form.value.repeatCheckBy = normalizeRepeatCheckBy(current.repeat_check_by)
+  form.value.repeatCheckBy = form.value.allowRepeat
+    ? normalizeRepeatCheckBy(current.repeat_check_by)
+    : 'phone'
   form.value.repeatIntervalHours = current.repeat_interval_hours ?? 24
   form.value.maxSubmissions = current.max_submissions ?? 0
 
