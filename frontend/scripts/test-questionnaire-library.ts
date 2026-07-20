@@ -4,6 +4,7 @@ import {
   buildQuestionnaireLibraryQuery,
   getPaginationItems,
   hasActiveQuestionnaireLibraryFilters,
+  reorderQuestionnaireLibraryItems,
   normalizeQuestionnaireLibraryPage,
 } from '../src/utils/questionnaireLibrary'
 
@@ -80,5 +81,12 @@ assert.equal(
   }),
   true,
 )
+
+const originalCategoryOrder = [11, 22, 33, 44]
+assert.deepEqual(reorderQuestionnaireLibraryItems(originalCategoryOrder, 1, 3), [11, 33, 44, 22])
+assert.deepEqual(reorderQuestionnaireLibraryItems(originalCategoryOrder, 3, 0), [44, 11, 22, 33])
+assert.deepEqual(reorderQuestionnaireLibraryItems(originalCategoryOrder, -1, 2), originalCategoryOrder)
+assert.deepEqual(reorderQuestionnaireLibraryItems(originalCategoryOrder, 0, 8), originalCategoryOrder)
+assert.deepEqual(originalCategoryOrder, [11, 22, 33, 44])
 
 console.log('questionnaire library utilities: all assertions passed')

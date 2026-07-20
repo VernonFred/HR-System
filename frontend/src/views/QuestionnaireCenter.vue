@@ -62,6 +62,7 @@ const keyword = ref('')
 const debouncedKeyword = ref('')
 const categoryTabLimit = ref(6)
 const categoryMoreRef = ref<HTMLDetailsElement | null>(null)
+const tagFilterRef = ref<HTMLDetailsElement | null>(null)
 
 const message = ref({
   show: false,
@@ -149,11 +150,10 @@ const setActiveCategory = (categoryId: number | null) => {
   if (categoryMoreRef.value) categoryMoreRef.value.open = false
 }
 
-const closeCategoryMoreOnOutsideClick = (event: PointerEvent) => {
-  const menu = categoryMoreRef.value
-  if (!menu?.open) return
-  if (event.target instanceof Node && !menu.contains(event.target)) {
-    menu.open = false
+const closeLibraryMenusOnOutsideClick = (event: PointerEvent) => {
+  if (!(event.target instanceof Node)) return
+  for (const menu of [categoryMoreRef.value, tagFilterRef.value]) {
+    if (menu?.open && !menu.contains(event.target)) menu.open = false
   }
 }
 
@@ -587,7 +587,7 @@ const updateCategoryTabLimit = () => {
 onMounted(() => {
   updateCategoryTabLimit()
   window.addEventListener('resize', updateCategoryTabLimit)
-  document.addEventListener('pointerdown', closeCategoryMoreOnOutsideClick)
+  document.addEventListener('pointerdown', closeLibraryMenusOnOutsideClick)
   loadLibraryMetadata()
 })
 
@@ -595,7 +595,7 @@ onUnmounted(() => {
   if (keywordTimer) clearTimeout(keywordTimer)
   if (messageTimer) clearTimeout(messageTimer)
   window.removeEventListener('resize', updateCategoryTabLimit)
-  document.removeEventListener('pointerdown', closeCategoryMoreOnOutsideClick)
+  document.removeEventListener('pointerdown', closeLibraryMenusOnOutsideClick)
 })
 </script>
 

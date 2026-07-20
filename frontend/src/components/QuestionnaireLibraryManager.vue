@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import Sortable, { type SortableEvent } from 'sortablejs'
 import {
   createQuestionnaireLibraryCategory,
   createQuestionnaireTag,
@@ -12,6 +13,7 @@ import {
   type QuestionnaireLibraryCategory,
   type QuestionnaireTag,
 } from '../api/assessments'
+import { reorderQuestionnaireLibraryItems } from '../utils/questionnaireLibrary'
 
 const emit = defineEmits<{
   (event: 'close'): void
@@ -31,6 +33,8 @@ const editingTagId = ref<number | null>(null)
 const editName = ref('')
 const mergeSourceId = ref<number | null>(null)
 const mergeTargetId = ref<number | null>(null)
+const categoryListRef = ref<HTMLElement | null>(null)
+let categorySortable: Sortable | null = null
 
 const activeMergeTargets = computed(() => tags.value.filter(tag => (
   tag.is_active && tag.id !== mergeSourceId.value
@@ -66,10 +70,12 @@ const runMutation = async (mutation: () => Promise<unknown>) => {
   try {
     await mutation()
     await loadData()
+    await initializeCategorySortable()
     emit('changed')
   } catch (error) {
     const mutationError = getErrorMessage(error)
     await loadData()
+    await initializeCategorySortable()
     errorMessage.value = mutationError
   } finally {
     saving.value = false
@@ -141,14 +147,73 @@ const toggleTag = (tag: QuestionnaireTag) => {
   runMutation(() => updateQuestionnaireTag(tag.id, { is_active: !tag.is_active }))
 }
 
+const persistCategoryOrder = async (
+  previous: QuestionnaireLibraryCategory[],
+  next: QuestionnaireLibraryCategory[],
+) => {
+  categories.value = next.map((category, sortOrder) => ({
+    ...category,
+    sort_order: sortOrder,
+  }))
+  saving.value = true
+  errorMessage.value = ''
+  try {
+    await reorderQuestionnaireLibraryCategories(categories.value.map(category => category.id))
+    emit('changed')
+  } catch (error) {
+    categories.value = previous
+    errorMessage.value = getErrorMessage(error)
+  } finally {
+    saving.value = false
+  }
+}
+
 const moveCategory = (index: number, direction: -1 | 1) => {
+  if (saving.value) return
   const targetIndex = index + direction
-  if (targetIndex < 0 || targetIndex >= categories.value.length) return
-  const next = [...categories.value]
-  const [category] = next.splice(index, 1)
-  next.splice(targetIndex, 0, category)
-  categories.value = next
-  runMutation(() => reorderQuestionnaireLibraryCategories(next.map(item => item.id)))
+  const previous = [...categories.value]
+  const next = reorderQuestionnaireLibraryItems(previous, index, targetIndex)
+  if (next.every((category, itemIndex) => category.id === previous[itemIndex]?.id)) return
+  void persistCategoryOrder(previous, next)
+}
+
+const handleCategoryDragEnd = (event: SortableEvent) => {
+  const sourceIndex = event.oldIndex
+  const targetIndex = event.newIndex
+  if (
+    sourceIndex === undefined
+    || targetIndex === undefined
+    || sourceIndex === targetIndex
+    || saving.value
+  ) return
+  const previous = [...categories.value]
+  const next = reorderQuestionnaireLibraryItems(previous, sourceIndex, targetIndex)
+  void persistCategoryOrder(previous, next)
+}
+
+const destroyCategorySortable = () => {
+  categorySortable?.destroy()
+  categorySortable = null
+}
+
+const initializeCategorySortable = async () => {
+  destroyCategorySortable()
+  if (activeTab.value !== 'categories') return
+  await nextTick()
+  if (!categoryListRef.value) return
+  categorySortable = new Sortable(categoryListRef.value, {
+    animation: 180,
+    handle: '.drag-handle',
+    draggable: '.manager-row',
+    forceFallback: true,
+    fallbackOnBody: true,
+    fallbackTolerance: 3,
+    ghostClass: 'category-drag-ghost',
+    chosenClass: 'category-drag-chosen',
+    dragClass: 'category-dragging',
+    onEnd: handleCategoryDragEnd,
+  })
+  categorySortable.option('disabled', saving.value)
 }
 
 const mergeTags = () => {
@@ -162,7 +227,15 @@ const mergeTags = () => {
   })
 }
 
-onMounted(loadData)
+watch(activeTab, initializeCategorySortable)
+watch(saving, isSaving => categorySortable?.option('disabled', isSaving))
+
+onMounted(async () => {
+  await loadData()
+  await initializeCategorySortable()
+})
+
+onBeforeUnmount(destroyCategorySortable)
 </script>
 
 <template>
@@ -201,36 +274,46 @@ onMounted(loadData)
         <div class="column-head category-columns">
           <span>分类名称</span><span>问卷数</span><span>状态</span><span>操作</span>
         </div>
-        <div class="manager-list">
-          <div v-for="(category, index) in categories" :key="category.id" class="manager-row category-columns">
-            <div class="name-cell">
-              <span class="drag-handle"><i class="ri-draggable"></i></span>
-              <input
-                v-if="editingCategoryId === category.id"
-                v-model="editName"
-                class="inline-input"
-                maxlength="40"
-                @keydown.enter.prevent="saveCategoryName(category)"
-                @keydown.esc="editingCategoryId = null"
-                @blur="saveCategoryName(category)"
-              />
-              <button v-else type="button" class="name-button" :disabled="category.is_system" @click="beginCategoryEdit(category)">
-                {{ category.name }}
-              </button>
-              <span v-if="category.is_system" class="system-label">系统</span>
+        <div ref="categoryListRef" class="manager-list">
+          <TransitionGroup name="category-order">
+            <div v-for="(category, index) in categories" :key="category.id" class="manager-row category-columns">
+              <div class="name-cell">
+                <button
+                  type="button"
+                  class="drag-handle"
+                  :disabled="saving"
+                  :aria-label="`拖拽调整${category.name}的顺序`"
+                  title="拖拽排序"
+                >
+                  <i class="ri-draggable"></i>
+                </button>
+                <input
+                  v-if="editingCategoryId === category.id"
+                  v-model="editName"
+                  class="inline-input"
+                  maxlength="40"
+                  @keydown.enter.prevent="saveCategoryName(category)"
+                  @keydown.esc="editingCategoryId = null"
+                  @blur="saveCategoryName(category)"
+                />
+                <button v-else type="button" class="name-button" :disabled="category.is_system" @click="beginCategoryEdit(category)">
+                  {{ category.name }}
+                </button>
+                <span v-if="category.is_system" class="system-label">系统</span>
+              </div>
+              <span class="count-cell">{{ category.questionnaire_count }}</span>
+              <span :class="['status-text', category.is_active ? 'active' : 'inactive']">
+                {{ category.is_active ? '启用' : '停用' }}
+              </span>
+              <div class="row-actions">
+                <button type="button" class="icon-button small" :disabled="saving || index === 0" title="上移" @click="moveCategory(index, -1)"><i class="ri-arrow-up-line"></i></button>
+                <button type="button" class="icon-button small" :disabled="saving || index === categories.length - 1" title="下移" @click="moveCategory(index, 1)"><i class="ri-arrow-down-line"></i></button>
+                <button type="button" class="text-button" :disabled="saving || category.is_system" @click="toggleCategory(category)">
+                  {{ category.is_active ? '停用' : '启用' }}
+                </button>
+              </div>
             </div>
-            <span class="count-cell">{{ category.questionnaire_count }}</span>
-            <span :class="['status-text', category.is_active ? 'active' : 'inactive']">
-              {{ category.is_active ? '启用' : '停用' }}
-            </span>
-            <div class="row-actions">
-              <button type="button" class="icon-button small" :disabled="saving || index === 0" title="上移" @click="moveCategory(index, -1)"><i class="ri-arrow-up-line"></i></button>
-              <button type="button" class="icon-button small" :disabled="saving || index === categories.length - 1" title="下移" @click="moveCategory(index, 1)"><i class="ri-arrow-down-line"></i></button>
-              <button type="button" class="text-button" :disabled="saving || category.is_system" @click="toggleCategory(category)">
-                {{ category.is_active ? '停用' : '启用' }}
-              </button>
-            </div>
-          </div>
+          </TransitionGroup>
         </div>
         <p class="manager-note">“未分类”为系统分类，用于承接历史问卷，不可重命名或停用。</p>
       </div>
@@ -318,10 +401,16 @@ input:focus, select:focus { outline: 3px solid rgba(99, 102, 241, 0.12); border-
 .category-columns, .tag-columns { grid-template-columns: minmax(220px, 1fr) 80px 72px 190px; }
 .column-head { margin-top: 18px; padding: 0 12px 8px; color: #94a3b8; font-size: 12px; }
 .manager-list { border-top: 1px solid #e7edf4; }
-.manager-row { min-height: 58px; padding: 8px 12px; border-bottom: 1px solid #edf1f6; }
+.manager-row { min-height: 58px; padding: 8px 12px; border-bottom: 1px solid #edf1f6; transition: background-color 120ms ease, box-shadow 120ms ease, opacity 120ms ease; }
 .manager-row:hover { background: #fafbfc; }
+.manager-row.category-drag-ghost { opacity: 0.28; background: #eef2ff; }
+.manager-row.category-drag-chosen { background: #f8faff; box-shadow: inset 0 0 0 1px #c7d2fe; }
+.manager-row.category-dragging { border-radius: 7px; background: #fff; box-shadow: 0 12px 28px rgba(15, 23, 42, 0.16); opacity: 0.96; }
+.category-order-move { transition: transform 180ms cubic-bezier(0.22, 1, 0.36, 1); }
 .name-cell { display: flex; align-items: center; gap: 8px; min-width: 0; }
-.drag-handle { color: #cbd5e1; }
+.drag-handle { display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 30px; flex: 0 0 auto; padding: 0; border: 0; background: transparent; color: #cbd5e1; cursor: grab; touch-action: none; }
+.drag-handle:hover:not(:disabled) { color: #6366f1; }
+.drag-handle:active { cursor: grabbing; }
 .tag-dot { width: 8px; height: 8px; flex: 0 0 auto; border-radius: 50%; background: #818cf8; }
 .name-button { min-width: 0; padding: 4px 0; overflow: hidden; border: 0; background: transparent; color: #334155; font: inherit; font-weight: 600; cursor: text; text-align: left; text-overflow: ellipsis; white-space: nowrap; }
 .name-button:disabled { opacity: 1; cursor: default; }

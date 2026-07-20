@@ -94,7 +94,7 @@
           </button>
         </label>
 
-        <details class="filter-multi-select">
+        <details ref="tagFilterRef" class="filter-multi-select">
           <summary :class="{ filtered: selectedTagIds.length }">
             <i class="ri-price-tag-3-line"></i>
             {{ selectedTagIds.length ? `标签 ${selectedTagIds.length}` : '全部标签' }}

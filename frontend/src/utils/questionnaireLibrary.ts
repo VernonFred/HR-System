@@ -94,6 +94,27 @@ export function getPaginationItems(
   return items
 }
 
+export function reorderQuestionnaireLibraryItems<T>(
+  items: readonly T[],
+  fromIndex: number,
+  toIndex: number,
+): T[] {
+  const next = [...items]
+  if (
+    fromIndex < 0
+    || toIndex < 0
+    || fromIndex >= next.length
+    || toIndex >= next.length
+    || fromIndex === toIndex
+  ) {
+    return next
+  }
+
+  const [item] = next.splice(fromIndex, 1)
+  next.splice(toIndex, 0, item)
+  return next
+}
+
 export function hasActiveQuestionnaireLibraryFilters(
   state: QuestionnaireLibraryFilterState,
 ) {
