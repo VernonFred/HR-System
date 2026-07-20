@@ -50,7 +50,6 @@ hr_*.db
 *.swp
 *.swo
 *~
-.DS_Store
 
 # Node
 node_modules/
@@ -99,3 +98,7 @@ backend/create_*.sh
 # Deployment scripts (部署时再添加)
 deploy_to_aliyun.sh
 quick_deploy_guide.md
+
+# Local deployment bundles
+/backend-update-*.zip
+/frontend-dist-update-*.zip
