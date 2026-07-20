@@ -66,6 +66,8 @@ test_*.py
 *_test.py
 !backend/tests/test_custom_questionnaire_scoring.py
 !backend/tests/meeting_system_integration_test.py
+!backend/tests/test_questionnaire_library.py
+!backend/tests/test_questionnaire_library_migration.py
 *.test.js
 
 # Uploads

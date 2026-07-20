@@ -2,15 +2,118 @@
  * 问卷/测评 API 类型定义。
  */
 
+export type QuestionnaireLibrarySort = 'updated_desc' | 'created_desc';
+
+export const QUESTIONNAIRE_LIBRARY_API_PATHS = {
+  base: '/api/assessments/library',
+  categories: '/api/assessments/library/categories',
+  reorderCategories: '/api/assessments/library/categories/reorder',
+  category: (categoryId: number) => `/api/assessments/library/categories/${categoryId}`,
+  tags: '/api/assessments/library/tags',
+  tag: (tagId: number) => `/api/assessments/library/tags/${tagId}`,
+  mergeTag: (sourceTagId: number) => `/api/assessments/library/tags/${sourceTagId}/merge`,
+  creators: '/api/assessments/library/creators',
+  bulkCategory: '/api/assessments/questionnaires/bulk-library-category',
+} as const;
+
+export interface QuestionnaireLibraryCategorySummary {
+  id: number;
+  name: string;
+  sort_order: number;
+  is_active: boolean;
+  is_system: boolean;
+}
+
+export interface QuestionnaireLibraryCategory extends QuestionnaireLibraryCategorySummary {
+  questionnaire_count: number;
+}
+
+export interface QuestionnaireTagSummary {
+  id: number;
+  name: string;
+  is_active: boolean;
+}
+
+export interface QuestionnaireTag extends QuestionnaireTagSummary {
+  questionnaire_count: number;
+}
+
+export interface QuestionnaireListParams {
+  skip?: number;
+  limit?: number;
+  category?: string;
+  library_category_id?: number;
+  tag_ids?: number[];
+  creator?: string;
+  status?: string;
+  custom_type?: 'scored' | 'non_scored';
+  keyword?: string;
+  sort?: QuestionnaireLibrarySort;
+}
+
+export interface QuestionnaireLibraryCategoryCreate {
+  name: string;
+  sort_order?: number;
+}
+
+export interface QuestionnaireLibraryCategoryUpdate {
+  name?: string;
+  sort_order?: number;
+  is_active?: boolean;
+}
+
+export interface QuestionnaireTagCreate {
+  name: string;
+}
+
+export interface QuestionnaireTagUpdate {
+  name?: string;
+  is_active?: boolean;
+}
+
+export interface QuestionnaireBulkLibraryCategoryUpdate {
+  questionnaire_ids: number[];
+  library_category_id: number;
+}
+
+export interface QuestionnaireBulkLibraryCategoryResult {
+  updated_count: number;
+}
+
+const appendTrimmed = (search: URLSearchParams, key: string, value?: string) => {
+  const normalized = value?.trim();
+  if (normalized) search.append(key, normalized);
+};
+
+export const buildQuestionnaireListSearch = (params: QuestionnaireListParams = {}) => {
+  const search = new URLSearchParams();
+  if (params.skip !== undefined) search.append('skip', String(params.skip));
+  if (params.limit !== undefined) search.append('limit', String(params.limit));
+  appendTrimmed(search, 'category', params.category);
+  if (params.library_category_id !== undefined) {
+    search.append('library_category_id', String(params.library_category_id));
+  }
+  [...new Set(params.tag_ids || [])].forEach(tagId => search.append('tag_ids', String(tagId)));
+  appendTrimmed(search, 'creator', params.creator);
+  appendTrimmed(search, 'status', params.status);
+  appendTrimmed(search, 'custom_type', params.custom_type);
+  appendTrimmed(search, 'keyword', params.keyword);
+  appendTrimmed(search, 'sort', params.sort);
+  return search;
+};
+
 export interface Questionnaire {
   id: number;
   name: string;
   type: string; // EPQ/DISC/MBTI
   category?: string;
+  description?: string;
   custom_type?: string;
   scoring_config?: any;
   purpose?: string;
   creator?: string;
+  library_category?: QuestionnaireLibraryCategorySummary | null;
+  tags?: QuestionnaireTagSummary[];
   questions_count: number;
   estimated_minutes: number;
   status: string;
@@ -35,6 +138,12 @@ export interface QuestionnaireCreate {
   custom_type?: string;
   scoring_config?: any;
   purpose?: string;
+  library_category_id?: number;
+  tag_ids?: number[];
+}
+
+export interface QuestionnaireUpdate extends Partial<QuestionnaireCreate> {
+  status?: string;
 }
 
 export interface Assessment {

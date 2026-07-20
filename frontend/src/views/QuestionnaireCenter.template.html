@@ -13,9 +13,15 @@
     <!-- 问卷库 -->
     <section class="questionnaire-section">
       <div class="section-header">
-        <h2>问卷库</h2>
+        <div>
+          <h2>问卷库</h2>
+          <p class="section-subtitle">按业务分类管理和查找问卷</p>
+        </div>
         <div class="section-actions">
-          <!-- V43: 导入问卷按钮 -->
+          <button class="btn-quiet" title="管理主分类和标签" @click="showLibraryManager = true">
+            <i class="ri-settings-3-line"></i>
+            分类管理
+          </button>
           <button class="btn-outline" @click="openImportModal">
             <i class="ri-upload-2-line"></i>
             导入问卷
@@ -36,6 +42,144 @@
         @change="handleImportFile"
       />
 
+      <nav class="library-category-tabs" aria-label="问卷主分类">
+        <button
+          class="category-tab"
+          :class="{ active: activeCategoryId === null }"
+          @click="setActiveCategory(null)"
+        >
+          全部
+        </button>
+        <button
+          v-for="category in visibleCategoryTabs"
+          :key="category.id"
+          class="category-tab"
+          :class="{ active: activeCategoryId === category.id }"
+          @click="setActiveCategory(category.id)"
+        >
+          {{ category.name }}
+          <span v-if="category.questionnaire_count !== undefined" class="category-count">
+            {{ category.questionnaire_count }}
+          </span>
+        </button>
+        <details v-if="overflowCategories.length" class="category-more">
+          <summary :class="{ active: activeCategoryInOverflow }">
+            {{ activeCategoryInOverflow?.name || '更多' }}
+            <i class="ri-arrow-down-s-line"></i>
+          </summary>
+          <div class="category-more-menu">
+            <button
+              v-for="category in overflowCategories"
+              :key="category.id"
+              :class="{ active: activeCategoryId === category.id }"
+              @click="setActiveCategory(category.id)"
+            >
+              <span>{{ category.name }}</span>
+              <span v-if="category.questionnaire_count !== undefined">{{ category.questionnaire_count }}</span>
+            </button>
+          </div>
+        </details>
+      </nav>
+
+      <div class="library-filters">
+        <label class="library-search">
+          <i class="ri-search-line"></i>
+          <input v-model="keyword" type="search" placeholder="搜索问卷名称或描述" />
+          <button v-if="keyword" title="清空搜索" @click.prevent="keyword = ''">
+            <i class="ri-close-circle-fill"></i>
+          </button>
+        </label>
+
+        <details class="filter-multi-select">
+          <summary :class="{ filtered: selectedTagIds.length }">
+            <i class="ri-price-tag-3-line"></i>
+            {{ selectedTagIds.length ? `标签 ${selectedTagIds.length}` : '全部标签' }}
+            <i class="ri-arrow-down-s-line"></i>
+          </summary>
+          <div class="filter-popover">
+            <label v-for="tag in activeTags" :key="tag.id">
+              <input v-model="selectedTagIds" type="checkbox" :value="tag.id" />
+              <span>{{ tag.name }}</span>
+            </label>
+            <p v-if="!activeTags.length">暂无可用标签</p>
+          </div>
+        </details>
+
+        <label class="filter-select">
+          <i class="ri-user-line"></i>
+          <select v-model="creatorFilter" aria-label="创建人筛选">
+            <option value="">全部创建人</option>
+            <option v-for="creator in creatorOptions" :key="creator" :value="creator">{{ creator }}</option>
+          </select>
+        </label>
+        <button
+          class="filter-command"
+          :class="{ active: creatorFilter === authStore.username }"
+          @click="creatorFilter = creatorFilter === authStore.username ? '' : authStore.username"
+        >
+          我创建的
+        </button>
+
+        <label class="filter-select">
+          <select v-model="customTypeFilter" aria-label="问卷类型筛选">
+            <option value="all">全部类型</option>
+            <option value="scored">评分问卷</option>
+            <option value="non_scored">普通调查</option>
+          </select>
+        </label>
+        <label class="filter-select">
+          <select v-model="statusFilter" aria-label="问卷状态筛选">
+            <option value="all">全部状态</option>
+            <option value="active">已启用</option>
+            <option value="inactive">已停用</option>
+          </select>
+        </label>
+        <label class="filter-select filter-sort">
+          <i class="ri-sort-desc"></i>
+          <select v-model="sortFilter" aria-label="问卷排序">
+            <option value="updated_desc">最近更新</option>
+            <option value="created_desc">最近创建</option>
+          </select>
+        </label>
+        <button v-if="hasActiveFilters" class="filter-reset" title="重置筛选" @click="resetFilters">
+          <i class="ri-refresh-line"></i>
+          重置
+        </button>
+      </div>
+
+      <div class="library-list-heading">
+        <span>共 {{ total }} 份问卷</span>
+        <button class="batch-toggle" :class="{ active: batchMode }" @click="toggleBatchMode">
+          <i :class="batchMode ? 'ri-close-line' : 'ri-checkbox-multiple-line'"></i>
+          {{ batchMode ? '退出批量' : '批量分类' }}
+        </button>
+      </div>
+
+      <div v-if="batchMode" class="batch-toolbar">
+        <label>
+          <input type="checkbox" :checked="isCurrentPageSelected" @change="toggleCurrentPageSelection" />
+          选择当前页
+        </label>
+        <span>已选 {{ selectedQuestionnaireIds.length }} 份</span>
+        <label class="batch-category-select">
+          <span>设置主分类</span>
+          <select v-model.number="batchCategoryId">
+            <option :value="null" disabled>请选择分类</option>
+            <option v-for="category in assignableCategories" :key="category.id" :value="category.id">
+              {{ category.name }}
+            </option>
+          </select>
+        </label>
+        <button
+          class="btn-primary batch-apply"
+          :disabled="!selectedQuestionnaireIds.length || !batchCategoryId || batchSaving"
+          @click="applyBatchCategory"
+        >
+          <i :class="batchSaving ? 'ri-loader-4-line spin' : 'ri-check-line'"></i>
+          {{ batchSaving ? '保存中' : '应用分类' }}
+        </button>
+      </div>
+
       <!-- 加载中 -->
       <div v-if="loading" class="loading-state">
         <i class="ri-loader-4-line spin"></i>
@@ -49,6 +193,8 @@
           :key="q.id"
           :questionnaire="q"
           category="custom"
+          :selectable="batchMode"
+          :selected="selectedQuestionnaireIds.includes(q.id)"
           @view-detail="openDetailDrawer"
           @edit="openEditModal"
           @copy="handleCopyQuestionnaire"
@@ -56,19 +202,47 @@
           @distribute="openDistributeModal"
           @view-links="openViewLinksPanel"
           @toggle-status="openToggleStatusConfirm"
+          @toggle-select="toggleQuestionnaireSelection"
+          @disabled-distribute-click="showMessage('请先启用问卷后再分发', 'warning')"
         />
       </div>
 
       <!-- 空状态 -->
       <div v-else class="empty-state">
         <i class="ri-file-list-line"></i>
-        <p>暂无问卷</p>
-        <span>点击"创建问卷"开始创建您的第一份问卷</span>
-        <button class="btn-primary" @click="openCreateModal">
+        <p>{{ hasActiveFilters ? '没有符合当前筛选条件的问卷' : '还没有问卷' }}</p>
+        <span>{{ hasActiveFilters ? '调整或重置筛选条件后再试' : '创建第一份问卷后会显示在这里' }}</span>
+        <button v-if="hasActiveFilters" class="btn-secondary" @click="resetFilters">
+          <i class="ri-refresh-line"></i>
+          重置筛选
+        </button>
+        <button v-else class="btn-primary" @click="openCreateModal">
           <i class="ri-add-line"></i>
           创建问卷
         </button>
       </div>
+
+      <footer v-if="!loading && total > 0" class="library-pagination">
+        <span>第 {{ currentPage }} / {{ totalPages }} 页</span>
+        <div class="pagination-controls">
+          <button title="上一页" :disabled="currentPage <= 1" @click="setCurrentPage(currentPage - 1)">
+            <i class="ri-arrow-left-s-line"></i>
+          </button>
+          <template v-for="(item, index) in paginationItems" :key="`${item}-${index}`">
+            <span v-if="item === 'ellipsis'" class="pagination-ellipsis">...</span>
+            <button
+              v-else
+              :class="{ active: currentPage === item }"
+              @click="setCurrentPage(item)"
+            >
+              {{ item }}
+            </button>
+          </template>
+          <button title="下一页" :disabled="currentPage >= totalPages" @click="setCurrentPage(currentPage + 1)">
+            <i class="ri-arrow-right-s-line"></i>
+          </button>
+        </div>
+      </footer>
     </section>
 
     <!-- 问卷详情抽屉 -->
@@ -89,6 +263,12 @@
       :imported-data="importedQuestions"
       @close="closeEditorModal"
       @save="handleEditorSave"
+    />
+
+    <QuestionnaireLibraryManager
+      v-if="showLibraryManager"
+      @close="showLibraryManager = false"
+      @changed="handleLibraryMetadataChanged"
     />
 
     <!-- V43: 导入问卷弹窗 -->
@@ -206,9 +386,10 @@
           <button class="btn-secondary" @click="cancelToggleStatus">取消</button>
           <button
             :class="toggleStatusTarget?.status === 'active' ? 'btn-warning' : 'btn-success'"
+            :disabled="toggleStatusSaving"
             @click="executeToggleStatus"
           >
-            {{ toggleStatusTarget?.status === 'active' ? '确认停用' : '确认启用' }}
+            {{ toggleStatusSaving ? '保存中...' : (toggleStatusTarget?.status === 'active' ? '确认停用' : '确认启用') }}
           </button>
         </div>
       </div>

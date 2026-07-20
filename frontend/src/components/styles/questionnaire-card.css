@@ -8,6 +8,17 @@
   overflow: hidden;
   display: flex;
   flex-direction: column;
+  min-height: 420px;
+  border: 1px solid transparent;
+}
+
+.questionnaire-card.selectable {
+  cursor: pointer;
+}
+
+.questionnaire-card.selected {
+  border-color: #6366f1;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.12), 0 8px 24px rgba(0, 0, 0, 0.1);
 }
 
 /* 可点击的卡片 */
@@ -41,6 +52,24 @@
   justify-content: space-between;
   align-items: flex-start;
   padding: 1.25rem 1.25rem 0;
+}
+
+.card-select {
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: #94a3b8;
+  font-size: 21px;
+  cursor: pointer;
+}
+
+.card-select:hover,
+.card-select.selected {
+  color: #6366f1;
+  background: #eef2ff;
 }
 
 .card-icon {
@@ -147,6 +176,46 @@
   line-height: 1.4;
 }
 
+.card-classification {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 24px;
+  margin-bottom: 8px;
+  overflow: hidden;
+}
+
+.card-main-category,
+.card-library-tag {
+  display: inline-flex;
+  align-items: center;
+  max-width: 112px;
+  height: 24px;
+  padding: 0 8px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.card-main-category {
+  color: #3730a3;
+  background: #eef2ff;
+}
+
+.card-library-tag {
+  color: #475569;
+  background: #f1f5f9;
+}
+
+.card-library-tag-more {
+  flex-shrink: 0;
+  padding: 0 7px;
+}
+
 .card-type-tag {
   display: inline-block;
   padding: 0.25rem 0.625rem;
@@ -154,7 +223,7 @@
   font-size: 0.6875rem;
   font-weight: 700;
   text-transform: uppercase;
-  margin-bottom: 0.875rem;
+  margin-bottom: 0.75rem;
 }
 
 .type-epq {
@@ -232,6 +301,20 @@
   padding: 0.875rem 1.25rem;
   background: #f9fafb;
   border-top: 1px solid #f3f4f6;
+}
+
+@media (max-width: 420px) {
+  .questionnaire-card {
+    min-height: 400px;
+  }
+
+  .card-footer-actions {
+    padding: 0.75rem 1rem;
+  }
+
+  .action-btn {
+    padding: 0.5rem 0.625rem;
+  }
 }
 
 .action-btn {

@@ -13,6 +13,8 @@ import { ref, computed, onMounted, watch } from 'vue'
 import { useAuthStore } from '../stores/auth'
 import CandidatePreviewPanel from './CandidatePreviewPanel.vue'
 import QuestionEditDialog, { type EditorQuestion } from './QuestionEditDialog.vue'
+import QuestionnaireLibraryManager from './QuestionnaireLibraryManager.vue'
+import QuestionnaireTagPicker from './QuestionnaireTagPicker.vue'
 import { createDefaultQuestionnaireForm, mapImportedQuestionType, questionControls } from './questionnaireEditorConfig'
 import {
   buildScoringDisplayConfig,
@@ -25,10 +27,14 @@ import {
   createQuestionnaire,
   updateQuestionnaire,
   fetchQuestionnaireDetail,
+  fetchQuestionnaireLibraryCategories,
+  fetchQuestionnaireTags,
   type Questionnaire,
   type QuestionnaireCreate,
   type QuestionnaireDetail,
   type QuestionnaireImportResponse,
+  type QuestionnaireLibraryCategorySummary,
+  type QuestionnaireTagSummary,
 } from '../api/assessments'
 
 // ===== Props =====
@@ -49,6 +55,16 @@ const loading = ref(false)
 const editorStep = ref<'info' | 'questions'>('info')
 const authStore = useAuthStore()
 const questionsMeta = ref<Record<string, any>>({})
+const libraryCategories = ref<QuestionnaireLibraryCategorySummary[]>([])
+const libraryTags = ref<QuestionnaireTagSummary[]>([])
+const libraryCategoryId = ref<number | null>(null)
+const selectedTagIds = ref<number[]>([])
+const originalLibraryCategoryId = ref<number | null>(null)
+const originalTagIds = ref<number[]>([])
+const originalTechnicalCategory = ref<string | null>(null)
+const libraryLoading = ref(false)
+const libraryError = ref('')
+const showLibraryManager = ref(false)
 
 const form = ref(createDefaultQuestionnaireForm())
 
@@ -171,9 +187,25 @@ const previewYesno = ref('')
 const previewChoice = ref('')
 
 // ===== 计算属性 =====
-const canGoNext = computed(() => {
-  return form.value.name.trim() !== ''
+const selectedLibraryCategory = computed(() => (
+  libraryCategories.value.find(category => category.id === libraryCategoryId.value) || null
+))
+
+const selectableLibraryCategories = computed(() => libraryCategories.value.filter(category => (
+  (category.is_active && !category.is_system)
+    || (isEdit.value && category.id === originalLibraryCategoryId.value)
+)))
+
+const hasValidLibraryCategory = computed(() => {
+  const category = selectedLibraryCategory.value
+  if (!category) return false
+  if (category.is_active && !category.is_system) return true
+  return isEdit.value && category.id === originalLibraryCategoryId.value
 })
+
+const canGoNext = computed(() => (
+  form.value.name.trim() !== '' && hasValidLibraryCategory.value
+))
 
 // 分页计算
 const paginatedQuestions = computed(() => {
@@ -252,8 +284,50 @@ const goToInfoStep = () => {
 }
 
 const goToQuestionsStep = () => {
-  if (!form.value.name.trim()) return
+  if (!canGoNext.value) return
   editorStep.value = 'questions'
+}
+
+const mergeLibraryCategory = (category?: QuestionnaireLibraryCategorySummary | null) => {
+  if (!category || libraryCategories.value.some(item => item.id === category.id)) return
+  libraryCategories.value.push(category)
+}
+
+const mergeLibraryTags = (tags: QuestionnaireTagSummary[] = []) => {
+  const knownIds = new Set(libraryTags.value.map(tag => tag.id))
+  libraryTags.value.push(...tags.filter(tag => !knownIds.has(tag.id)))
+}
+
+const loadQuestionnaireLibraryOptions = async () => {
+  libraryLoading.value = true
+  libraryError.value = ''
+  try {
+    const [categories, tags] = await Promise.all([
+      fetchQuestionnaireLibraryCategories(),
+      fetchQuestionnaireTags(),
+    ])
+    libraryCategories.value = [...categories].sort((a, b) => a.sort_order - b.sort_order || a.id - b.id)
+    libraryTags.value = tags
+  } catch (error) {
+    console.error('加载问卷分类失败:', error)
+    libraryError.value = '分类与标签加载失败，请重试'
+  } finally {
+    libraryLoading.value = false
+  }
+}
+
+const handleLibraryChanged = async () => {
+  const currentCategory = selectedLibraryCategory.value
+  const currentTags = selectedTagIds.value
+    .map(tagId => libraryTags.value.find(tag => tag.id === tagId))
+    .filter((tag): tag is QuestionnaireTagSummary => !!tag)
+  await loadQuestionnaireLibraryOptions()
+  mergeLibraryCategory(currentCategory)
+  mergeLibraryTags(currentTags)
+}
+
+const handleTagCreated = (tag: QuestionnaireTagSummary) => {
+  mergeLibraryTags([tag])
 }
 
 // 获取题型名称
@@ -393,6 +467,16 @@ const save = async () => {
     alert('请输入问卷名称')
     return
   }
+  if (!hasValidLibraryCategory.value) {
+    alert('请选择有效的问卷主分类')
+    editorStep.value = 'info'
+    return
+  }
+  if (selectedTagIds.value.length > 10) {
+    alert('每份问卷最多选择 10 个标签')
+    editorStep.value = 'info'
+    return
+  }
 
   loading.value = true
   try {
@@ -441,10 +525,22 @@ const save = async () => {
       custom_type: customType,
       scoring_config: scoringConfig,
       purpose: form.value.purpose || 'survey',
+      library_category_id: libraryCategoryId.value || undefined,
+      tag_ids: selectedTagIds.value,
     }
 
     if (isEdit.value && props.questionnaire) {
-      await updateQuestionnaire(props.questionnaire.id, data)
+      const updateData = { ...data }
+      if (category === originalTechnicalCategory.value) {
+        delete updateData.category
+      }
+      if (libraryCategoryId.value === originalLibraryCategoryId.value) {
+        delete updateData.library_category_id
+      }
+      const tagIdsChanged = selectedTagIds.value.length !== originalTagIds.value.length
+        || selectedTagIds.value.some(tagId => !originalTagIds.value.includes(tagId))
+      if (!tagIdsChanged) delete updateData.tag_ids
+      await updateQuestionnaire(props.questionnaire.id, updateData)
     } else {
       await createQuestionnaire(data)
     }
@@ -460,6 +556,7 @@ const save = async () => {
 
 // ===== 生命周期 =====
 onMounted(async () => {
+  await loadQuestionnaireLibraryOptions()
   if (!form.value.creator) {
     form.value.creator = authStore.username || 'Admin'
   }
@@ -509,8 +606,8 @@ onMounted(async () => {
     )
     setScoringEnabled(hasScoring)
 
-    // 直接跳转到题目编辑步骤
-    editorStep.value = 'questions'
+    // 导入问卷仍需先选择业务主分类。
+    editorStep.value = 'info'
 
     console.log('✅ 导入问卷数据已加载:', editorQuestions.value.length, '道题目')
     return
@@ -521,13 +618,27 @@ onMounted(async () => {
     form.value.name = props.questionnaire.name
     form.value.type = props.questionnaire.type || 'CUSTOM'
     form.value.category = props.questionnaire.category || 'survey'
+    originalTechnicalCategory.value = form.value.category
     form.value.purpose = props.questionnaire.purpose || 'survey'
     form.value.description = (props.questionnaire as any).description || ''
     form.value.estimated_minutes = props.questionnaire.estimated_minutes || 10
+    mergeLibraryCategory(props.questionnaire.library_category)
+    mergeLibraryTags(props.questionnaire.tags || [])
+    libraryCategoryId.value = props.questionnaire.library_category?.id || null
+    selectedTagIds.value = (props.questionnaire.tags || []).map(tag => tag.id)
+    originalLibraryCategoryId.value = libraryCategoryId.value
+    originalTagIds.value = [...selectedTagIds.value]
 
     // 加载详细数据
     try {
       const detail = await fetchQuestionnaireDetail(props.questionnaire.id)
+      originalTechnicalCategory.value = detail.category || originalTechnicalCategory.value
+      mergeLibraryCategory(detail.library_category)
+      mergeLibraryTags(detail.tags || [])
+      libraryCategoryId.value = detail.library_category?.id || libraryCategoryId.value
+      selectedTagIds.value = (detail.tags || []).map(tag => tag.id)
+      originalLibraryCategoryId.value = libraryCategoryId.value
+      originalTagIds.value = [...selectedTagIds.value]
       if (detail.questions_data?.questions) {
         editorQuestions.value = detail.questions_data.questions.map((q: any) => ({
           id: q.id || generateId(),

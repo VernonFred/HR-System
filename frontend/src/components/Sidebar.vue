@@ -34,8 +34,12 @@ const props = defineProps<{
 const router = useRouter();
 const authStore = useAuthStore();
 
-// 展开状态
-const expandedGroups = ref<Set<string>>(new Set(["portrait", "survey"]));
+// 窄屏默认收起无关分组，用户仍可点击展开。
+const portraitPages: PageKey[] = ["candidates", "jobprofiles", "assessments"];
+const compactViewport = typeof window !== "undefined" && window.innerWidth <= 600;
+const expandedGroups = ref<Set<string>>(new Set(
+  !compactViewport || portraitPages.includes(props.active) ? ["portrait"] : []
+));
 
 // 退出登录确认
 const showLogoutConfirm = ref(false);
@@ -107,7 +111,12 @@ const handleClick = (item: NavItem) => {
     
     <nav class="nav-list">
       <!-- 分组导航 -->
-      <div v-for="group in navGroups" :key="group.key" class="nav-group">
+      <div
+        v-for="group in navGroups"
+        :key="group.key"
+        class="nav-group"
+        :class="{ 'has-active': isGroupActive(group) }"
+      >
         <button 
           class="nav-group-header"
           :class="{ expanded: isGroupExpanded(group.key), 'has-active': isGroupActive(group) }"

@@ -6,6 +6,75 @@ from pydantic import BaseModel, Field
 
 # ========== 问卷相关 ==========
 
+class QuestionnaireLibraryCategorySummary(BaseModel):
+    """问卷库主分类摘要。"""
+
+    id: int
+    name: str
+    sort_order: int
+    is_active: bool
+    is_system: bool
+
+    class Config:
+        from_attributes = True
+
+
+class QuestionnaireLibraryCategoryResponse(QuestionnaireLibraryCategorySummary):
+    """用于分类管理列表的主分类。"""
+
+    questionnaire_count: int = 0
+
+
+class QuestionnaireLibraryCategoryCreate(BaseModel):
+    name: str
+    sort_order: int = 0
+
+
+class QuestionnaireLibraryCategoryUpdate(BaseModel):
+    name: Optional[str] = None
+    sort_order: Optional[int] = None
+    is_active: Optional[bool] = None
+
+
+class QuestionnaireLibraryCategoryReorder(BaseModel):
+    category_ids: List[int]
+
+
+class QuestionnaireTagSummary(BaseModel):
+    """问卷库标签摘要。"""
+
+    id: int
+    name: str
+    is_active: bool
+
+    class Config:
+        from_attributes = True
+
+
+class QuestionnaireTagResponse(QuestionnaireTagSummary):
+    """用于标签管理列表的标签。"""
+
+    questionnaire_count: int = 0
+
+
+class QuestionnaireTagCreate(BaseModel):
+    name: str
+
+
+class QuestionnaireTagUpdate(BaseModel):
+    name: Optional[str] = None
+    is_active: Optional[bool] = None
+
+
+class QuestionnaireTagMerge(BaseModel):
+    target_tag_id: int
+
+
+class QuestionnaireBulkLibraryCategoryUpdate(BaseModel):
+    questionnaire_ids: List[int]
+    library_category_id: int
+
+
 class QuestionOption(BaseModel):
     """问题选项 - 兼容多种格式."""
     label: Optional[str] = None  # A, B, C, D 或选项标签
@@ -59,6 +128,8 @@ class QuestionnaireCreate(QuestionnaireBase):
     scoring_config: Dict[str, Any] = {}  # 评分配置
     # ⭐ 问卷用途（评分问卷专用）
     purpose: Optional[str] = None  # assessment: 能力测评 / survey: 满意度调查
+    library_category_id: Optional[int] = None
+    tag_ids: List[int] = Field(default_factory=list)
 
 
 class QuestionnaireUpdate(BaseModel):
@@ -76,6 +147,8 @@ class QuestionnaireUpdate(BaseModel):
     scoring_config: Optional[Dict[str, Any]] = None
     # ⭐ 问卷用途（评分问卷专用）
     purpose: Optional[str] = None
+    library_category_id: Optional[int] = None
+    tag_ids: Optional[List[int]] = None
 
 
 class QuestionnaireResponse(QuestionnaireBase):
@@ -92,6 +165,8 @@ class QuestionnaireResponse(QuestionnaireBase):
     scoring_config: Optional[Dict[str, Any]] = None  # 允许为 None
     # ⭐ 问卷用途（评分问卷专用）
     purpose: Optional[str] = None
+    library_category: Optional[QuestionnaireLibraryCategorySummary] = None
+    tags: List[QuestionnaireTagSummary] = Field(default_factory=list)
 
     class Config:
         from_attributes = True

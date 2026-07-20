@@ -9,6 +9,18 @@ import type {
   Questionnaire,
   QuestionnaireDetail,
   QuestionnaireCreate,
+  QuestionnaireUpdate,
+  QuestionnaireListParams,
+  QuestionnaireLibraryCategory,
+  QuestionnaireLibraryCategorySummary,
+  QuestionnaireLibraryCategoryCreate,
+  QuestionnaireLibraryCategoryUpdate,
+  QuestionnaireTag,
+  QuestionnaireTagSummary,
+  QuestionnaireTagCreate,
+  QuestionnaireTagUpdate,
+  QuestionnaireBulkLibraryCategoryUpdate,
+  QuestionnaireBulkLibraryCategoryResult,
   Assessment,
   DepartmentRoutingConfig,
   AssessmentCreate,
@@ -35,10 +47,25 @@ import type {
   SubmissionStart,
   QuestionnaireImportResponse
 } from './assessmentTypes';
+import { buildQuestionnaireListSearch, QUESTIONNAIRE_LIBRARY_API_PATHS } from './assessmentTypes';
+export { buildQuestionnaireListSearch, QUESTIONNAIRE_LIBRARY_API_PATHS } from './assessmentTypes';
 export type {
   Questionnaire,
   QuestionnaireDetail,
   QuestionnaireCreate,
+  QuestionnaireUpdate,
+  QuestionnaireListParams,
+  QuestionnaireLibraryCategorySummary,
+  QuestionnaireLibraryCategory,
+  QuestionnaireLibraryCategoryCreate,
+  QuestionnaireLibraryCategoryUpdate,
+  QuestionnaireTagSummary,
+  QuestionnaireTag,
+  QuestionnaireTagCreate,
+  QuestionnaireTagUpdate,
+  QuestionnaireBulkLibraryCategoryUpdate,
+  QuestionnaireBulkLibraryCategoryResult,
+  QuestionnaireLibrarySort,
   Assessment,
   DepartmentRoutingConfig,
   AssessmentCreate,
@@ -71,23 +98,20 @@ export type {
 
 
 
-export const fetchQuestionnaires = (params?: {
-  skip?: number;
-  limit?: number;
-  category?: string;  // professional/scored/survey
-}) => {
-  const search = new URLSearchParams();
-  if (params?.skip) search.append("skip", String(params.skip));
-  if (params?.limit) search.append("limit", String(params.limit));
-  if (params?.category) search.append("category", params.category);
+export const fetchQuestionnaires = (params?: QuestionnaireListParams) => {
+  const search = buildQuestionnaireListSearch(params);
   const qs = search.toString();
 
   // 根据 category 过滤 Mock 数据
   const filteredMockData = filterQuestionnairesByCategory(MOCK_QUESTIONNAIRES, params?.category);
 
+  const fallback = params?.category === 'custom'
+    ? undefined
+    : { items: filteredMockData, total: filteredMockData.length };
+
   return apiRequest<{ items: Questionnaire[]; total: number }>({
     path: `/api/assessments/questionnaires${qs ? `?${qs}` : ""}`,
-    fallback: { items: filteredMockData, total: filteredMockData.length },
+    ...(fallback ? { fallback } : {}),
     auth: false,
   });
 };
@@ -141,12 +165,106 @@ export const createQuestionnaire = (data: QuestionnaireCreate) => {
   });
 };
 
-export const updateQuestionnaire = (id: number, data: Partial<QuestionnaireCreate>) => {
+export const updateQuestionnaire = (id: number, data: QuestionnaireUpdate) => {
   return apiRequestWithBody<Questionnaire>({
     path: `/api/assessments/questionnaires/${id}`,
     method: "PUT",
     body: data,
     fallback: {} as Questionnaire,
+    auth: false,
+  });
+};
+
+// ========== 问卷库业务分类与标签 ==========
+
+export const fetchQuestionnaireLibraryCategories = () => {
+  return apiRequest<QuestionnaireLibraryCategory[]>({
+    path: QUESTIONNAIRE_LIBRARY_API_PATHS.categories,
+    fallback: [],
+    auth: false,
+  });
+};
+
+export const createQuestionnaireLibraryCategory = (data: QuestionnaireLibraryCategoryCreate) => {
+  return apiRequestWithBody<QuestionnaireLibraryCategorySummary>({
+    path: QUESTIONNAIRE_LIBRARY_API_PATHS.categories,
+    method: 'POST',
+    body: data,
+    auth: false,
+  });
+};
+
+export const updateQuestionnaireLibraryCategory = (
+  categoryId: number,
+  data: QuestionnaireLibraryCategoryUpdate,
+) => {
+  return apiRequestWithBody<QuestionnaireLibraryCategorySummary>({
+    path: QUESTIONNAIRE_LIBRARY_API_PATHS.category(categoryId),
+    method: 'PUT',
+    body: data,
+    auth: false,
+  });
+};
+
+export const reorderQuestionnaireLibraryCategories = async (categoryIds: number[]) => {
+  return apiRequestWithBody<QuestionnaireLibraryCategorySummary[]>({
+    path: QUESTIONNAIRE_LIBRARY_API_PATHS.reorderCategories,
+    method: 'PUT',
+    body: { category_ids: categoryIds },
+    auth: false,
+  });
+};
+
+export const fetchQuestionnaireTags = () => {
+  return apiRequest<QuestionnaireTag[]>({
+    path: QUESTIONNAIRE_LIBRARY_API_PATHS.tags,
+    fallback: [],
+    auth: false,
+  });
+};
+
+export const createQuestionnaireTag = (data: QuestionnaireTagCreate) => {
+  return apiRequestWithBody<QuestionnaireTagSummary>({
+    path: QUESTIONNAIRE_LIBRARY_API_PATHS.tags,
+    method: 'POST',
+    body: data,
+    auth: false,
+  });
+};
+
+export const updateQuestionnaireTag = (tagId: number, data: QuestionnaireTagUpdate) => {
+  return apiRequestWithBody<QuestionnaireTagSummary>({
+    path: QUESTIONNAIRE_LIBRARY_API_PATHS.tag(tagId),
+    method: 'PUT',
+    body: data,
+    auth: false,
+  });
+};
+
+export const mergeQuestionnaireTag = (sourceTagId: number, targetTagId: number) => {
+  return apiRequestWithBody<QuestionnaireTagSummary>({
+    path: QUESTIONNAIRE_LIBRARY_API_PATHS.mergeTag(sourceTagId),
+    method: 'POST',
+    body: { target_tag_id: targetTagId },
+    auth: false,
+  });
+};
+
+export const fetchQuestionnaireCreatorOptions = () => {
+  return apiRequest<string[]>({
+    path: QUESTIONNAIRE_LIBRARY_API_PATHS.creators,
+    fallback: [],
+    auth: false,
+  });
+};
+
+export const bulkUpdateQuestionnaireLibraryCategory = (
+  data: QuestionnaireBulkLibraryCategoryUpdate,
+) => {
+  return apiRequestWithBody<QuestionnaireBulkLibraryCategoryResult>({
+    path: QUESTIONNAIRE_LIBRARY_API_PATHS.bulkCategory,
+    method: 'PUT',
+    body: data,
     auth: false,
   });
 };

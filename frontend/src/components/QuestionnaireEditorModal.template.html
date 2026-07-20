@@ -69,6 +69,56 @@
               ></textarea>
             </div>
 
+            <section class="library-config-section">
+              <div class="library-config-header">
+                <div>
+                  <h4>问卷库归类</h4>
+                  <p>主分类用于顶部导航，标签用于跨分类筛选。</p>
+                </div>
+                <button type="button" class="library-manage-button" @click="showLibraryManager = true">
+                  <i class="ri-settings-3-line"></i>
+                  管理分类
+                </button>
+              </div>
+
+              <div class="library-fields">
+                <div class="form-group">
+                  <label class="form-label">主分类 <span class="required">*</span></label>
+                  <div class="select-shell">
+                    <select v-model="libraryCategoryId" class="form-input" :disabled="libraryLoading">
+                      <option :value="null" disabled>{{ libraryLoading ? '正在加载分类...' : '请选择主分类' }}</option>
+                      <option
+                        v-for="category in selectableLibraryCategories"
+                        :key="category.id"
+                        :value="category.id"
+                      >
+                        {{ category.name }}{{ !category.is_active || category.is_system ? '（历史保留）' : '' }}
+                      </option>
+                    </select>
+                    <i class="ri-arrow-down-s-line"></i>
+                  </div>
+                  <p v-if="!libraryLoading && !selectableLibraryCategories.length" class="field-message error">
+                    暂无可用主分类，请先在“管理分类”中启用或新增分类。
+                  </p>
+                  <p v-else-if="selectedLibraryCategory && (!selectedLibraryCategory.is_active || selectedLibraryCategory.is_system)" class="field-message history">
+                    当前为历史分类；可继续保留，改选后不能再次选择。
+                  </p>
+                </div>
+
+                <div class="form-group">
+                  <label class="form-label">标签 <span class="field-optional">选填，最多 10 个</span></label>
+                  <QuestionnaireTagPicker
+                    v-model="selectedTagIds"
+                    :tags="libraryTags"
+                    :max="10"
+                    :disabled="libraryLoading"
+                    @tag-created="handleTagCreated"
+                  />
+                </div>
+              </div>
+              <p v-if="libraryError" class="field-message error">{{ libraryError }}</p>
+            </section>
+
             <!-- 评分配置 -->
             <div class="scoring-config-section">
               <div class="config-section-header">
@@ -389,3 +439,9 @@
       </div>
     </div>
   </div>
+
+  <QuestionnaireLibraryManager
+    v-if="showLibraryManager"
+    @close="showLibraryManager = false"
+    @changed="handleLibraryChanged"
+  />

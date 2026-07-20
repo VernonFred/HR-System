@@ -1,5 +1,5 @@
 """问卷/测评管理 - API路由."""
-from typing import Optional
+from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File
 from sqlmodel import Session
 
@@ -18,12 +18,183 @@ router = APIRouter(prefix="/api/assessments", tags=["assessments"])
 async def get_questionnaires(
     skip: int = 0,
     limit: int = 100,
-    category: Optional[str] = Query(None, description="问卷分类: professional/scored/survey"),
+    category: Optional[str] = Query(
+        None, description="问卷分类: professional/scored/survey/custom（custom 包含 scored 和 survey）"
+    ),
+    library_category_id: Optional[int] = Query(None, description="问卷库主分类ID"),
+    tag_ids: Optional[List[int]] = Query(None, description="标签ID，可重复传入，标签间为 OR"),
+    creator: Optional[str] = Query(None, description="创建人，按去除首尾空格后的文本精确匹配"),
+    status: Optional[str] = Query(None, description="问卷状态"),
+    custom_type: Optional[str] = Query(None, description="自定义问卷类型: scored/non_scored"),
+    keyword: Optional[str] = Query(None, description="问卷名称或描述关键词"),
+    sort: str = Query("updated_desc", description="updated_desc 或 created_desc"),
     session: Session = Depends(get_session)
 ):
-    """获取问卷列表，支持按category过滤."""
-    questionnaires, total = await service.get_questionnaires(session, skip, limit, category=category)
+    """获取问卷列表，支持问卷库分类、标签和创建人等组合过滤。"""
+    try:
+        questionnaires, total = await service.get_questionnaires(
+            session,
+            skip,
+            limit,
+            category=category,
+            library_category_id=library_category_id,
+            tag_ids=tag_ids,
+            creator=creator,
+            status=status,
+            custom_type=custom_type,
+            keyword=keyword,
+            sort=sort,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
     return schemas.QuestionnaireListResponse(items=questionnaires, total=total)
+
+
+@router.get(
+    "/library/categories",
+    response_model=List[schemas.QuestionnaireLibraryCategoryResponse],
+)
+async def get_library_categories(session: Session = Depends(get_session)):
+    """获取问卷库主分类及其问卷数量。"""
+    categories = await service.get_library_categories(session)
+    return [
+        schemas.QuestionnaireLibraryCategoryResponse(
+            **schemas.QuestionnaireLibraryCategorySummary.model_validate(category).model_dump(),
+            questionnaire_count=count,
+        )
+        for category, count in categories
+    ]
+
+
+@router.post(
+    "/library/categories",
+    response_model=schemas.QuestionnaireLibraryCategorySummary,
+    status_code=201,
+)
+async def create_library_category(
+    data: schemas.QuestionnaireLibraryCategoryCreate,
+    session: Session = Depends(get_session),
+):
+    """创建可用于自定义问卷的主分类。"""
+    try:
+        return await service.create_library_category(session, data.model_dump())
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+
+
+@router.put(
+    "/library/categories/reorder",
+    response_model=List[schemas.QuestionnaireLibraryCategorySummary],
+)
+async def reorder_library_categories(
+    data: schemas.QuestionnaireLibraryCategoryReorder,
+    session: Session = Depends(get_session),
+):
+    """在单个事务中更新全部主分类排序。"""
+    try:
+        return await service.reorder_library_categories(session, data.category_ids)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+
+
+@router.put(
+    "/library/categories/{category_id}",
+    response_model=schemas.QuestionnaireLibraryCategorySummary,
+)
+async def update_library_category(
+    category_id: int,
+    data: schemas.QuestionnaireLibraryCategoryUpdate,
+    session: Session = Depends(get_session),
+):
+    """更新主分类名称、排序或启用状态。"""
+    try:
+        category = await service.update_library_category(
+            session, category_id, data.model_dump(exclude_unset=True)
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+    if not category:
+        raise HTTPException(status_code=404, detail="主分类不存在")
+    return category
+
+
+@router.get("/library/tags", response_model=List[schemas.QuestionnaireTagResponse])
+async def get_questionnaire_tags(session: Session = Depends(get_session)):
+    """获取问卷库标签及其问卷数量。"""
+    tags = await service.get_questionnaire_tags(session)
+    return [
+        schemas.QuestionnaireTagResponse(
+            **schemas.QuestionnaireTagSummary.model_validate(tag).model_dump(),
+            questionnaire_count=count,
+        )
+        for tag, count in tags
+    ]
+
+
+@router.post("/library/tags", response_model=schemas.QuestionnaireTagSummary, status_code=201)
+async def create_questionnaire_tag(
+    data: schemas.QuestionnaireTagCreate,
+    session: Session = Depends(get_session),
+):
+    """创建问卷库标签。"""
+    try:
+        return await service.create_questionnaire_tag(session, data.model_dump())
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+
+
+@router.put("/library/tags/{tag_id}", response_model=schemas.QuestionnaireTagSummary)
+async def update_questionnaire_tag(
+    tag_id: int,
+    data: schemas.QuestionnaireTagUpdate,
+    session: Session = Depends(get_session),
+):
+    """更新标签名称或启用状态。"""
+    try:
+        tag = await service.update_questionnaire_tag(
+            session, tag_id, data.model_dump(exclude_unset=True)
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+    if not tag:
+        raise HTTPException(status_code=404, detail="标签不存在")
+    return tag
+
+
+@router.post("/library/tags/{source_tag_id}/merge", response_model=schemas.QuestionnaireTagSummary)
+async def merge_questionnaire_tags(
+    source_tag_id: int,
+    data: schemas.QuestionnaireTagMerge,
+    session: Session = Depends(get_session),
+):
+    """将源标签关联迁移至目标标签并停用源标签。"""
+    try:
+        return await service.merge_questionnaire_tags(
+            session, source_tag_id, data.target_tag_id
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+
+
+@router.get("/library/creators", response_model=List[str])
+async def get_questionnaire_creator_options(session: Session = Depends(get_session)):
+    """获取已编辑问卷中的创建人筛选项。"""
+    return await service.get_questionnaire_creator_options(session)
+
+
+@router.put("/questionnaires/bulk-library-category")
+async def bulk_update_questionnaire_library_category(
+    data: schemas.QuestionnaireBulkLibraryCategoryUpdate,
+    session: Session = Depends(get_session),
+):
+    """批量更新问卷库主分类。"""
+    try:
+        updated_count = await service.bulk_update_questionnaire_library_category(
+            session, data.questionnaire_ids, data.library_category_id
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+    return {"updated_count": updated_count}
 
 
 @router.get("/questionnaires/{questionnaire_id}", response_model=schemas.QuestionnaireDetailResponse)
@@ -44,7 +215,10 @@ async def create_questionnaire(
     session: Session = Depends(get_session)
 ):
     """创建问卷."""
-    questionnaire = await service.create_questionnaire(session, data.model_dump())
+    try:
+        questionnaire = await service.create_questionnaire(session, data.model_dump())
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
     return questionnaire
 
 
@@ -99,9 +273,12 @@ async def update_questionnaire(
     session: Session = Depends(get_session)
 ):
     """更新问卷."""
-    questionnaire = await service.update_questionnaire(
-        session, questionnaire_id, data.model_dump(exclude_unset=True)
-    )
+    try:
+        questionnaire = await service.update_questionnaire(
+            session, questionnaire_id, data.model_dump(exclude_unset=True)
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
     if not questionnaire:
         raise HTTPException(status_code=404, detail="问卷不存在")
     return questionnaire

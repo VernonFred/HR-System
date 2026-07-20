@@ -6,36 +6,25 @@
  */
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { getQuestionnaireCopy } from '../utils/questionnaireCopy'
-
-interface Questionnaire {
-  id: number
-  name: string
-  type: string
-  category?: string
-  custom_type?: string
-  purpose?: string
-  description?: string
-  creator?: string
-  questions_count: number
-  estimated_minutes: number
-  status: 'active' | 'inactive'
-  created_at: string
-}
+import type { Questionnaire } from '../api/assessments'
 
 const props = defineProps<{
   questionnaire: Questionnaire
   category?: string
+  selectable?: boolean
+  selected?: boolean
 }>()
 
 const emit = defineEmits<{
   (e: 'edit', q: Questionnaire): void
-  (e: 'delete', id: number): void
+  (e: 'delete', q: Questionnaire): void
   (e: 'toggle-status', q: Questionnaire): void
   (e: 'view-links', q: Questionnaire): void
   (e: 'distribute', q: Questionnaire): void
   (e: 'view-detail', q: Questionnaire): void
   (e: 'copy', q: Questionnaire): void
   (e: 'disabled-distribute-click'): void
+  (e: 'toggle-select', q: Questionnaire): void
 }>()
 
 // 菜单状态
@@ -51,6 +40,13 @@ const formattedDate = computed(() => {
   return new Date(props.questionnaire.created_at).toLocaleDateString()
 })
 const typeClass = computed(() => `type-${props.questionnaire.type.toLowerCase()}`)
+const typeLabel = computed(() => {
+  if (props.questionnaire.custom_type === 'scored') return '评分问卷'
+  if (props.questionnaire.type.toUpperCase() === 'CUSTOM') return '普通调查'
+  return props.questionnaire.type
+})
+const visibleTags = computed(() => props.questionnaire.tags?.slice(0, 2) || [])
+const hiddenTagCount = computed(() => Math.max(0, (props.questionnaire.tags?.length || 0) - 2))
 
 // ⭐ 判断是否为内置测评问卷（禁止删除）
 const isBuiltInAssessment = computed(() => {
@@ -103,6 +99,10 @@ function handleDistribute() {
 }
 
 function handleCardClick() {
+  if (props.selectable) {
+    emit('toggle-select', props.questionnaire)
+    return
+  }
   // 自定义问卷（custom/scored/survey）点击卡片打开详情抽屉
   // 专业测评（professional）不响应卡片点击
   if (props.category !== 'professional') {
@@ -129,9 +129,26 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div class="questionnaire-card" @click="handleCardClick" :class="{ clickable: category !== 'professional' }">
+  <div
+    class="questionnaire-card"
+    @click="handleCardClick"
+    :class="{
+      clickable: category !== 'professional',
+      selectable,
+      selected,
+    }"
+  >
     <!-- 卡片头部：图标 + 更多菜单 -->
     <div class="card-header-row" @click.stop>
+      <button
+        v-if="selectable"
+        class="card-select"
+        :class="{ selected }"
+        :aria-label="selected ? '取消选择问卷' : '选择问卷'"
+        @click.stop="emit('toggle-select', questionnaire)"
+      >
+        <i :class="selected ? 'ri-checkbox-circle-fill' : 'ri-checkbox-blank-circle-line'"></i>
+      </button>
       <div class="card-icon">
         <i class="ri-file-list-3-line"></i>
       </div>
@@ -164,7 +181,14 @@ onUnmounted(() => {
     <!-- 卡片主体内容 -->
     <div class="card-body">
       <h3 class="card-title">{{ questionnaire.name }}</h3>
-      <span class="card-type-tag" :class="typeClass">{{ questionnaire.type }}</span>
+      <div class="card-classification">
+        <span class="card-main-category">
+          {{ questionnaire.library_category?.name || '未分类' }}
+        </span>
+        <span v-for="tag in visibleTags" :key="tag.id" class="card-library-tag">{{ tag.name }}</span>
+        <span v-if="hiddenTagCount" class="card-library-tag card-library-tag-more">+{{ hiddenTagCount }}</span>
+      </div>
+      <span class="card-type-tag" :class="typeClass">{{ typeLabel }}</span>
       
       <div class="card-meta">
         <span class="meta-item">

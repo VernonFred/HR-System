@@ -1,9 +1,57 @@
 """问卷管理 - 数据模型."""
 from datetime import datetime
 from typing import Optional, List
-from sqlmodel import SQLModel, Field, JSON, Column
-from sqlalchemy import Text
+from sqlmodel import SQLModel, Field, JSON, Column, Relationship
+from sqlalchemy import ForeignKey, Integer, Text
 
+
+class QuestionnaireTagLink(SQLModel, table=True):
+    """问卷和标签的多对多关联。"""
+
+    __tablename__ = "questionnaire_tag_links"
+
+    questionnaire_id: int = Field(
+        sa_column=Column(
+            Integer,
+            ForeignKey("questionnaires.id", ondelete="CASCADE"),
+            primary_key=True,
+        )
+    )
+    tag_id: int = Field(
+        sa_column=Column(
+            Integer,
+            ForeignKey("questionnaire_tags.id", ondelete="CASCADE"),
+            primary_key=True,
+            index=True,
+        )
+    )
+
+
+class QuestionnaireLibraryCategory(SQLModel, table=True):
+    """问卷库主分类。"""
+
+    __tablename__ = "questionnaire_library_categories"
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    name: str = Field(max_length=255)
+    normalized_name: str = Field(max_length=255, unique=True, index=True)
+    sort_order: int = Field(default=0)
+    is_active: bool = Field(default=True)
+    is_system: bool = Field(default=False)
+    created_at: datetime = Field(default_factory=datetime.now)
+    updated_at: datetime = Field(default_factory=datetime.now)
+
+class QuestionnaireTag(SQLModel, table=True):
+    """问卷库标签。"""
+
+    __tablename__ = "questionnaire_tags"
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    name: str = Field(max_length=255)
+    normalized_name: str = Field(max_length=255, unique=True, index=True)
+    is_active: bool = Field(default=True)
+    created_at: datetime = Field(default_factory=datetime.now)
+    updated_at: datetime = Field(default_factory=datetime.now)
 
 class Questionnaire(SQLModel, table=True):
     """问卷表."""
@@ -34,9 +82,22 @@ class Questionnaire(SQLModel, table=True):
     # assessment: 能力测评/自评（结果展示：个人得分+等级）
     # survey: 满意度/评价调查（结果展示：统计汇总）
     purpose: Optional[str] = Field(default=None, max_length=20)
+
+    library_category_id: Optional[int] = Field(
+        default=None,
+        sa_column=Column(
+            Integer,
+            ForeignKey("questionnaire_library_categories.id", ondelete="SET NULL"),
+            nullable=True,
+            index=True,
+        ),
+    )
     
     created_at: datetime = Field(default_factory=datetime.now)
     updated_at: datetime = Field(default_factory=datetime.now)
+
+    library_category: Optional[QuestionnaireLibraryCategory] = Relationship()
+    tags: List[QuestionnaireTag] = Relationship(link_model=QuestionnaireTagLink)
 
     @property
     def creator(self) -> Optional[str]:

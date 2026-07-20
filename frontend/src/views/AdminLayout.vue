@@ -329,13 +329,22 @@ onMounted(() => {
     height: auto;
   }
   .sidebar {
-    flex-direction: row;
-    align-items: center;
-    justify-content: space-between;
+    flex-direction: column;
+    align-items: stretch;
+    justify-content: flex-start;
   }
   .nav-list {
-    flex-direction: row;
-    flex-wrap: wrap;
+    flex-direction: column;
+  }
+}
+
+@media (max-width: 600px) {
+  .app-container {
+    padding: 8px;
+  }
+
+  .main {
+    padding: 8px;
   }
 }
 

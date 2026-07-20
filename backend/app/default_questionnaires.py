@@ -232,6 +232,7 @@ def _init_default_questionnaires() -> None:
             epq = Questionnaire(
                 name="EPQ人格测评（待完善）",
                 type="EPQ",
+                category="professional",
                 questions_count=0,
                 estimated_minutes=15,
                 questions_data={"questions": []},
