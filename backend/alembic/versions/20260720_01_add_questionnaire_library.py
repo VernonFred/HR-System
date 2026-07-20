@@ -55,6 +55,59 @@ def _has_foreign_key(conn, table_name: str, constraint_name: str) -> bool:
     }
 
 
+def _normalize_legacy_custom_questionnaires(conn) -> None:
+    """Map historical survey/scored aliases back to the custom questionnaire model."""
+    conn.execute(sa.text(
+        """
+        UPDATE questionnaires
+        SET
+            type = 'CUSTOM',
+            category = CASE
+                WHEN LOWER(COALESCE(custom_type, '')) = 'scored'
+                  OR LOWER(COALESCE(category, '')) = 'scored'
+                  OR UPPER(COALESCE(type, '')) = 'SCORED'
+                THEN 'scored'
+                ELSE 'survey'
+            END,
+            custom_type = CASE
+                WHEN LOWER(COALESCE(custom_type, '')) = 'scored'
+                  OR LOWER(COALESCE(category, '')) = 'scored'
+                  OR UPPER(COALESCE(type, '')) = 'SCORED'
+                THEN 'scored'
+                ELSE 'non_scored'
+            END,
+            purpose = CASE
+                WHEN purpose IS NOT NULL AND TRIM(purpose) <> '' THEN purpose
+                WHEN LOWER(COALESCE(custom_type, '')) = 'scored'
+                  OR LOWER(COALESCE(category, '')) = 'scored'
+                  OR UPPER(COALESCE(type, '')) = 'SCORED'
+                THEN 'assessment'
+                ELSE 'survey'
+            END
+        WHERE UPPER(COALESCE(type, '')) NOT IN ('EPQ', 'DISC', 'MBTI')
+          AND (
+            UPPER(COALESCE(type, '')) IN (
+                'CUSTOM', 'SURVEY', 'QUESTIONNAIRE', 'SCORED',
+                'NON_SCORED', 'CUSTOM_SURVEY'
+            )
+            OR LOWER(COALESCE(category, '')) IN ('survey', 'scored')
+            OR LOWER(COALESCE(custom_type, '')) IN ('scored', 'non_scored')
+          )
+        """
+    ))
+
+
+def _mark_professional_questionnaires(conn) -> None:
+    """Only technical professional questionnaires belong to the professional area."""
+    conn.execute(sa.text(
+        """
+        UPDATE questionnaires
+        SET category = 'professional', custom_type = NULL, purpose = NULL
+        WHERE UPPER(COALESCE(type, '')) IN ('EPQ', 'DISC', 'MBTI')
+        """
+    ))
+
+
 def upgrade() -> None:
     conn = op.get_bind()
 
@@ -81,15 +134,8 @@ def upgrade() -> None:
             for column in missing_compatibility_columns:
                 batch_op.add_column(column)
 
-    # Professional questionnaires are identified by their technical type. This
-    # also repairs rows that received the compatibility column's survey default.
-    conn.execute(sa.text(
-        """
-        UPDATE questionnaires
-        SET category = 'professional', custom_type = NULL
-        WHERE UPPER(type) <> 'CUSTOM'
-        """
-    ))
+    _normalize_legacy_custom_questionnaires(conn)
+    _mark_professional_questionnaires(conn)
 
     if not _has_table(conn, CATEGORY_TABLE):
         op.create_table(

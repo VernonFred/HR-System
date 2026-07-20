@@ -1,9 +1,8 @@
 """问卷/测评管理 - 业务逻辑."""
 from copy import deepcopy
 from datetime import datetime
-import re
 from typing import List, Tuple, Optional, Dict, Any
-from sqlalchemy import delete, or_, update
+from sqlalchemy import or_
 from sqlmodel import Session, select, func
 import random
 import string
@@ -11,10 +10,27 @@ import string
 from app.models_assessment import (
     Assessment,
     Questionnaire,
-    QuestionnaireLibraryCategory,
-    QuestionnaireTag,
     QuestionnaireTagLink,
     Submission,
+)
+from app.api.assessments.questionnaire_library_service import (
+    _custom_questionnaire_filter,
+    _custom_type_filter,
+    _is_custom_questionnaire,
+    _professional_questionnaire_filter,
+    _replace_questionnaire_tags,
+    _validate_library_category,
+    _validate_tag_ids,
+    bulk_update_questionnaire_library_category,
+    create_library_category,
+    create_questionnaire_tag,
+    get_library_categories,
+    get_questionnaire_creator_options,
+    get_questionnaire_tags,
+    merge_questionnaire_tags,
+    reorder_library_categories,
+    update_library_category,
+    update_questionnaire_tag,
 )
 from app.api.assessments.routing_service import normalize_routing_config, resolve_questionnaire_id
 from app.api.assessments.submission_service import (
@@ -26,87 +42,6 @@ from app.api.assessments.submission_service import (
 
 
 # ========== 问卷管理 ==========
-
-CUSTOM_QUESTIONNAIRE_CATEGORIES = {"scored", "survey"}
-MAX_QUESTIONNAIRE_TAGS = 10
-
-
-def normalize_library_name(name: str) -> str:
-    """Return the normalized value used by library-category and tag uniqueness checks."""
-    normalized = re.sub(r"\s+", " ", (name or "").strip()).casefold()
-    if not normalized:
-        raise ValueError("名称不能为空")
-    return normalized
-
-
-def _is_custom_questionnaire(
-    category: Optional[str], questionnaire_type: Optional[str] = None
-) -> bool:
-    has_custom_category = category in CUSTOM_QUESTIONNAIRE_CATEGORIES
-    return has_custom_category and (
-        questionnaire_type is None or questionnaire_type.upper() == "CUSTOM"
-    )
-
-
-def _validate_library_category(
-    session: Session,
-    library_category_id: Optional[int],
-    *,
-    require_active_non_system: bool,
-) -> Optional[QuestionnaireLibraryCategory]:
-    if library_category_id is None:
-        if require_active_non_system:
-            raise ValueError("自定义问卷必须选择主分类")
-        return None
-
-    category = session.get(QuestionnaireLibraryCategory, library_category_id)
-    if not category:
-        raise ValueError("主分类不存在")
-    if not category.is_active:
-        raise ValueError("主分类已停用")
-    if require_active_non_system and category.is_system:
-        raise ValueError("不能将系统主分类用于自定义问卷")
-    return category
-
-
-def _validate_tag_ids(
-    session: Session,
-    tag_ids: List[int],
-    *,
-    existing_tag_ids: Optional[set[int]] = None,
-) -> List[QuestionnaireTag]:
-    if len(tag_ids) > MAX_QUESTIONNAIRE_TAGS:
-        raise ValueError(f"每份问卷最多关联 {MAX_QUESTIONNAIRE_TAGS} 个标签")
-    if len(tag_ids) != len(set(tag_ids)):
-        raise ValueError("标签不能重复")
-    if not tag_ids:
-        return []
-
-    tags = list(session.exec(
-        select(QuestionnaireTag).where(QuestionnaireTag.id.in_(tag_ids))
-    ).all())
-    if len(tags) != len(tag_ids):
-        raise ValueError("标签不存在")
-    existing_tag_ids = existing_tag_ids or set()
-    if any(not tag.is_active and tag.id not in existing_tag_ids for tag in tags):
-        raise ValueError("标签已停用")
-    return tags
-
-
-def _replace_questionnaire_tags(
-    session: Session,
-    questionnaire_id: int,
-    tags: List[QuestionnaireTag],
-) -> None:
-    session.exec(
-        delete(QuestionnaireTagLink).where(
-            QuestionnaireTagLink.questionnaire_id == questionnaire_id
-        )
-    )
-    session.add_all([
-        QuestionnaireTagLink(questionnaire_id=questionnaire_id, tag_id=tag.id)
-        for tag in tags
-    ])
 
 
 async def get_questionnaires(
@@ -129,10 +64,9 @@ async def get_questionnaires(
 
     if category:
         if category == "custom":
-            filters.extend([
-                Questionnaire.category.in_(CUSTOM_QUESTIONNAIRE_CATEGORIES),
-                func.upper(Questionnaire.type) == "CUSTOM",
-            ])
+            filters.append(_custom_questionnaire_filter())
+        elif category == "professional":
+            filters.append(_professional_questionnaire_filter())
         else:
             filters.append(Questionnaire.category == category)
     if library_category_id is not None:
@@ -148,13 +82,7 @@ async def get_questionnaires(
     if status:
         filters.append(Questionnaire.status == status)
     if custom_type:
-        if custom_type == "non_scored":
-            filters.append(or_(
-                Questionnaire.custom_type == "non_scored",
-                (Questionnaire.category == "survey") & Questionnaire.custom_type.is_(None),
-            ))
-        else:
-            filters.append(Questionnaire.custom_type == custom_type)
+        filters.append(_custom_type_filter(custom_type))
     if keyword is not None and keyword.strip():
         keyword_pattern = f"%{keyword.strip()}%"
         filters.append(or_(
@@ -316,259 +244,6 @@ async def delete_questionnaire(session: Session, questionnaire_id: int) -> bool:
     return True
 
 
-# ========== 问卷库分类和标签管理 ==========
-
-async def get_library_categories(
-    session: Session,
-) -> List[Tuple[QuestionnaireLibraryCategory, int]]:
-    statement = (
-        select(QuestionnaireLibraryCategory, func.count(Questionnaire.id))
-        .outerjoin(
-            Questionnaire,
-            Questionnaire.library_category_id == QuestionnaireLibraryCategory.id,
-        )
-        .group_by(QuestionnaireLibraryCategory.id)
-        .order_by(
-            QuestionnaireLibraryCategory.sort_order.asc(),
-            QuestionnaireLibraryCategory.id.asc(),
-        )
-    )
-    return [(category, int(count)) for category, count in session.exec(statement).all()]
-
-
-async def create_library_category(
-    session: Session, data: Dict[str, Any]
-) -> QuestionnaireLibraryCategory:
-    name = (data.get("name") or "").strip()
-    normalized_name = normalize_library_name(name)
-    existing = session.exec(select(QuestionnaireLibraryCategory).where(
-        QuestionnaireLibraryCategory.normalized_name == normalized_name
-    )).first()
-    if existing:
-        raise ValueError("主分类名称重复")
-
-    category = QuestionnaireLibraryCategory(
-        name=name,
-        normalized_name=normalized_name,
-        sort_order=data.get("sort_order", 0),
-    )
-    session.add(category)
-    session.commit()
-    session.refresh(category)
-    return category
-
-
-async def update_library_category(
-    session: Session, category_id: int, data: Dict[str, Any]
-) -> Optional[QuestionnaireLibraryCategory]:
-    category = session.get(QuestionnaireLibraryCategory, category_id)
-    if not category:
-        return None
-
-    if "name" in data and data["name"] is not None:
-        name = data["name"].strip()
-        normalized_name = normalize_library_name(name)
-        if category.is_system and name != category.name:
-            raise ValueError("系统主分类不能重命名")
-        duplicate = session.exec(select(QuestionnaireLibraryCategory).where(
-            QuestionnaireLibraryCategory.normalized_name == normalized_name,
-            QuestionnaireLibraryCategory.id != category_id,
-        )).first()
-        if duplicate:
-            raise ValueError("主分类名称重复")
-        category.name = name
-        category.normalized_name = normalized_name
-    if data.get("is_active") is False and category.is_system:
-        raise ValueError("系统主分类不能停用")
-    if "sort_order" in data and data["sort_order"] is not None:
-        category.sort_order = data["sort_order"]
-    if "is_active" in data and data["is_active"] is not None:
-        category.is_active = data["is_active"]
-
-    category.updated_at = datetime.now()
-    session.add(category)
-    session.commit()
-    session.refresh(category)
-    return category
-
-
-async def reorder_library_categories(
-    session: Session,
-    category_ids: List[int],
-) -> List[QuestionnaireLibraryCategory]:
-    if not category_ids or len(category_ids) != len(set(category_ids)):
-        raise ValueError("主分类排序列表不能为空或重复")
-    categories = list(session.exec(select(QuestionnaireLibraryCategory).where(
-        QuestionnaireLibraryCategory.id.in_(category_ids)
-    )).all())
-    if len(categories) != len(category_ids):
-        raise ValueError("主分类不存在")
-
-    categories_by_id = {category.id: category for category in categories}
-    now = datetime.now()
-    ordered_categories = []
-    for sort_order, category_id in enumerate(category_ids):
-        category = categories_by_id[category_id]
-        category.sort_order = sort_order
-        category.updated_at = now
-        session.add(category)
-        ordered_categories.append(category)
-    session.commit()
-    for category in ordered_categories:
-        session.refresh(category)
-    return ordered_categories
-
-
-async def get_questionnaire_tags(
-    session: Session,
-) -> List[Tuple[QuestionnaireTag, int]]:
-    statement = (
-        select(QuestionnaireTag, func.count(QuestionnaireTagLink.questionnaire_id))
-        .outerjoin(
-            QuestionnaireTagLink,
-            QuestionnaireTagLink.tag_id == QuestionnaireTag.id,
-        )
-        .group_by(QuestionnaireTag.id)
-        .order_by(QuestionnaireTag.name.asc(), QuestionnaireTag.id.asc())
-    )
-    return [(tag, int(count)) for tag, count in session.exec(statement).all()]
-
-
-async def create_questionnaire_tag(
-    session: Session, data: Dict[str, Any]
-) -> QuestionnaireTag:
-    name = (data.get("name") or "").strip()
-    normalized_name = normalize_library_name(name)
-    existing = session.exec(select(QuestionnaireTag).where(
-        QuestionnaireTag.normalized_name == normalized_name
-    )).first()
-    if existing:
-        raise ValueError("标签名称重复")
-
-    tag = QuestionnaireTag(name=name, normalized_name=normalized_name)
-    session.add(tag)
-    session.commit()
-    session.refresh(tag)
-    return tag
-
-
-async def update_questionnaire_tag(
-    session: Session, tag_id: int, data: Dict[str, Any]
-) -> Optional[QuestionnaireTag]:
-    tag = session.get(QuestionnaireTag, tag_id)
-    if not tag:
-        return None
-
-    if "name" in data and data["name"] is not None:
-        name = data["name"].strip()
-        normalized_name = normalize_library_name(name)
-        duplicate = session.exec(select(QuestionnaireTag).where(
-            QuestionnaireTag.normalized_name == normalized_name,
-            QuestionnaireTag.id != tag_id,
-        )).first()
-        if duplicate:
-            raise ValueError("标签名称重复")
-        tag.name = name
-        tag.normalized_name = normalized_name
-    if "is_active" in data and data["is_active"] is not None:
-        tag.is_active = data["is_active"]
-
-    tag.updated_at = datetime.now()
-    session.add(tag)
-    session.commit()
-    session.refresh(tag)
-    return tag
-
-
-async def merge_questionnaire_tags(
-    session: Session, source_tag_id: int, target_tag_id: int
-) -> QuestionnaireTag:
-    if source_tag_id == target_tag_id:
-        raise ValueError("源标签和目标标签不能相同")
-    source = session.get(QuestionnaireTag, source_tag_id)
-    target = session.get(QuestionnaireTag, target_tag_id)
-    if not source or not target:
-        raise ValueError("标签不存在")
-    if not target.is_active:
-        raise ValueError("目标标签已停用")
-
-    source_questionnaire_ids = list(session.exec(
-        select(QuestionnaireTagLink.questionnaire_id).where(
-            QuestionnaireTagLink.tag_id == source_tag_id
-        )
-    ).all())
-    target_questionnaire_ids = set(session.exec(
-        select(QuestionnaireTagLink.questionnaire_id).where(
-            QuestionnaireTagLink.tag_id == target_tag_id
-        )
-    ).all())
-    for questionnaire_id in source_questionnaire_ids:
-        if questionnaire_id in target_questionnaire_ids:
-            session.exec(delete(QuestionnaireTagLink).where(
-                QuestionnaireTagLink.questionnaire_id == questionnaire_id,
-                QuestionnaireTagLink.tag_id == source_tag_id,
-            ))
-        else:
-            session.exec(update(QuestionnaireTagLink).where(
-                QuestionnaireTagLink.questionnaire_id == questionnaire_id,
-                QuestionnaireTagLink.tag_id == source_tag_id,
-            ).values(tag_id=target_tag_id))
-
-    source.is_active = False
-    source.updated_at = datetime.now()
-    session.add(source)
-    session.commit()
-    session.refresh(source)
-    return source
-
-
-async def get_questionnaire_creator_options(session: Session) -> List[str]:
-    creator_expression = func.trim(Questionnaire.questions_data["meta"]["creator"].as_string())
-    statement = (
-        select(creator_expression)
-        .where(
-            Questionnaire.category.in_(CUSTOM_QUESTIONNAIRE_CATEGORIES),
-            func.upper(Questionnaire.type) == "CUSTOM",
-            creator_expression.is_not(None),
-            creator_expression != "",
-        )
-        .distinct()
-        .order_by(creator_expression.asc())
-    )
-    return [creator for creator in session.exec(statement).all() if creator]
-
-
-async def bulk_update_questionnaire_library_category(
-    session: Session,
-    questionnaire_ids: List[int],
-    library_category_id: int,
-) -> int:
-    unique_questionnaire_ids = list(dict.fromkeys(questionnaire_ids))
-    if not unique_questionnaire_ids:
-        raise ValueError("至少选择一份问卷")
-    questionnaires = list(session.exec(select(Questionnaire).where(
-        Questionnaire.id.in_(unique_questionnaire_ids)
-    )).all())
-    if len(questionnaires) != len(unique_questionnaire_ids):
-        raise ValueError("问卷不存在")
-    if any(
-        not _is_custom_questionnaire(questionnaire.category, questionnaire.type)
-        for questionnaire in questionnaires
-    ):
-        raise ValueError("批量主分类仅支持自定义问卷")
-    _validate_library_category(
-        session, library_category_id, require_active_non_system=True
-    )
-    result = session.exec(update(Questionnaire).where(
-        Questionnaire.id.in_(unique_questionnaire_ids)
-    ).values(
-        library_category_id=library_category_id,
-        updated_at=datetime.now(),
-    ))
-    session.commit()
-    return result.rowcount or 0
-
-
 # ========== 测评管理 ==========
 
 def generate_assessment_code() -> str:
@@ -656,8 +331,9 @@ async def get_submissions(
     questionnaire_ids = None
     if category:
         if category == 'custom':
-            # ⭐ custom类别：获取所有非professional的问卷（scored + survey）
-            q_statement = select(Questionnaire.id).where(Questionnaire.category.in_(['scored', 'survey']))
+            q_statement = select(Questionnaire.id).where(_custom_questionnaire_filter())
+        elif category == 'professional':
+            q_statement = select(Questionnaire.id).where(_professional_questionnaire_filter())
         else:
             q_statement = select(Questionnaire.id).where(Questionnaire.category == category)
         # ⭐ 修复：select(Questionnaire.id) 返回的是 int，不是对象

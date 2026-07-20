@@ -134,6 +134,9 @@ def test_custom_category_filter_uses_one_combined_scored_and_survey_predicate():
             _questionnaire("评分问卷", category="scored"),
             _questionnaire("调查问卷", category="survey"),
             _questionnaire(
+                "暑假售前类课程选课", category="professional", questionnaire_type="survey"
+            ),
+            _questionnaire(
                 "专业测评", category="professional", questionnaire_type="EPQ"
             ),
             _questionnaire(
@@ -154,25 +157,39 @@ def test_custom_category_filter_uses_one_combined_scored_and_survey_predicate():
         finally:
             event.remove(engine, "before_cursor_execute", capture_statement)
 
-        assert total == 2
-        assert {item.name for item in items} == {"评分问卷", "调查问卷"}
+        assert total == 3
+        assert {item.name for item in items} == {
+            "评分问卷",
+            "调查问卷",
+            "暑假售前类课程选课",
+        }
         assert len(statements) == 2  # count + page query; no preliminary category-ID query
         assert all("questionnaires.category IN" in statement for statement in statements)
+
+        professional_items, professional_total = _run(service.get_questionnaires(
+            session, category="professional"
+        ))
+        assert professional_total == 2
+        assert {item.name for item in professional_items} == {"专业测评", "历史误分类专业测评"}
 
 
 def test_non_scored_filter_includes_legacy_survey_without_custom_type():
     with _build_session() as session:
         legacy_survey = _questionnaire("历史调查", category="survey", custom_type=None)
+        legacy_alias = _questionnaire(
+            "历史别名调查", category="professional", questionnaire_type="survey",
+            custom_type=None,
+        )
         legacy_scored = _questionnaire("历史评分", category="scored", custom_type=None)
-        session.add_all([legacy_survey, legacy_scored])
+        session.add_all([legacy_survey, legacy_alias, legacy_scored])
         session.commit()
 
         items, total = _run(service.get_questionnaires(
             session, category="custom", custom_type="non_scored"
         ))
 
-        assert total == 1
-        assert [item.id for item in items] == [legacy_survey.id]
+        assert total == 2
+        assert {item.id for item in items} == {legacy_survey.id, legacy_alias.id}
 
 
 def test_custom_questionnaires_require_active_non_system_category_and_active_unique_tags():
@@ -356,7 +373,9 @@ def test_category_tag_management_bulk_assignment_and_merge_deduplicates_links():
 
         first = _questionnaire("文化问卷一", library_category_id=category.id)
         second = _questionnaire("文化问卷二", library_category_id=category.id)
-        professional = _questionnaire("专业测评", category="professional")
+        professional = _questionnaire(
+            "专业测评", category="professional", questionnaire_type="EPQ"
+        )
         session.add_all([first, second, professional])
         session.commit()
         with pytest.raises(ValueError, match="自定义问卷"):

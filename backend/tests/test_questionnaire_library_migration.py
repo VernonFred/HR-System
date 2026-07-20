@@ -1,8 +1,14 @@
 from pathlib import Path
+import sqlite3
 
 from alembic import command
 from alembic.config import Config
 from sqlalchemy import create_engine, inspect, text
+
+from scripts.repair_questionnaire_library_misclassification import (
+    apply_targets,
+    find_targets,
+)
 
 
 PREVIOUS_REVISION = "20260615_01_add_anonymous_dedupe"
@@ -109,6 +115,10 @@ def test_questionnaire_library_migration_backfills_deployed_legacy_data(
                  '2026-07-20 00:00:00', '2026-07-20 00:00:00', 'scored'),
                 ('历史调查问卷', 'custom', 0, 15, '{}', '{}', 'active',
                  '2026-07-20 00:00:00', '2026-07-20 00:00:00', 'survey'),
+                ('历史别名调查问卷', 'survey', 0, 15, '{}', '{}', 'active',
+                 '2026-07-20 00:00:00', '2026-07-20 00:00:00', 'survey'),
+                ('迁移误判调查问卷', 'survey', 0, 15, '{}', '{}', 'active',
+                 '2026-07-20 00:00:00', '2026-07-20 00:00:00', 'professional'),
                 ('历史专业测评', 'MBTI', 0, 15, '{}', '{}', 'active',
                  '2026-07-20 00:00:00', '2026-07-20 00:00:00', 'survey')
             """
@@ -120,15 +130,72 @@ def test_questionnaire_library_migration_backfills_deployed_legacy_data(
     with engine.connect() as connection:
         backfill = connection.execute(text(
             """
-            SELECT q.name, c.name, q.custom_type, q.category
+            SELECT q.name, q.type, c.name, q.custom_type, q.category, q.purpose
             FROM questionnaires q
             LEFT JOIN questionnaire_library_categories c ON c.id = q.library_category_id
             ORDER BY q.id
             """
         )).all()
         assert backfill == [
-            ("历史评分问卷", "未分类", "scored", "scored"),
-            ("历史调查问卷", "未分类", "non_scored", "survey"),
-            ("历史专业测评", None, None, "professional"),
+            ("历史评分问卷", "CUSTOM", "未分类", "scored", "scored", "assessment"),
+            ("历史调查问卷", "CUSTOM", "未分类", "non_scored", "survey", "survey"),
+            ("历史别名调查问卷", "CUSTOM", "未分类", "non_scored", "survey", "survey"),
+            ("迁移误判调查问卷", "CUSTOM", "未分类", "non_scored", "survey", "survey"),
+            ("历史专业测评", "MBTI", None, None, "professional", None),
         ]
     engine.dispose()
+
+
+def test_questionnaire_library_repair_script_restores_legacy_survey_alias():
+    conn = sqlite3.connect(":memory:")
+    conn.row_factory = sqlite3.Row
+    conn.executescript(
+        """
+        CREATE TABLE questionnaire_library_categories (
+            id INTEGER PRIMARY KEY,
+            name TEXT,
+            normalized_name TEXT,
+            sort_order INTEGER,
+            is_system INTEGER
+        );
+        CREATE TABLE questionnaires (
+            id INTEGER PRIMARY KEY,
+            name TEXT,
+            type TEXT,
+            category TEXT,
+            custom_type TEXT,
+            purpose TEXT,
+            library_category_id INTEGER,
+            updated_at TEXT
+        );
+        INSERT INTO questionnaire_library_categories
+            (id, name, normalized_name, sort_order, is_system)
+        VALUES (7, '未分类', '未分类', 7, 1);
+        INSERT INTO questionnaires
+            (id, name, type, category, custom_type, purpose, library_category_id)
+        VALUES
+            (23, '暑假售前类课程选课', 'survey', 'professional', NULL, NULL, NULL),
+            (24, 'MBTI专业测评', 'MBTI', 'professional', NULL, NULL, NULL);
+        """
+    )
+
+    targets = find_targets(conn, questionnaire_id=23)
+
+    assert len(targets) == 1
+    target = targets[0]
+    assert target.target_category == "survey"
+    assert target.target_custom_type == "non_scored"
+    assert target.target_purpose == "survey"
+    assert target.target_library_category_id == 7
+
+    assert apply_targets(conn, targets) == 1
+    fixed = conn.execute(
+        """
+        SELECT type, category, custom_type, purpose, library_category_id
+        FROM questionnaires
+        WHERE id = 23
+        """
+    ).fetchone()
+    assert tuple(fixed) == ("CUSTOM", "survey", "non_scored", "survey", 7)
+    assert find_targets(conn, questionnaire_id=24) == []
+    conn.close()
