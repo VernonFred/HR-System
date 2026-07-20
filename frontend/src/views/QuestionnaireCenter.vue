@@ -8,7 +8,6 @@ import {
   watch,
 } from 'vue'
 import QuestionnaireCard from '../components/QuestionnaireCard.vue'
-import { useAuthStore } from '../stores/auth'
 import {
   bulkUpdateQuestionnaireLibraryCategory,
   copyQuestionnaire,
@@ -44,7 +43,6 @@ const QuestionnaireLibraryManager = defineAsyncComponent(() => import('../compon
 const DistributeModal = defineAsyncComponent(() => import('../components/DistributeModal.vue'))
 const ViewLinksPanel = defineAsyncComponent(() => import('../components/ViewLinksPanel.vue'))
 
-const authStore = useAuthStore()
 const pageSize = 12
 
 const loading = ref(false)
@@ -63,6 +61,7 @@ const sortFilter = ref<QuestionnaireLibrarySort>('updated_desc')
 const keyword = ref('')
 const debouncedKeyword = ref('')
 const categoryTabLimit = ref(6)
+const categoryMoreRef = ref<HTMLDetailsElement | null>(null)
 
 const message = ref({
   show: false,
@@ -147,6 +146,15 @@ const toggleCurrentPageSelection = () => {
 
 const setActiveCategory = (categoryId: number | null) => {
   activeCategoryId.value = categoryId
+  if (categoryMoreRef.value) categoryMoreRef.value.open = false
+}
+
+const closeCategoryMoreOnOutsideClick = (event: PointerEvent) => {
+  const menu = categoryMoreRef.value
+  if (!menu?.open) return
+  if (event.target instanceof Node && !menu.contains(event.target)) {
+    menu.open = false
+  }
 }
 
 const setCurrentPage = (page: number) => {
@@ -579,6 +587,7 @@ const updateCategoryTabLimit = () => {
 onMounted(() => {
   updateCategoryTabLimit()
   window.addEventListener('resize', updateCategoryTabLimit)
+  document.addEventListener('pointerdown', closeCategoryMoreOnOutsideClick)
   loadLibraryMetadata()
 })
 
@@ -586,6 +595,7 @@ onUnmounted(() => {
   if (keywordTimer) clearTimeout(keywordTimer)
   if (messageTimer) clearTimeout(messageTimer)
   window.removeEventListener('resize', updateCategoryTabLimit)
+  document.removeEventListener('pointerdown', closeCategoryMoreOnOutsideClick)
 })
 </script>
 

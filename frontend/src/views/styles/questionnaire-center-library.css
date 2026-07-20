@@ -6,7 +6,6 @@
 
 .btn-quiet,
 .batch-toggle,
-.filter-command,
 .filter-reset {
   display: inline-flex;
   align-items: center;
@@ -25,9 +24,7 @@
 
 .btn-quiet:hover,
 .batch-toggle:hover,
-.filter-command:hover,
 .filter-reset:hover,
-.filter-command.active,
 .batch-toggle.active {
   border-color: #c7d2fe;
   background: #eef2ff;

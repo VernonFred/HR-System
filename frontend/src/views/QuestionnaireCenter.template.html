@@ -62,7 +62,11 @@
             {{ category.questionnaire_count }}
           </span>
         </button>
-        <details v-if="overflowCategories.length" class="category-more">
+        <details
+          v-if="overflowCategories.length"
+          ref="categoryMoreRef"
+          class="category-more"
+        >
           <summary :class="{ active: activeCategoryInOverflow }">
             {{ activeCategoryInOverflow?.name || '更多' }}
             <i class="ri-arrow-down-s-line"></i>
@@ -112,14 +116,6 @@
             <option v-for="creator in creatorOptions" :key="creator" :value="creator">{{ creator }}</option>
           </select>
         </label>
-        <button
-          class="filter-command"
-          :class="{ active: creatorFilter === authStore.username }"
-          @click="creatorFilter = creatorFilter === authStore.username ? '' : authStore.username"
-        >
-          我创建的
-        </button>
-
         <label class="filter-select">
           <select v-model="customTypeFilter" aria-label="问卷类型筛选">
             <option value="all">全部类型</option>
