@@ -98,7 +98,7 @@ export const getCandidatePortrait = async (
   const query = params.toString();
   return apiRequest({
     path: `/api/candidates/${candidateId}/portrait${query ? '?' + query : ''}`,
-    auth: false,
+    auth: true,
   });
 };
 
@@ -120,7 +120,7 @@ export const getCandidatePortraits = async (params?: {
   const queryString = query.toString();
   return apiRequest({
     path: `/api/candidates/portraits${queryString ? '?' + queryString : ''}`,
-    auth: false,
+    auth: true,
   });
 };
 
@@ -143,7 +143,7 @@ export const getPortraitCacheStatus = async (
 ): Promise<PortraitCacheStatus> => {
   return apiRequest({
     path: `/api/candidates/${candidateId}/portrait-cache-status`,
-    auth: false,
+    auth: true,
   });
 };
 

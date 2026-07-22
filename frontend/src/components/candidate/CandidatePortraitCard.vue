@@ -8,7 +8,7 @@ import AssessmentAccordion from './AssessmentAccordion.vue';
 import CompetencySection from './CompetencySection.vue';
 import SummaryCard from './SummaryCard.vue';
 import ScoreBreakdownModal from './ScoreBreakdownModal.vue';
-import { getResumeInfo, getResumeDownloadUrl, deleteResume, parseResume } from '../../api/resumes';
+import { getResumeInfo, downloadResume, deleteResume, parseResume } from '../../api/resumes';
 
 const props = withDefaults(defineProps<{
   profile: CandidateProfile | null;
@@ -391,10 +391,19 @@ const handleResumeError = (error: string) => {
   showMessageToast(`上传失败: ${error}`, 'error');
 };
 
-const handleDownloadResume = () => {
+const handleDownloadResume = async () => {
   if (props.profile?.id) {
-    const url = getResumeDownloadUrl(Number(props.profile.id));
-    window.open(url, '_blank');
+    try {
+      const blob = await downloadResume(Number(props.profile.id));
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = resumeInfo.value?.file_name || 'resume';
+      link.click();
+      setTimeout(() => URL.revokeObjectURL(url), 0);
+    } catch (error: any) {
+      showMessageToast(`下载失败: ${error.message}`, 'error');
+    }
   }
 };
 

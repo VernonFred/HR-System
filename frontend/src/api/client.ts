@@ -34,7 +34,7 @@ const getDefaultBase = () => {
 
 const DEFAULT_BASE = getDefaultBase();
 
-export async function apiRequest<T>({ path, fallback, baseUrl, headers, auth, token }: FetchOptions<T>): Promise<T> {
+export async function apiRequest<T>({ path, fallback, baseUrl, headers, auth = true, token }: FetchOptions<T>): Promise<T> {
   const url = `${baseUrl || DEFAULT_BASE}${path}`;
   // V45: 修复 - doFetch 必须正确接收并使用 token 参数
   const doFetch = (tk?: string) =>
@@ -62,7 +62,7 @@ export async function apiRequestWithBody<T>({
   headers,
   fallback,
   baseUrl,
-  auth,
+  auth = true,
   token,
 }: FetchOptions<T>): Promise<T> {
   const url = `${baseUrl || DEFAULT_BASE}${path}`;
@@ -115,6 +115,21 @@ function buildHeaders(base?: Record<string, string>, token?: string) {
   return headers;
 }
 
+export async function authenticatedFetch(
+  input: RequestInfo | URL,
+  init: RequestInit = {},
+  token?: string
+): Promise<Response> {
+  const doFetch = (tk?: string) => {
+    const headers = Object.fromEntries(new Headers(init.headers).entries());
+    return fetch(input, {
+      ...init,
+      headers: buildHeaders(headers, tk),
+    });
+  };
+  return withAuthRetry(doFetch, token);
+}
+
 // V45: 修复 - withAuthRetry 接收 doFetch 函数和初始 token
 async function withAuthRetry(
   doFetch: (token?: string) => Promise<Response>,
@@ -126,7 +141,6 @@ async function withAuthRetry(
   const initialToken = initialTokenParam || store.token || tokens.token || import.meta.env.VITE_AUTH_TOKEN || "";
   const refreshToken = store.refreshToken || tokens.refreshToken || "";
 
-  console.log("[auth] Making request with token:", initialToken ? `${initialToken.substring(0, 20)}...` : "none");
   let res = await doFetch(initialToken || undefined);
   if (res.status !== 401) return res;
 
@@ -140,7 +154,7 @@ async function withAuthRetry(
     // refresh() 返回新的 token，直接使用返回值
     const refreshResult = await store.refresh();
     const newToken = refreshResult.access_token;
-    console.log("[auth] Token refreshed successfully, retrying with new token:", newToken.substring(0, 20) + "...");
+    console.log("[auth] Token refreshed successfully, retrying request");
     res = await doFetch(newToken);
     if (res.status !== 401) return res;
     console.log("[auth] Still got 401 after refresh");

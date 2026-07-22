@@ -6,12 +6,25 @@ import time
 from hashlib import sha256
 from typing import Optional
 
-from fastapi import Header, HTTPException, status
+from fastapi import Depends, Header, HTTPException, Request, status
 from sqlmodel import Session, select
 
 from app.models import User
 from app.security import encode_jwt, hash_password, verify_password
 from app.db import get_engine
+
+
+PUBLIC_REQUESTS = frozenset(
+    {
+        ("GET", "/health"),
+        ("POST", "/auth/login"),
+        ("POST", "/auth/refresh"),
+    }
+)
+PUBLIC_PATH_PREFIXES = (
+    "/api/public/assessment/",
+    "/v2/public/assessments/",
+)
 
 
 def _b64url_decode(data: str) -> bytes:
@@ -58,6 +71,17 @@ def _decode_jwt(token: str, secret: str) -> dict:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token expired")
 
     return payload
+
+
+def get_jwt_secret() -> str:
+    """Return the configured JWT secret, supporting the legacy variable name."""
+    secret = (os.getenv("JWT_SECRET") or os.getenv("JWT_SECRET_KEY") or "").strip()
+    if not secret:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Authentication is not configured",
+        )
+    return secret
 
 
 def get_default_user_credentials() -> tuple[str, str]:
@@ -112,39 +136,65 @@ def decode_and_validate_token(token: str, secret: str, expected_type: str = "acc
 
 def get_current_user(
     authorization: Optional[str] = Header(default=None),
-    x_user_id: Optional[str] = Header(default=None),
 ) -> int:
-    """
-    JWT/占位鉴权：
-    - 优先使用 Authorization: Bearer <jwt>（HS256，secret 来自 JWT_SECRET）
-    - 兼容自定义头 X-User-Id 作为降级（无签名校验）
-    """
+    """Validate an access token and return its numeric user id."""
     import logging
     logger = logging.getLogger(__name__)
-    
-    secret = os.getenv("JWT_SECRET", "change_me")
 
     if authorization and authorization.lower().startswith("bearer "):
         token = authorization.split(" ", 1)[1].strip()
-        logger.info(f"[AUTH] Validating token (first 20 chars): {token[:20]}...")
-        payload = _decode_jwt(token, secret)
+        if not token:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Missing bearer token",
+            )
+        payload = decode_and_validate_token(
+            token,
+            secret=get_jwt_secret(),
+            expected_type="access",
+        )
         sub = payload.get("sub")
         if sub is None:
             logger.warning("[AUTH] Missing sub in token")
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Missing sub in token")
         try:
-            logger.info(f"[AUTH] Token valid, user_id: {sub}")
             return int(sub)
         except (TypeError, ValueError):
             logger.warning(f"[AUTH] Invalid sub in token: {sub}")
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid sub in token")
 
-    if x_user_id:
-        try:
-            return int(x_user_id.strip())
-        except ValueError:
-            logger.warning(f"[AUTH] Invalid X-User-Id: {x_user_id}")
-            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid X-User-Id")
+    logger.warning("[AUTH] Missing bearer token")
+    raise HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Missing bearer token",
+    )
 
-    logger.warning(f"[AUTH] Missing Authorization header. Got: {authorization}")
-    raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Missing Authorization/X-User-Id")
+
+def get_current_admin_user(user_id: int = Depends(get_current_user)) -> int:
+    """Require the authenticated user to have the administrator role."""
+    with Session(get_engine()) as session:
+        user = session.get(User, user_id)
+        if not user or user.role != "admin":
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Administrator access required",
+            )
+    return user_id
+
+
+def is_public_request(method: str, path: str) -> bool:
+    if method.upper() == "OPTIONS":
+        return True
+    if (method.upper(), path) in PUBLIC_REQUESTS:
+        return True
+    return any(path.startswith(prefix) for prefix in PUBLIC_PATH_PREFIXES)
+
+
+def enforce_authenticated_access(
+    request: Request,
+    authorization: Optional[str] = Header(default=None),
+) -> Optional[int]:
+    """Protect every application route except the explicit public workflow."""
+    if is_public_request(request.method, request.url.path):
+        return None
+    return get_current_user(authorization=authorization)

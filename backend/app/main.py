@@ -13,10 +13,10 @@ if not os.getenv("DATABASE_URL") or "postgres" in os.getenv("DATABASE_URL", ""):
 os.environ["AI_API_BASE"] = "https://api.deepseek.com"
 os.environ["AI_MODEL"] = "deepseek-v4-pro"
 
-from fastapi import FastAPI
+from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.auth import get_or_create_default_user
+from app.auth import enforce_authenticated_access, get_or_create_default_user
 from app.db import ensure_tables
 from app.default_questionnaires import _init_default_questionnaires
 from app.api.ai.router import router as ai_router
@@ -36,6 +36,7 @@ from app.api.v2 import router as v2_router
 app = FastAPI(
     title="HR Backend",
     version="0.1.0",
+    dependencies=[Depends(enforce_authenticated_access)],
     # ⭐ 禁用尾部斜杠重定向，避免 307 问题
     redirect_slashes=False,
 )

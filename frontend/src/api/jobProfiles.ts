@@ -2,7 +2,7 @@
  * 岗位画像API客户端
  */
 
-import { apiRequest, apiRequestWithBody } from './client';
+import { apiRequest, apiRequestWithBody, authenticatedFetch } from './client';
 
 // ========== 类型定义 ==========
 
@@ -88,7 +88,7 @@ export const getJobProfiles = async (params?: {
   const queryString = query.toString();
   return apiRequest({
     path: `/api/job-profiles${queryString ? '?' + queryString : ''}`,
-    auth: false,
+    auth: true,
   });
 };
 
@@ -98,7 +98,7 @@ export const getJobProfiles = async (params?: {
 export const getJobProfile = async (id: number): Promise<JobProfile> => {
   return apiRequest({
     path: `/api/job-profiles/${id}`,
-    auth: false,
+    auth: true,
   });
 };
 
@@ -110,7 +110,7 @@ export const createJobProfile = async (data: JobProfileCreate): Promise<JobProfi
     path: '/api/job-profiles',
     method: 'POST',
     body: data,
-    auth: false,
+    auth: true,
   });
 };
 
@@ -125,7 +125,7 @@ export const updateJobProfile = async (
     path: `/api/job-profiles/${id}`,
     method: 'PUT',
     body: data,
-    auth: false,
+    auth: true,
   });
 };
 
@@ -136,7 +136,7 @@ export const deleteJobProfile = async (id: number): Promise<void> => {
   return apiRequestWithBody({
     path: `/api/job-profiles/${id}`,
     method: 'DELETE',
-    auth: false,
+    auth: true,
   });
 };
 
@@ -151,7 +151,7 @@ export const matchCandidates = async (
     path: `/api/job-profiles/${profileId}/match`,
     method: 'POST',
     body: params || {},
-    auth: false,
+    auth: true,
   });
 };
 
@@ -172,7 +172,7 @@ export const getProfileMatches = async (
   const queryString = query.toString();
   return apiRequest({
     path: `/api/job-profiles/${profileId}/matches${queryString ? '?' + queryString : ''}`,
-    auth: false,
+    auth: true,
   });
 };
 
@@ -197,7 +197,7 @@ export const analyzeResumeForProfile = async (
   query.append('job_title', jobTitle);
   if (department) query.append('department', department);
   
-  const response = await fetch(
+  const response = await authenticatedFetch(
     `/api/job-profiles/analyze-resume?${query.toString()}`,
     {
       method: 'POST',
@@ -234,7 +234,7 @@ export const analyzeMultipleResumesForProfile = async (
   query.append('job_title', jobTitle);
   if (department) query.append('department', department);
   
-  const response = await fetch(
+  const response = await authenticatedFetch(
     `/api/job-profiles/analyze-resumes?${query.toString()}`,
     {
       method: 'POST',
@@ -262,7 +262,7 @@ export const aiConfigureDimensions = async (
   description?: string,
   existingDimensions?: Dimension[]
 ): Promise<{ dimensions: Dimension[]; analysis: string }> => {
-  const response = await fetch('/api/job-profiles/ai-configure-dimensions', {
+  const response = await authenticatedFetch('/api/job-profiles/ai-configure-dimensions', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -299,7 +299,7 @@ export const analyzeJDForProfile = async (
   query.append('job_title', jobTitle);
   if (department) query.append('department', department);
   
-  const response = await fetch(
+  const response = await authenticatedFetch(
     `/api/job-profiles/analyze-jd?${query.toString()}`,
     {
     method: 'POST',
@@ -317,4 +317,3 @@ export const analyzeJDForProfile = async (
   
   return response.json();
 };
-

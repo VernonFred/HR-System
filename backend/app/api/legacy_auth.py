@@ -4,7 +4,14 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
 from sqlmodel import Session, SQLModel, select
 
-from app.auth import authenticate, decode_and_validate_token, get_current_user, issue_token
+from app.auth import (
+    authenticate,
+    decode_and_validate_token,
+    get_current_admin_user,
+    get_current_user,
+    get_jwt_secret,
+    issue_token,
+)
 from app.db import get_engine
 from app.models import User
 from app.security import hash_password, verify_password
@@ -36,7 +43,7 @@ def login(payload: LoginRequest) -> LoginResponse:
     user = authenticate(payload.username, payload.password)
     if not user:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
-    secret = os.getenv("JWT_SECRET", "change_me")
+    secret = get_jwt_secret()
     # V45: 延长 access token 有效期到 7 天（604800秒），refresh token 30 天
     access = issue_token(user, secret=secret, exp_seconds=int(os.getenv("JWT_EXPIRES_IN", "604800")), token_type="access")
     refresh = issue_token(
@@ -46,7 +53,10 @@ def login(payload: LoginRequest) -> LoginResponse:
 
 
 @router.post("/auth/register", response_model=LoginResponse, tags=["auth"])
-def register(payload: RegisterRequest) -> LoginResponse:
+def register(
+    payload: RegisterRequest,
+    _admin_user_id: int = Depends(get_current_admin_user),
+) -> LoginResponse:
     engine = get_engine()
     with Session(engine) as session:
         exists = session.exec(select(User).where(User.username == payload.username)).first()
@@ -56,7 +66,7 @@ def register(payload: RegisterRequest) -> LoginResponse:
         session.add(user)
         session.commit()
         session.refresh(user)
-        secret = os.getenv("JWT_SECRET", "change_me")
+        secret = get_jwt_secret()
         # V45: 延长 access token 有效期到 7 天（604800秒），refresh token 30 天
         access = issue_token(user, secret=secret, exp_seconds=int(os.getenv("JWT_EXPIRES_IN", "604800")), token_type="access")
         refresh = issue_token(
@@ -67,7 +77,7 @@ def register(payload: RegisterRequest) -> LoginResponse:
 
 @router.post("/auth/refresh", response_model=LoginResponse, tags=["auth"])
 def refresh(payload: RefreshRequest) -> LoginResponse:
-    secret = os.getenv("JWT_SECRET", "change_me")
+    secret = get_jwt_secret()
     data = decode_and_validate_token(payload.refresh_token, secret=secret, expected_type="refresh")
     engine = get_engine()
     with Session(engine) as session:

@@ -2,6 +2,7 @@
  * 问卷文件导入 API。
  */
 import type { QuestionnaireImportResponse } from './assessmentTypes';
+import { authenticatedFetch } from './client';
 
 // ========== V43: 问卷导入 ==========
 
@@ -24,7 +25,7 @@ export const importQuestionnaire = async (
   // V45: 添加use_ai参数
   const url = `/api/assessments/questionnaires/import?use_ai=${useAI}`;
 
-  const response = await fetch(url, {
+  const response = await authenticatedFetch(url, {
     method: 'POST',
     body: formData,
   });

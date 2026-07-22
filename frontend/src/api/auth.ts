@@ -6,6 +6,7 @@ export async function login(payload: LoginRequest): Promise<LoginResponse> {
     path: "/auth/login",
     method: "POST",
     body: payload,
+    auth: false,
   });
 }
 

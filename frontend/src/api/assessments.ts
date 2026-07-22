@@ -112,7 +112,7 @@ export const fetchQuestionnaires = (params?: QuestionnaireListParams) => {
   return apiRequest<{ items: Questionnaire[]; total: number }>({
     path: `/api/assessments/questionnaires${qs ? `?${qs}` : ""}`,
     ...(fallback ? { fallback } : {}),
-    auth: false,
+    auth: true,
   });
 };
 
@@ -151,7 +151,7 @@ export const fetchQuestionnaireDetail = (id: number) => {
   return apiRequest<QuestionnaireDetail>({
     path: `/api/assessments/questionnaires/${id}`,
     fallback: {} as QuestionnaireDetail,
-    auth: false,
+    auth: true,
   });
 };
 
@@ -161,7 +161,7 @@ export const createQuestionnaire = (data: QuestionnaireCreate) => {
     method: "POST",
     body: data,
     fallback: {} as Questionnaire,
-    auth: false,
+    auth: true,
   });
 };
 
@@ -171,7 +171,7 @@ export const updateQuestionnaire = (id: number, data: QuestionnaireUpdate) => {
     method: "PUT",
     body: data,
     fallback: {} as Questionnaire,
-    auth: false,
+    auth: true,
   });
 };
 
@@ -181,7 +181,7 @@ export const fetchQuestionnaireLibraryCategories = () => {
   return apiRequest<QuestionnaireLibraryCategory[]>({
     path: QUESTIONNAIRE_LIBRARY_API_PATHS.categories,
     fallback: [],
-    auth: false,
+    auth: true,
   });
 };
 
@@ -190,7 +190,7 @@ export const createQuestionnaireLibraryCategory = (data: QuestionnaireLibraryCat
     path: QUESTIONNAIRE_LIBRARY_API_PATHS.categories,
     method: 'POST',
     body: data,
-    auth: false,
+    auth: true,
   });
 };
 
@@ -202,7 +202,7 @@ export const updateQuestionnaireLibraryCategory = (
     path: QUESTIONNAIRE_LIBRARY_API_PATHS.category(categoryId),
     method: 'PUT',
     body: data,
-    auth: false,
+    auth: true,
   });
 };
 
@@ -211,7 +211,7 @@ export const reorderQuestionnaireLibraryCategories = async (categoryIds: number[
     path: QUESTIONNAIRE_LIBRARY_API_PATHS.reorderCategories,
     method: 'PUT',
     body: { category_ids: categoryIds },
-    auth: false,
+    auth: true,
   });
 };
 
@@ -219,7 +219,7 @@ export const fetchQuestionnaireTags = () => {
   return apiRequest<QuestionnaireTag[]>({
     path: QUESTIONNAIRE_LIBRARY_API_PATHS.tags,
     fallback: [],
-    auth: false,
+    auth: true,
   });
 };
 
@@ -228,7 +228,7 @@ export const createQuestionnaireTag = (data: QuestionnaireTagCreate) => {
     path: QUESTIONNAIRE_LIBRARY_API_PATHS.tags,
     method: 'POST',
     body: data,
-    auth: false,
+    auth: true,
   });
 };
 
@@ -237,7 +237,7 @@ export const updateQuestionnaireTag = (tagId: number, data: QuestionnaireTagUpda
     path: QUESTIONNAIRE_LIBRARY_API_PATHS.tag(tagId),
     method: 'PUT',
     body: data,
-    auth: false,
+    auth: true,
   });
 };
 
@@ -246,7 +246,7 @@ export const mergeQuestionnaireTag = (sourceTagId: number, targetTagId: number) 
     path: QUESTIONNAIRE_LIBRARY_API_PATHS.mergeTag(sourceTagId),
     method: 'POST',
     body: { target_tag_id: targetTagId },
-    auth: false,
+    auth: true,
   });
 };
 
@@ -254,7 +254,7 @@ export const fetchQuestionnaireCreatorOptions = () => {
   return apiRequest<string[]>({
     path: QUESTIONNAIRE_LIBRARY_API_PATHS.creators,
     fallback: [],
-    auth: false,
+    auth: true,
   });
 };
 
@@ -265,7 +265,7 @@ export const bulkUpdateQuestionnaireLibraryCategory = (
     path: QUESTIONNAIRE_LIBRARY_API_PATHS.bulkCategory,
     method: 'PUT',
     body: data,
-    auth: false,
+    auth: true,
   });
 };
 
@@ -273,7 +273,7 @@ export const deleteQuestionnaire = (id: number) => {
   return apiRequestWithBody<void>({
     path: `/api/assessments/questionnaires/${id}`,
     method: "DELETE",
-    auth: false,
+    auth: true,
   });
 };
 
@@ -281,7 +281,7 @@ export const copyQuestionnaire = (id: number) => {
   return apiRequestWithBody<Questionnaire>({
     path: `/api/assessments/questionnaires/${id}/copy`,
     method: "POST",
-    auth: false,
+    auth: true,
   });
 };
 
@@ -320,7 +320,7 @@ export const fetchAssessments = (params?: {
   return apiRequest<{ items: Assessment[]; total: number }>({
     path: `/api/assessments${qs ? `?${qs}` : ""}`,
     fallback: { items: MOCK_ASSESSMENTS, total: MOCK_ASSESSMENTS.length },
-    auth: false,
+    auth: true,
   });
 };
 
@@ -350,7 +350,7 @@ export const createAssessment = (data: AssessmentCreate) => {
     method: "POST",
     body: data,
     fallback: fallbackData,
-    auth: false,
+    auth: true,
   });
 };
 
@@ -368,7 +368,7 @@ export const updateAssessment = (id: number, data: AssessmentUpdate) => {
     method: "PUT",
     body: data,
     fallback: MOCK_ASSESSMENTS[index] || {} as Assessment,
-    auth: false,
+    auth: true,
   });
 };
 
@@ -383,7 +383,7 @@ export const deleteAssessment = async (id: number, force: boolean = false): Prom
   return apiRequestWithBody<any>({
     path: `/api/assessments/${id}${force ? '?force=true' : ''}`,
     method: "DELETE",
-    auth: false,
+    auth: true,
   });
 };
 
@@ -455,7 +455,7 @@ export const deleteSubmission = (id: number) => {
   return apiRequestWithBody<void>({
     path: `/api/assessments/submissions/${id}`,
     method: "DELETE",
-    auth: false,
+    auth: true,
   });
 };
 
@@ -481,7 +481,7 @@ export const fetchSubmissionStatistics = (params?: {
       grade_percentages: { A: 0, B: 0, C: 0, D: 0 },
       submissions: []
     },
-    auth: false,
+    auth: true,
   });
 };
 
@@ -516,7 +516,7 @@ export const fetchQuestionnaireQuestionStats = (questionnaireId: number, range: 
       scored_submission_count: 0,
       unscored_submission_count: 0,
     },
-    auth: false,
+    auth: true,
   });
 };
 
